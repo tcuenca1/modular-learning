@@ -1,0 +1,10 @@
+# Entorno y Secretos
+.env
+__pycache__/
+*.pyc
+*.pyo
+.pyd
+.pytest_cache/
+obsidian_vault/
+*.log
+.DS_Store
