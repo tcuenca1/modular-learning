@@ -1,40 +1,108 @@
 import os
-from typing import Dict
+import sys
+import msvcrt
+import re
+from typing import Dict, List
+from modulos import gestor_archivos
+
+
+def seleccionar_con_flechas(opciones: List[str]) -> str:
+    """
+    Permite seleccionar una opción usando las teclas de flecha Arriba/Abajo y Enter en la terminal (Windows).
+    """
+    os.system('')  # Activar secuencias ANSI en Windows
+    idx = 0
+    n = len(opciones)
+    
+    print("Usa las flechas [↑] [↓] para moverte y [ENTER] para seleccionar:")
+    # Imprimir por primera vez
+    for i, op in enumerate(opciones):
+        if i == idx:
+            sys.stdout.write(f"  > \033[1;96m{op}\033[0m\n")
+        else:
+            sys.stdout.write(f"    {op}\n")
+    sys.stdout.flush()
+
+    while True:
+        key = msvcrt.getch()
+        if key == b'\xe0':  # Tecla especial
+            sub_key = msvcrt.getch()
+            # Borrar las n líneas anteriores
+            sys.stdout.write(f"\033[{n}A")
+            if sub_key == b'H':  # Arriba
+                idx = (idx - 1) % n
+            elif sub_key == b'P':  # Abajo
+                idx = (idx + 1) % n
+            
+            # Redibujar menú
+            for i, op in enumerate(opciones):
+                sys.stdout.write("\033[K")
+                if i == idx:
+                    sys.stdout.write(f"  > \033[1;96m{op}\033[0m\n")
+                else:
+                    sys.stdout.write(f"    {op}\n")
+            sys.stdout.flush()
+        elif key == b'\r':  # Enter
+            # Borrar menú para dejar limpia la selección
+            sys.stdout.write(f"\033[{n}A")
+            for _ in range(n):
+                sys.stdout.write("\033[K\n")
+            sys.stdout.write(f"\033[{n}A")
+            sys.stdout.flush()
+            return opciones[idx]
+
+
+def imprimir_markdown_bonito(texto: str) -> None:
+    """Formatea texto Markdown con colores y estilos atractivos para la consola."""
+    os.system('')
+    lineas = texto.split('\n')
+    for linea in lineas:
+        if linea.startswith('# '):
+            print(f"\n\033[1;95m{linea[2:].upper()}\033[0m")
+        elif linea.startswith('## '):
+            print(f"\n\033[1;94m{linea[3:]}\033[0m")
+        elif linea.startswith('### '):
+            print(f"\n\033[1;96m  🔹 {linea[4:]}\033[0m")
+        elif linea.startswith('- ') or linea.startswith('* '):
+            linea_fmt = re.sub(r'\*\*(.*?)\*\*', r'\033[1m\1\033[0m', linea[2:])
+            print(f"    • {linea_fmt}")
+        else:
+            linea_fmt = re.sub(r'\*\*(.*?)\*\*', r'\033[1m\1\033[0m', linea)
+            print(f"    {linea_fmt}")
+    print()
 
 
 def pedir_datos_inicio() -> Dict[str, str]:
     """
-    Solicita al usuario los datos requeridos por el prompt 01_roadmap_aprendizaje.md:
-    Materia, Tipo de contenido, Contenido o texto de entrada, Objetivo de hoy, 
-    y el nivel de profundidad para las explicaciones.
+    Solicita al usuario los datos de inicio seleccionando la materia interactivamente con flechas
+    y pidiendo el tema de estudio.
     """
     print("=" * 65)
     print(" 🎓 SISTEMA DE TUTORÍA PERSONALIZADO - CLI (ECUADOR) 🇪🇨")
     print("=" * 65)
     
-    materia = input("📚 Ingresa la materia o asignatura: ").strip()
-    while not materia:
-        print("⚠️ La materia no puede estar vacía.")
-        materia = input("📚 Ingresa la materia o asignatura: ").strip()
-
-    tipo_contenido = input("📋 Tipo de contenido (ej. Texto de lectura / Instrucciones de tarea): ").strip()
-    if not tipo_contenido:
-        tipo_contenido = "Texto de lectura"
-
-    print("📄 Introduce el contenido, apuntes o descripción de la actividad (o presiona ENTER para cargar desde archivo):")
-    contenido_entrada = input("👉 Contenido de entrada: ").strip()
+    materias = gestor_archivos.cargar_materias()
+    opciones_menu = materias + ["[ + ] Añadir nueva asignatura..."]
     
-    ruta_material = ""
-    if not contenido_entrada:
-        ruta_material = input("📁 Ingresa la ruta del archivo de material de apoyo (.md): ").strip()
-        ruta_material = ruta_material.strip('"').strip("'")
-        if ruta_material and not os.path.exists(ruta_material):
-            print("⚠️ Archivo no encontrado. Se solicitará texto por defecto.")
-            ruta_material = ""
+    print("\n📚 Selecciona la asignatura para la sesión de hoy:")
+    seleccion = seleccionar_con_flechas(opciones_menu)
+    
+    if "[ + ]" in seleccion:
+        nueva_mat = input("\n✍️ Ingresa el nombre de la nueva asignatura: ").strip()
+        while not nueva_mat:
+            print("⚠️ El nombre no puede estar vacío.")
+            nueva_mat = input("✍️ Ingresa el nombre de la nueva asignatura: ").strip()
+        gestor_archivos.agregar_materia(nueva_mat)
+        materia = nueva_mat
+    else:
+        materia = seleccion
 
-    objetivo_hoy = input("🎯 ¿Cuál es tu objetivo hoy? (ej. Entender el concepto / Resolver la actividad): ").strip()
-    if not objetivo_hoy:
-        objetivo_hoy = "Entender el concepto y practicar"
+    print(f"✅ Asignatura seleccionada: \033[1;92m{materia}\033[0m\n")
+
+    tema = input("🎯 Ingresa el tema específico que deseas estudiar hoy: ").strip()
+    while not tema:
+        print("⚠️ El tema no puede estar vacío.")
+        tema = input("🎯 Ingresa el tema específico que deseas estudiar hoy: ").strip()
 
     print("\n[Nivel de profundidad para las explicaciones]")
     print("  1. BÁSICO (Visión general, analogías)")
@@ -47,10 +115,7 @@ def pedir_datos_inicio() -> Dict[str, str]:
 
     return {
         "materia": materia,
-        "tipo_contenido": tipo_contenido,
-        "contenido_entrada": contenido_entrada,
-        "ruta_material": ruta_material,
-        "objetivo_hoy": objetivo_hoy,
+        "tema": tema,
         "nivel_profundidad": nivel_profundidad
     }
 
@@ -67,7 +132,7 @@ def mostrar_mensaje(mensaje: str, tipo: str = "info") -> None:
         print("\n" + "🤖" + "=" * 60)
         print(" [TUTOR IA]:")
         print("=" * 61)
-        print(f"{mensaje}\n")
+        imprimir_markdown_bonito(mensaje)
         print("=" * 63 + "\n")
     else:
         print(f"• {mensaje}")
