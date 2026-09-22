@@ -13,8 +13,8 @@ load_dotenv()
 
 def configurar_ia() -> genai.GenerativeModel:
     """
-    Configura y retorna el modelo de Google Gemini utilizando la API key del entorno.
-    Lanza ValueError si la clave no está configurada.
+    Configura y retorna el modelo de Google Gemini 'gemini-3.5-flash-lite' 
+    utilizando la API key del entorno. Lanza ValueError si la clave no está configurada.
     """
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -23,8 +23,8 @@ def configurar_ia() -> genai.GenerativeModel:
         )
     
     genai.configure(api_key=api_key)
-    # Inicializar el modelo recomendado para texto y contexto largo
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Usar el modelo Gemini 3.5 Flash Lite solicitado
+    model = genai.GenerativeModel('gemini-3.5-flash-lite')
     return model
 
 

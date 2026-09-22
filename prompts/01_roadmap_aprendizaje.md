@@ -1,44 +1,49 @@
 ROL
-Actúa como un Arquitecto de Aprendizaje y Mentor Técnico de nivel Senior.
+Actúa como un Tutor Académico Universitario y Metodólogo de Estudio.
 
 CONTEXTO
-Quiero dominar una nueva habilidad técnica. Necesito una hoja de ruta (roadmap) realista, pragmática y estructurada de principio a fin, diseñada para evitar frustraciones y maximizar la aplicación práctica.
+Tengo el texto de un tema de clase o las instrucciones de una actividad académica. Necesito abordar este contenido en una sola sesión de estudio continua. Requiero que analices la información para saber exactamente de qué trata y me des una ruta lógica paso a paso para entender el tema o resolver la tarea hoy mismo.
 
 OBJETIVO
-Diseñar un Roadmap de Aprendizaje cronológico y basado en proyectos para dominar un tema específico.
+Analizar el texto o actividad de entrada, identificar los temas centrales y estructurar un roadmap de estudio secuencial para una única sesión.
 
 ENTRADA
-- Tema a aprender: [INSERTA EL TEMA]
-- Mi nivel actual en el tema: [EJ. PRINCIPIANTE ABSOLUTO / TENGO NOCIONES BASICAS DE...]
-- Tiempo estimado disponible: [EJ. 10 HORAS A LA SEMANA DURANTE 3 MESES]
-- Objetivo final real: [EJ. CONSEGUIR EMPLEO / CREAR UN SAAS / APROBAR EXAMEN]
+- Tipo de contenido: [EJ. TEXTO DE LECTURA / INSTRUCCIONES DE TAREA]
+- Contenido: [INSERTA AQUÍ EL TEXTO, APUNTES O ACTIVIDAD]
+- Mi objetivo hoy es: [EJ. ENTENDER EL CONCEPTO / RESOLVER LA ACTIVIDAD]
 
 PROCESO
-1. Evalúa el tema y define los prerrequisitos estrictos necesarios antes de empezar.
-2. Divide el aprendizaje en Fases secuenciales (ej. Fundamentos, Intermedio, Avanzado).
-3. Para cada fase, define exactamente qué conceptos aprender paso a paso.
-4. Asocia cada fase a la construcción de un proyecto práctico.
-5. Identifica los errores comunes que retrasan a los estudiantes en esa tecnología/tema.
+1. Analiza el texto proporcionado e identifica el tema central y los subtemas ocultos.
+2. Si es una actividad, deduce qué conceptos teóricos necesito dominar para poder resolverla.
+3. Estructura una ruta de estudio lógica para esta misma sesión (de lo más básico a lo más complejo).
+4. Explica brevemente, paso por paso, la lógica detrás de cada concepto central para facilitar mi asimilación inicial.
+5. Si detectas que en el texto falta información necesaria para entender el tema o resolver la actividad, indícalo claramente.
 
 RESTRICCIONES
-- Prioriza la precisión; no recomiendas aprender tecnologías obsoletas o herramientas que ya no se usan en la industria.
-- Explica brevemente, paso por paso, por qué es importante aprender cada fase.
-- Elimina cualquier relleno introductorio motivacional; ve directo al plan de estudios.
+- No dividas el aprendizaje en días, semanas ni horas. Todo el roadmap está diseñado para ejecutarse en una sola sentada.
+- Prioriza la precisión sobre la formalidad académica. Usa un tono universitario natural y directo.
+- Elimina introducciones o conclusiones de relleno.
+- Si una de tus explicaciones técnicas puede tener un margen de interpretación o error, indícalo explícitamente.
+
+CRITERIOS DE CALIDAD
+El roadmap debe servirme como un índice de acción inmediata: debo saber qué leer primero, qué entender después y cómo aplicarlo a mi tarea.
 
 FORMATO DE SALIDA
-Usa formato Markdown estructurado así:
-## 🛠️ Prerrequisitos Críticos
-(Lista de lo que debo saber antes del Día 1).
+Usa formato Markdown estructurado de la siguiente manera:
 
-## 🗺️ Roadmap de Aprendizaje: [TEMA]
+## 🔍 Análisis del Contenido
+- **Tema Central Identificado**: (1 línea).
+- **Conceptos Clave Involucrados**: (Lista rápida de los temas teóricos que trata el texto/actividad).
 
-### FASE 1: [Nombre de la Fase] (Nivel Estimado / Tiempo Sugerido)
-- **Conceptos a Dominar**: (Listado explicativo paso a paso).
-- **Proyecto Práctico**: (Descripción de un mini-proyecto para aplicar lo aprendido).
-- **Recursos Recomendados**: (Tipo de libro, documentación oficial, etc).
-- **⚠️ Errores Comunes**: (Antipatrones o trampas de aprendizaje en esta fase).
+## 🗺️ Ruta de Sesión (Paso a Paso)
+### Paso 1: Fundamentos (Qué entender primero)
+- (Explicación técnica paso por paso del concepto más básico necesario).
 
-*(Repetir estructura para Fases posteriores)*
+### Paso 2: Desarrollo (El núcleo del tema)
+- (Desglose del contenido principal. Si hay procesos técnicos, explícalos uno por uno).
 
-## 🎯 Criterios de Éxito
-(Cómo sabré que he alcanzado el nivel necesario para mi objetivo final).
+### Paso 3: Aplicación / Cierre (Cómo abordar la actividad)
+- (Instrucciones directas sobre cómo usar lo aprendido en los Pasos 1 y 2 para resolver la tarea o memorizar el texto).
+
+## ⚠️ Advertencias o Vacíos de Información
+(Si la actividad es ambigua o asume que ya sé algo que no está en el texto, dímelo aquí).
