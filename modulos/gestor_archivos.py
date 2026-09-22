@@ -6,7 +6,7 @@ from typing import Optional
 def leer_prompt(nombre_archivo: str) -> str:
     """
     Lee un archivo de instrucciones desde la carpeta 'prompts/' 
-    utilizando codificación UTF-8.
+    utilizando codificación UTF-8 (soporta archivos .md o .txt).
     """
     ruta_completa = os.path.join("prompts", nombre_archivo)
     try:
@@ -45,11 +45,9 @@ def guardar_resumen_obsidian(
     Retorna True si tuvo éxito, False si falló.
     """
     try:
-        # 1. Crear directorio de la materia dentro de la bóveda si no existe
         carpeta_materia = os.path.join(ruta_boveda, materia)
         os.makedirs(carpeta_materia, exist_ok=True)
         
-        # 2. Sanitizar el tema para generar un nombre de archivo seguro
         tema_sanitizado = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in tema).strip().replace(' ', '_')
         if not tema_sanitizado:
             tema_sanitizado = "resumen_sesion"
@@ -57,11 +55,9 @@ def guardar_resumen_obsidian(
         nombre_archivo = f"{tema_sanitizado}.md"
         ruta_archivo = os.path.join(carpeta_materia, nombre_archivo)
         
-        # 3. Preparar datos para el Frontmatter
         fecha_actual = datetime.now().strftime("%Y-%m-%d")
         materia_sin_espacios = materia.lower().replace(' ', '_')
         
-        # 4. Construir el contenido con YAML Frontmatter exacto
         frontmatter = f"""---
 materia: {materia}
 fecha: {fecha_actual}
@@ -72,7 +68,6 @@ tags: [{materia_sin_espacios}, repaso]
 """
         contenido_final = frontmatter + contenido
         
-        # 5. Guardar el archivo
         with open(ruta_archivo, 'w', encoding='utf-8') as archivo:
             archivo.write(contenido_final)
             

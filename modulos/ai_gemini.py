@@ -1,7 +1,11 @@
 import os
+import warnings
 from typing import Optional, List
 from dotenv import load_dotenv
 import google.generativeai as genai
+
+# Suprimir FutureWarning del paquete deprecado google.generativeai
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Cargar las variables de entorno desde el archivo .env
 load_dotenv()
@@ -33,7 +37,6 @@ def consultar_gemini(prompt: str, contexto_previo: Optional[List[dict]] = None) 
         model = configurar_ia()
         
         if contexto_previo:
-            # Iniciar una sesión de chat con el historial previo provisto
             chat = model.start_chat(history=contexto_previo)
             response = chat.send_message(prompt)
             return response.text
@@ -43,16 +46,3 @@ def consultar_gemini(prompt: str, contexto_previo: Optional[List[dict]] = None) 
             
     except Exception as e:
         raise RuntimeError(f"Ocurrió un error al consultar la API de Google Gemini: {e}")
-
-
-def leer_archivo_texto(ruta_archivo: str) -> str:
-    """
-    Lee y retorna el contenido de texto plano de un archivo (ideal para cargar prompts o plantillas).
-    """
-    try:
-        with open(ruta_archivo, 'r', encoding='utf-8') as archivo:
-            return archivo.read()
-    except FileNotFoundError:
-        raise FileNotFoundError(f"El archivo especificado no se encontró en la ruta: {ruta_archivo}")
-    except Exception as e:
-        raise IOError(f"Error al leer el archivo {ruta_archivo}: {e}")

@@ -1,117 +1,115 @@
 import os
-import json
 import re
+import warnings
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 
 from modulos import ai_gemini, gestor_archivos, interaccion
 
+# Suprimir FutureWarning de google.generativeai
+warnings.filterwarnings("ignore", category=FutureWarning)
 
-def extraer_json_de_texto(texto: str) -> Dict[str, Any]:
-    """Extrae y parsea un objeto JSON de una respuesta de texto de la IA."""
-    match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", texto)
-    if match:
-        json_str = match.group(1)
-    else:
-        json_str = texto.strip()
-    
-    try:
-        return json.loads(json_str)
-    except json.JSONDecodeError:
-        match_braces = re.search(r"\{[\s\S]*\}", texto)
-        if match_braces:
-            try:
-                return json.loads(match_braces.group(0))
-            except Exception:
-                pass
-        raise RuntimeError(f"No se pudo parsear el roadmap JSON devuelto por Gemini.\nRespuesta recibida:\n{texto}")
+
+def extraer_fases_roadmap(roadmap_texto: str) -> List[str]:
+    """Extrae las fases o temas principales del roadmap Markdown generado por Gemini."""
+    # Buscar coincidencias de encabezados FASE
+    fases = re.findall(r"###\s+FASE\s+\d+:\s*(.+)", roadmap_texto, re.IGNORECASE)
+    if not fases:
+        # Fallback buscando encabezados h3
+        fases = re.findall(r"###\s+(.+)", roadmap_texto)
+    if not fases:
+        fases = ["Fundamentos Iniciales", "Desarrollo Core y Práctica", "Avanzado y Buenas Prácticas"]
+    return [f.strip() for f in fases]
 
 
 def main() -> None:
-    # 1. Cargar variables de entorno
     load_dotenv()
     ruta_boveda = os.getenv("RUTA_OBSIDIAN", "obsidian_vault")
 
     try:
-        # a. Pedir datos iniciales
+        # 1. Recopilar datos iniciales según los prompts
         datos = interaccion.pedir_datos_inicio()
         materia = datos["materia"]
-        tema_principal = datos["tema"]
+        nivel_actual = datos["nivel_actual"]
+        tiempo_disponible = datos["tiempo_disponible"]
+        objetivo_final = datos["objetivo_final"]
+        nivel_profundidad = datos["nivel_profundidad"]
         ruta_material = datos["material"]
 
-        # b. Leer material de apoyo si existe
+        # 2. Leer material de apoyo si existe
         contenido_material = ""
         if ruta_material:
-            interaccion.mostrar_mensaje(f"Leyendo material de apoyo desde: {ruta_material}", "info")
+            interaccion.mostrar_mensaje(f"Leyendo material de apoyo: {ruta_material}", "info")
             try:
                 contenido_material = gestor_archivos.leer_material_estudio(ruta_material)
-                interaccion.mostrar_mensaje("Material de apoyo leído con éxito.", "exito")
+                interaccion.mostrar_mensaje("Material de apoyo cargado correctamente.", "exito")
             except Exception as e:
-                interaccion.mostrar_mensaje(f"Error al leer material: {e}. Continuando sin él.", "error")
+                interaccion.mostrar_mensaje(f"Error al leer material ({e}). Continuando sin él.", "error")
 
-        # c. Leer prompt 01_roadmap.txt y consultar a Gemini
-        interaccion.mostrar_mensaje("Generando ruta de aprendizaje (Roadmap)...", "info")
-        prompt_roadmap_base = gestor_archivos.leer_prompt("01_roadmap.txt")
+        # 3. Cargar prompt de Roadmap y rellenar variables
+        interaccion.mostrar_mensaje("Generando Roadmap de Aprendizaje personalizado...", "info")
+        prompt_roadmap_template = gestor_archivos.leer_prompt("01_roadmap_aprendizaje.md")
         
-        prompt_roadmap_completo = (
-            f"{prompt_roadmap_base}\n\n"
-            f"Materia: {materia}\n"
-            f"Tema Principal: {tema_principal}\n"
+        prompt_roadmap = (
+            prompt_roadmap_template
+            .replace("[INSERTA EL TEMA]", materia)
+            .replace("[EJ. PRINCIPIANTE ABSOLUTO / TENGO NOCIONES BASICAS DE...]", nivel_actual)
+            .replace("[EJ. 10 HORAS A LA SEMANA DURANTE 3 MESES]", tiempo_disponible)
+            .replace("[EJ. CONSEGUIR EMPLEO / CREAR UN SAAS / APROBAR EXAMEN]", objetivo_final)
         )
         if contenido_material:
-            prompt_roadmap_completo += f"\nMaterial de estudio previo:\n{contenido_material[:4000]}...\n"
+            prompt_roadmap += f"\n\nMaterial de referencia:\n{contenido_material[:4000]}"
 
-        respuesta_roadmap_raw = ai_gemini.consultar_gemini(prompt_roadmap_completo)
-        data_roadmap = extraer_json_de_texto(respuesta_roadmap_raw)
+        respuesta_roadmap = ai_gemini.consultar_gemini(prompt_roadmap)
+        
+        print("\n" + "=" * 65)
+        print(" 🗺️ ROADMAP DE APRENDIZAJE GENERADO:")
+        print("=" * 65)
+        print(respuesta_roadmap)
+        print("=" * 65)
 
-        subtemas = data_roadmap.get("subtemas", [])
-        if not subtemas:
-            raise ValueError("El JSON generado por la IA no contiene la lista de 'subtemas'.")
+        # Extraer fases/subtemas para la tutoría interactiva
+        subtemas = extraer_fases_roadmap(respuesta_roadmap)
+        
+        # Historial de sesión para mantener contexto
+        historial_sesion: List[Dict[str, Any]] = [
+            {"role": "user", "parts": [prompt_roadmap]},
+            {"role": "model", "parts": [respuesta_roadmap]}
+        ]
 
-        interaccion.mostrar_mensaje(f"Roadmap generado con {len(subtemas)} subtemas:", "exito")
-        for idx, sub in enumerate(subtemas, 1):
-            print(f"   {idx}. {sub}")
-
-        # Historial de sesión para el chat y resumen final
-        historial_sesion: List[Dict[str, Any]] = []
-
-        # d. y e. Bucle de explicación por cada subtema
-        prompt_explicacion_base = gestor_archivos.leer_prompt("02_explicacion.txt")
+        # 4. Bucle interactivo por cada subtema/fase usando el prompt 02_explicacion_tema.md
+        prompt_explicacion_template = gestor_archivos.leer_prompt("02_explicacion_tema.md")
 
         for idx, subtema in enumerate(subtemas, 1):
             print("\n" + "=" * 65)
-            interaccion.mostrar_mensaje(f"Subtema {idx}/{len(subtemas)}: {subtema}", "info")
+            interaccion.mostrar_mensaje(f"Estudiando Fase {idx}/{len(subtemas)}: {subtema}", "info")
             print("=" * 65)
 
-            prompt_subtema = (
-                f"{prompt_explicacion_base}\n\n"
-                f"Materia: {materia}\n"
-                f"Tema Principal: {tema_principal}\n"
-                f"Subtema actual: {subtema}\n"
+            prompt_explicacion = (
+                prompt_explicacion_template
+                .replace("[INSERTA EL TEMA AQUÍ]", subtema)
+                .replace("[ELIGE UNO: BÁSICO (visión general) / INTERMEDIO (conceptos y funcionamiento) / AVANZADO (a profundidad técnica)]", nivel_profundidad)
+                .replace("[INSERTA TU ROADMAP, EN QUÉ FASE ESTÁS O BORRA ESTA LÍNEA]", f"Materia principal: {materia}. Fase actual: {subtema}")
             )
             if contenido_material:
-                prompt_subtema += f"\nReferencia del material de estudio:\n{contenido_material[:3000]}...\n"
+                prompt_explicacion += f"\n\nContexto del material:\n{contenido_material[:3000]}"
 
-            interaccion.mostrar_mensaje("Explicando subtema...", "info")
-            explicacion = ai_gemini.consultar_gemini(prompt_subtema)
+            interaccion.mostrar_mensaje("Generando explicación del tutor...", "info")
+            explicacion = ai_gemini.consultar_gemini(prompt_explicacion, contexto_previo=historial_sesion)
             interaccion.mostrar_mensaje(explicacion, "ia")
 
-            # Registrar en historial
-            historial_sesion.append({"role": "user", "parts": [prompt_subtema]})
+            historial_sesion.append({"role": "user", "parts": [prompt_explicacion]})
             historial_sesion.append({"role": "model", "parts": [explicacion]})
 
-            # f. Pausa de estudio e interactividad de dudas
+            # Pausa interactiva para dudas
             while True:
-                duda_o_confirmacion = interaccion.pausa_estudio()
-                
-                # Si dio ENTER o dijo sí/continuar
-                if not duda_o_confirmacion or duda_o_confirmacion.lower() in ['s', 'si', 'sí', 'ok', 'continuar']:
-                    interaccion.mostrar_mensaje("Avanzando al siguiente tema...", "exito")
+                duda = interaccion.pausa_estudio()
+                if not duda or duda.lower() in ['s', 'si', 'sí', 'ok', 'continuar']:
+                    interaccion.mostrar_mensaje("¡Excelente! Avanzando a la siguiente fase.", "exito")
                     break
                 else:
-                    # El usuario ingresó una duda/pregunta
-                    interaccion.mostrar_mensaje("Consultando tu duda con el tutor...", "info")
-                    prompt_duda = f"Tengo la siguiente pregunta sobre el subtema '{subtema}': {duda_o_confirmacion}. Por favor respóndela y aclárala didácticamente."
+                    interaccion.mostrar_mensaje("Consultando tu duda con el mentor técnico...", "info")
+                    prompt_duda = f"Tengo esta duda sobre '{subtema}': {duda}. Por favor respóndela técnicamente y de forma didáctica."
                     
                     respuesta_duda = ai_gemini.consultar_gemini(prompt_duda, contexto_previo=historial_sesion)
                     interaccion.mostrar_mensaje(respuesta_duda, "ia")
@@ -119,37 +117,32 @@ def main() -> None:
                     historial_sesion.append({"role": "user", "parts": [prompt_duda]})
                     historial_sesion.append({"role": "model", "parts": [respuesta_duda]})
 
-        # g. Fin del bucle: leer '03_resumen.txt' y generar resumen de la sesión
-        interaccion.mostrar_mensaje("Generando resumen final de la sesión de estudio...", "info")
-        prompt_resumen_base = gestor_archivos.leer_prompt("03_resumen.txt")
-        
-        prompt_resumen_completo = (
-            f"{prompt_resumen_base}\n\n"
-            f"Materia: {materia}\n"
-            f"Tema Principal: {tema_principal}\n"
-            f"Subtemas estudiados: {', '.join(subtemas)}\n\n"
-            "Genera el resumen definitivo integrando todo lo conversado en la clase."
+        # 5. Generar resumen final y guardar en Obsidian
+        interaccion.mostrar_mensaje("Generando resumen final consolidado de la sesión...", "info")
+        prompt_resumen = (
+            f"Actúa como un asistente técnico experto.\n"
+            f"Basado en toda la sesión de mentoría sobre '{materia}' y las fases estudiadas ({', '.join(subtemas)}), "
+            f"genera un resumen técnico completo en Markdown listo para Obsidian, incluyendo conceptos clave, ejemplos y preguntas de repaso."
         )
+        
+        resumen_markdown = ai_gemini.consultar_gemini(prompt_resumen, contexto_previo=historial_sesion)
 
-        resumen_markdown = ai_gemini.consultar_gemini(prompt_resumen_completo, contexto_previo=historial_sesion)
-
-        # h. Guardar resumen en Obsidian
-        interaccion.mostrar_mensaje(f"Guardando resumen en la bóveda de Obsidian ({ruta_boveda})...", "info")
-        exito = gestor_archivos.guardar_resumen_obsidian(materia, tema_principal, resumen_markdown, ruta_boveda)
+        interaccion.mostrar_mensaje(f"Guardando resumen en Obsidian ({ruta_boveda})...", "info")
+        exito = gestor_archivos.guardar_resumen_obsidian(materia, f"Roadmap_{materia}", resumen_markdown, ruta_boveda)
 
         if exito:
             interaccion.mostrar_mensaje("¡Resumen guardado exitosamente en tu bóveda de Obsidian!", "exito")
         else:
-            interaccion.mostrar_mensaje("Hubo un problema al guardar el resumen en Obsidian.", "error")
+            interaccion.mostrar_mensaje("No se pudo guardar el archivo en Obsidian.", "error")
 
         print("\n" + "=" * 65)
-        print(" 🎉 ¡Tutoría finalizada con éxito! Buen trabajo.")
+        print(" 🎉 ¡Sesión de aprendizaje completada con éxito!")
         print("=" * 65 + "\n")
 
     except KeyboardInterrupt:
-        print("\n\n⚠️ Sesión interrumpida por el usuario. ¡Hasta pronto!")
+        print("\n\n⚠️ Sesión cancelada por el usuario. ¡Hasta pronto!")
     except Exception as e:
-        interaccion.mostrar_mensaje(f"Ha ocurrido un error crítico en el sistema: {e}", "error")
+        interaccion.mostrar_mensaje(f"Ocurrió un error en el sistema: {e}", "error")
 
 
 if __name__ == "__main__":
