@@ -34,7 +34,6 @@ def extraer_texto_local(ruta_archivo: str) -> str:
             raise RuntimeError(f"No se pudo extraer texto del PDF con pypdf: {e}")
     else:
         print("📄 Procesando archivo de texto/markdown localmente...")
-        # Intentar UTF-8 primero, si falla usar latin-1 para evitar UnicodeDecodeError
         try:
             with open(ruta_archivo, 'r', encoding='utf-8') as f:
                 return f.read()
@@ -43,11 +42,52 @@ def extraer_texto_local(ruta_archivo: str) -> str:
                 return f.read()
 
 
+def delimitar_seccion_temas(texto: str) -> str:
+    """
+    Delimita el texto extraído del PDF para analizar únicamente desde 
+    '4.2 Estructura de la unidad didáctica por temas' hasta antes de 
+    '4.3 Distribución de horas en unidades y temas'.
+    """
+    inicio_clave = "4.2 Estructura de la unidad didáctica por temas"
+    fin_clave = "4.3 Distribución de horas en unidades y temas"
+    
+    # Búsqueda insensible a mayúsculas/minúsculas
+    texto_lower = texto.lower()
+    pos_inicio = texto_lower.find(inicio_clave.lower())
+    
+    if pos_inicio == -1:
+        # Intentar variaciones comunes si el título exacto varía ligeramente
+        for variante in ["4.2. estructura", "4.2 estructura", "unidad didáctica por temas", "estructura de la unidad"]:
+            pos_inicio = texto_lower.find(variante)
+            if pos_inicio != -1:
+                break
+                
+    pos_fin = texto_lower.find(fin_clave.lower())
+    if pos_fin == -1:
+        for variante in ["4.3.", "4.3 distribución", "5. metodología", "5. sistema", "bibliografía"]:
+            pos_fin = texto_lower.find(variante)
+            if pos_fin != -1 and pos_fin > pos_inicio:
+                break
+
+    if pos_inicio != -1:
+        texto_recortado = texto[pos_inicio:]
+        if pos_fin != -1 and pos_fin > pos_inicio:
+            rel_fin = pos_fin - pos_inicio
+            texto_recortado = texto_recortado[:rel_fin]
+        print(f"🎯 Sección 4.2 delimitada con éxito ({len(texto_recortado)} caracteres).")
+        return texto_recortado
+    else:
+        print("⚠️ No se encontró la sección 4.2 exacta. Se analizará el documento completo o un segmento optimizado.")
+        # Si el texto es muy largo y no se encontró la sección, tomar los primeros 30,000 caracteres para evitar rate limits
+        if len(texto) > 30000:
+            return texto[:30000]
+        return texto
+
+
 def procesar_archivo(ruta_archivo: str) -> None:
     """
-    Procesa un archivo (PDF, Markdown o TXT) extrayendo su texto localmente 
-    y enviándolo directamente al modelo de Gemini para obtener el cronograma en JSON.
-    (Evita genai.upload_file y su servicio deprecado de descubrimiento $discovery/rest).
+    Procesa un archivo (PDF, Markdown o TXT) extrayendo su texto localmente,
+    delimitándolo a la sección 4.2 y enviándolo a Gemini para obtener el cronograma en JSON.
     """
     try:
         # 1. Cargar el .env desde la raíz del proyecto (forzando override)
@@ -72,13 +112,16 @@ def procesar_archivo(ruta_archivo: str) -> None:
         print(f"\nLeyendo archivo local: {os.path.basename(ruta_archivo)}")
         
         try:
-            contenido_texto = extraer_texto_local(ruta_archivo)
-            if not contenido_texto.strip():
+            contenido_bruto = extraer_texto_local(ruta_archivo)
+            if not contenido_bruto.strip():
                 print("\n[ERROR] El archivo extraído está vacío o no contiene texto legible.")
                 return
-            print(f"✅ Texto extraído con éxito ({len(contenido_texto)} caracteres). Analizando con Gemini...")
+            
+            # Delimitar estrictamente a la sección 4.2 requerida
+            contenido_texto = delimitar_seccion_temas(contenido_bruto)
+            print(f"✅ Texto optimizado para la IA ({len(contenido_texto)} caracteres). Analizando con Gemini...")
         except Exception as e:
-            print(f"\n[ERROR] No se pudo leer el archivo local: {e}")
+            print(f"\n[ERROR] No se pudo leer o procesar el archivo local: {e}")
             return
 
         # 3. Cargar prompt desde prompts/04_extraccion_silabo.md
@@ -91,14 +134,13 @@ def procesar_archivo(ruta_archivo: str) -> None:
 
         prompt_completo = (
             f"{prompt_base}\n\n"
-            f"Contenido del documento a analizar:\n"
+            f"Contenido de la Sección 4.2 del Sílabo:\n"
             f"----------------------------------------\n"
             f"{contenido_texto}\n"
             f"----------------------------------------"
         )
 
         try:
-            # Enviar directamente como texto al modelo (evita File API / discovery/rest)
             respuesta = modelo.generate_content(
                 prompt_completo,
                 generation_config={"response_mime_type": "application/json"}
@@ -111,7 +153,7 @@ def procesar_archivo(ruta_archivo: str) -> None:
                 json.dump(datos, f, indent=4, ensure_ascii=False)
                 
             print(f"\n========================================")
-            print(f"[ÉXITO] Se extrajeron {len(datos)} clases válidas.")
+            print(f"[ÉXITO] Se extrajeron {len(datos)} clases válidas de la sección 4.2.")
             print(f"Archivo guardado en: {ruta_salida}")
             print(f"========================================")
             
