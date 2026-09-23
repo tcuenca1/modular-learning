@@ -9,15 +9,48 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 from dotenv import load_dotenv
 import google.generativeai as genai
+from pypdf import PdfReader
+
+
+def extraer_texto_local(ruta_archivo: str) -> str:
+    """
+    Extrae el texto de un archivo local de forma robusta:
+    - Si es PDF, utiliza pypdf para extraer texto de todas las páginas.
+    - Si es Markdown o TXT, lo lee como texto plano en UTF-8 (con fallback a latin-1).
+    """
+    ext = os.path.splitext(ruta_archivo)[1].lower()
+    
+    if ext == '.pdf':
+        print("📄 Procesando archivo PDF localmente...")
+        texto_acumulado = []
+        try:
+            reader = PdfReader(ruta_archivo)
+            for pagina in reader.pages:
+                t = pagina.extract_text()
+                if t:
+                    texto_acumulado.append(t)
+            return "\n".join(texto_acumulado)
+        except Exception as e:
+            raise RuntimeError(f"No se pudo extraer texto del PDF con pypdf: {e}")
+    else:
+        print("📄 Procesando archivo de texto/markdown localmente...")
+        # Intentar UTF-8 primero, si falla usar latin-1 para evitar UnicodeDecodeError
+        try:
+            with open(ruta_archivo, 'r', encoding='utf-8') as f:
+                return f.read()
+        except UnicodeDecodeError:
+            with open(ruta_archivo, 'r', encoding='latin-1') as f:
+                return f.read()
 
 
 def procesar_archivo(ruta_archivo: str) -> None:
     """
-    Procesa un archivo (PDF, Markdown o TXT) subiéndolo a la API de Gemini 
-    para extraer un cronograma estructurado en JSON.
+    Procesa un archivo (PDF, Markdown o TXT) extrayendo su texto localmente 
+    y enviándolo directamente al modelo de Gemini para obtener el cronograma en JSON.
+    (Evita genai.upload_file y su servicio deprecado de descubrimiento $discovery/rest).
     """
     try:
-        # Localizar y cargar el archivo .env ubicado en la raíz del proyecto (forzando override)
+        # 1. Cargar el .env desde la raíz del proyecto (forzando override)
         ruta_script = os.path.dirname(os.path.abspath(__file__))
         ruta_raiz = os.path.dirname(ruta_script)
         ruta_env = os.path.join(ruta_raiz, '.env')
@@ -32,44 +65,42 @@ def procesar_archivo(ruta_archivo: str) -> None:
             print(f"\n[ERROR] No se encontró la variable 'GEMINI_API_KEY' en el archivo .env ubicado en: {ruta_raiz}")
             return
 
-        # Configurar la API de Google Generative AI
+        # 2. Configurar la API de Google Generative AI
         genai.configure(api_key=api_key)
-        # Usar el mismo modelo consistente con main.py (gemini-3.5-flash-lite)
         modelo = genai.GenerativeModel('gemini-3.5-flash-lite')
 
-        print(f"\nSubiendo archivo a la API de Gemini: {os.path.basename(ruta_archivo)}")
+        print(f"\nLeyendo archivo local: {os.path.basename(ruta_archivo)}")
         
-        archivo_gemini = None
         try:
-            ext = os.path.splitext(ruta_archivo)[1].lower()
-            mime_map = {
-                '.pdf': 'application/pdf',
-                '.md': 'text/markdown',
-                '.txt': 'text/plain'
-            }
-            mime_type = mime_map.get(ext, None)
-            
-            if mime_type:
-                archivo_gemini = genai.upload_file(ruta_archivo, mime_type=mime_type)
-            else:
-                archivo_gemini = genai.upload_file(ruta_archivo)
-                
-            print("Archivo subido con éxito. Analizando contenido con Gemini...")
+            contenido_texto = extraer_texto_local(ruta_archivo)
+            if not contenido_texto.strip():
+                print("\n[ERROR] El archivo extraído está vacío o no contiene texto legible.")
+                return
+            print(f"✅ Texto extraído con éxito ({len(contenido_texto)} caracteres). Analizando con Gemini...")
         except Exception as e:
-            print(f"\n[ERROR] Fallo al subir el archivo a la API: {e}")
+            print(f"\n[ERROR] No se pudo leer el archivo local: {e}")
             return
 
-        # Cargar prompt desde prompts/04_extraccion_silabo.md
+        # 3. Cargar prompt desde prompts/04_extraccion_silabo.md
         ruta_prompt = os.path.join(ruta_raiz, "prompts", "04_extraccion_silabo.md")
         try:
             with open(ruta_prompt, 'r', encoding='utf-8') as f:
-                prompt = f.read()
+                prompt_base = f.read()
         except Exception:
-            prompt = "Extrae el cronograma de clases en JSON."
+            prompt_base = "Extrae el cronograma de clases en JSON con fecha, tema, objetivo, contenido y estado pendiente."
+
+        prompt_completo = (
+            f"{prompt_base}\n\n"
+            f"Contenido del documento a analizar:\n"
+            f"----------------------------------------\n"
+            f"{contenido_texto}\n"
+            f"----------------------------------------"
+        )
 
         try:
+            # Enviar directamente como texto al modelo (evita File API / discovery/rest)
             respuesta = modelo.generate_content(
-                [archivo_gemini, prompt],
+                prompt_completo,
                 generation_config={"response_mime_type": "application/json"}
             )
             
@@ -86,15 +117,9 @@ def procesar_archivo(ruta_archivo: str) -> None:
             
         except json.JSONDecodeError:
             print("\n[ERROR] La respuesta de la IA no tiene un formato JSON válido.")
+            print(f"Respuesta cruda:\n{respuesta.text}")
         except Exception as e:
-            print(f"\n[ERROR] Fallo en la extracción y parseo: {e}")
-        finally:
-            if archivo_gemini is not None:
-                try:
-                    genai.delete_file(archivo_gemini.name)
-                    print("Archivo temporal eliminado de la nube de Google.")
-                except Exception as del_err:
-                    print(f"⚠️ No se pudo eliminar el archivo remoto: {del_err}")
+            print(f"\n[ERROR] Fallo en la generación o parseo: {e}")
 
     except Exception as err:
         print(f"\n[ERROR CRÍTICO]: {err}")
