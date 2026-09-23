@@ -2,7 +2,6 @@ import sys
 import os
 import json
 import warnings
-import time
 
 # Suprimir todas las advertencias de deprecación
 warnings.simplefilter("ignore")
@@ -14,11 +13,7 @@ from pypdf import PdfReader
 
 
 def extraer_texto_local(ruta_archivo: str) -> str:
-    """
-    Extrae el texto de un archivo local de forma robusta:
-    - Si es PDF, utiliza pypdf para extraer texto de todas las páginas.
-    - Si es Markdown o TXT, lo lee como texto plano en UTF-8 (con fallback a latin-1).
-    """
+    """Extrae el texto de un archivo local (PDF, Markdown o TXT)."""
     ext = os.path.splitext(ruta_archivo)[1].lower()
     
     if ext == '.pdf':
@@ -44,20 +39,14 @@ def extraer_texto_local(ruta_archivo: str) -> str:
 
 
 def delimitar_seccion_temas(texto: str) -> str:
-    """
-    Delimita el texto extraído del PDF para analizar únicamente desde 
-    '4.2 Estructura de la unidad didáctica por temas' hasta antes de 
-    '4.3 Distribución de horas en unidades y temas'.
-    """
+    """Delimita el texto extraído para analizar únicamente la Sección 4.2."""
     inicio_clave = "4.2 Estructura de la unidad didáctica por temas"
     fin_clave = "4.3 Distribución de horas en unidades y temas"
     
-    # Búsqueda insensible a mayúsculas/minúsculas
     texto_lower = texto.lower()
     pos_inicio = texto_lower.find(inicio_clave.lower())
     
     if pos_inicio == -1:
-        # Intentar variaciones comunes si el título exacto varía ligeramente
         for variante in ["4.2. estructura", "4.2 estructura", "unidad didáctica por temas", "estructura de la unidad"]:
             pos_inicio = texto_lower.find(variante)
             if pos_inicio != -1:
@@ -78,20 +67,15 @@ def delimitar_seccion_temas(texto: str) -> str:
         print(f"🎯 Sección 4.2 delimitada con éxito ({len(texto_recortado)} caracteres).")
         return texto_recortado
     else:
-        print("⚠️ No se encontró la sección 4.2 exacta. Se analizará el documento completo o un segmento optimizado.")
-        # Si el texto es muy largo y no se encontró la sección, tomar los primeros 30,000 caracteres para evitar rate limits
+        print("⚠️ No se encontró la sección 4.2 exacta. Se analizará el segmento optimizado.")
         if len(texto) > 30000:
             return texto[:30000]
         return texto
 
 
 def procesar_archivo(ruta_archivo: str) -> None:
-    """
-    Procesa un archivo (PDF, Markdown o TXT) extrayendo su texto localmente,
-    delimitándolo a la sección 4.2 y enviándolo a Gemini para obtener el cronograma en JSON.
-    """
+    """Procesa un sílabo y guarda el cronograma JSON estructurado en data/cronogramas/."""
     try:
-        # 1. Cargar el .env desde la raíz del proyecto (forzando override)
         ruta_script = os.path.dirname(os.path.abspath(__file__))
         ruta_raiz = os.path.dirname(ruta_script)
         ruta_env = os.path.join(ruta_raiz, '.env')
@@ -106,7 +90,6 @@ def procesar_archivo(ruta_archivo: str) -> None:
             print(f"\n[ERROR] No se encontró la variable 'GEMINI_API_KEY' en el archivo .env ubicado en: {ruta_raiz}")
             return
 
-        # 2. Configurar la API de Google Generative AI
         genai.configure(api_key=api_key)
         modelo = genai.GenerativeModel('gemini-3.5-flash-lite')
 
@@ -115,23 +98,26 @@ def procesar_archivo(ruta_archivo: str) -> None:
         try:
             contenido_bruto = extraer_texto_local(ruta_archivo)
             if not contenido_bruto.strip():
-                print("\n[ERROR] El archivo extraído está vacío o no contiene texto legible.")
+                print("\n[ERROR] El archivo extraído está vacío.")
                 return
             
-            # Delimitar estrictamente a la sección 4.2 requerida
             contenido_texto = delimitar_seccion_temas(contenido_bruto)
-            print(f"✅ Texto optimizado para la IA ({len(contenido_texto)} caracteres). Analizando con Gemini...")
+            print(f"✅ Texto optimizado ({len(contenido_texto)} caracteres). Analizando con Gemini...")
         except Exception as e:
-            print(f"\n[ERROR] No se pudo leer o procesar el archivo local: {e}")
+            print(f"\n[ERROR] No se pudo leer el archivo: {e}")
             return
 
-        # 3. Cargar prompt desde prompts/04_extraccion_silabo.md
+        # Pedir nombre de la materia para el archivo cronograma
+        nombre_materia = input("📚 Ingresa el nombre exacto de la asignatura para este cronograma: ").strip()
+        if not nombre_materia:
+            nombre_materia = os.path.splitext(os.path.basename(ruta_archivo))[0]
+
         ruta_prompt = os.path.join(ruta_raiz, "prompts", "04_extraccion_silabo.md")
         try:
             with open(ruta_prompt, 'r', encoding='utf-8') as f:
                 prompt_base = f.read()
         except Exception:
-            prompt_base = "Extrae el cronograma de clases en JSON con fecha, tema, objetivo, contenido y estado pendiente."
+            prompt_base = "Extrae el cronograma de clases en JSON."
 
         prompt_completo = (
             f"{prompt_base}\n\n"
@@ -141,42 +127,34 @@ def procesar_archivo(ruta_archivo: str) -> None:
             f"----------------------------------------"
         )
 
-        max_intentos = 3
-        for intento in range(max_intentos):
-            try:
-                print(f"⏳ Consultando a la IA (Intento {intento + 1}/{max_intentos})...")
-                respuesta = modelo.generate_content(
-                    prompt_completo,
-                    generation_config={"response_mime_type": "application/json"}
-                )
+        try:
+            respuesta = modelo.generate_content(
+                prompt_completo,
+                generation_config={"response_mime_type": "application/json"}
+            )
+            
+            datos = json.loads(respuesta.text)
+            
+            # Guardar en data/cronogramas/
+            carpeta_cronogramas = os.path.join(ruta_raiz, "data", "cronogramas")
+            os.makedirs(carpeta_cronogramas, exist_ok=True)
+            
+            materia_slug = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in nombre_materia).strip().replace(' ', '_')
+            ruta_salida = os.path.join(carpeta_cronogramas, f"{materia_slug}_cronograma.json")
+            
+            with open(ruta_salida, 'w', encoding='utf-8') as f:
+                json.dump(datos, f, indent=4, ensure_ascii=False)
                 
-                datos = json.loads(respuesta.text)
-                
-                ruta_salida = os.path.splitext(ruta_archivo)[0] + "_cronograma.json"
-                with open(ruta_salida, 'w', encoding='utf-8') as f:
-                    json.dump(datos, f, indent=4, ensure_ascii=False)
-                    
-                print(f"\n========================================")
-                print(f"[ÉXITO] Se extrajeron {len(datos)} clases válidas de la sección 4.2.")
-                print(f"Archivo guardado en: {ruta_salida}")
-                print(f"========================================")
-                break  # Si tiene éxito, rompe el bucle de reintentos
-                
-            except json.JSONDecodeError:
-                print("\n[ERROR] La respuesta de la IA no tiene un formato JSON válido.")
-                print(f"Respuesta cruda:\n{respuesta.text}")
-                break # Rompe porque no es un error de cuota, sino de formato
-                
-            except Exception as e:
-                error_str = str(e)
-                if "429" in error_str or "Quota exceeded" in error_str:
-                    espera = 60
-                    print(f"\n⚠️ Límite de la API gratuita alcanzado.")
-                    print(f"El sistema se pausará {espera} segundos para enfriar la cuota antes de reintentar...")
-                    time.sleep(espera) # Pausa la ejecución sin cerrar el programa
-                else:
-                    print(f"\n[ERROR] Fallo en la generación: {e}")
-                    break # Rompe si es un error distinto a la cuota
+            print(f"\n========================================")
+            print(f"[ÉXITO] Se extrajeron {len(datos)} clases válidas.")
+            print(f"Cronograma guardado en: {os.path.abspath(ruta_salida)}")
+            print(f"========================================")
+            
+        except json.JSONDecodeError:
+            print("\n[ERROR] La respuesta de la IA no tiene un formato JSON válido.")
+            print(f"Respuesta cruda:\n{respuesta.text}")
+        except Exception as e:
+            print(f"\n[ERROR] Fallo en la generación o parseo: {e}")
 
     except Exception as err:
         print(f"\n[ERROR CRÍTICO]: {err}")

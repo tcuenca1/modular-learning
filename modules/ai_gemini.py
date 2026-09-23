@@ -7,6 +7,7 @@ import json
 from typing import Optional, List, Dict, Any
 from dotenv import load_dotenv
 import google.generativeai as genai
+from halo import Halo
 
 # Cargar las variables de entorno desde el archivo .env
 load_dotenv()
@@ -33,17 +34,19 @@ def consultar_gemini(prompt: str, contexto_previo: Optional[List[dict]] = None) 
     """
     Envía un prompt a la API de Gemini y retorna la respuesta generada en texto.
     Permite mantener un historial de conversación si se provee contexto_previo.
+    Incluye un spinner visual de carga (Halo).
     """
     try:
         model = configurar_ia()
         
-        if contexto_previo:
-            chat = model.start_chat(history=contexto_previo)
-            response = chat.send_message(prompt)
-            return response.text
-        else:
-            response = model.generate_content(prompt)
-            return response.text
+        with Halo(text='Consultando a Gemini...', spinner='line'):
+            if contexto_previo:
+                chat = model.start_chat(history=contexto_previo)
+                response = chat.send_message(prompt)
+                return response.text
+            else:
+                response = model.generate_content(prompt)
+                return response.text
             
     except Exception as e:
         raise RuntimeError(f"Ocurrió un error al consultar la API de Google Gemini: {e}")
@@ -52,14 +55,16 @@ def consultar_gemini(prompt: str, contexto_previo: Optional[List[dict]] = None) 
 def consultar_gemini_json(prompt: str) -> Dict[str, Any]:
     """
     Envía un prompt a la API de Gemini exigiendo un Structured Output en JSON 
-    y retorna el diccionario parseado.
+    y retorna el diccionario parseado. Incluye spinner de carga.
     """
     try:
         model = configurar_ia()
-        response = model.generate_content(
-            prompt,
-            generation_config={"response_mime_type": "application/json"}
-        )
-        return json.loads(response.text)
+        
+        with Halo(text='Generando estructura JSON con Gemini...', spinner='line'):
+            response = model.generate_content(
+                prompt,
+                generation_config={"response_mime_type": "application/json"}
+            )
+            return json.loads(response.text)
     except Exception as e:
         raise RuntimeError(f"Error al obtener JSON estructurado de Gemini: {e}")

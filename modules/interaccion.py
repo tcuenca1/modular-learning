@@ -20,7 +20,6 @@ def seleccionar_con_flechas(opciones: List[str]) -> str:
     ).ask()
     
     if seleccion is None:
-        # Si el usuario cancela con Ctrl+C
         print("\n\n⚠️ Operación cancelada por el usuario.")
         exit(0)
         
@@ -49,8 +48,8 @@ def imprimir_markdown_bonito(texto: str) -> None:
 
 def pedir_datos_inicio() -> Dict[str, str]:
     """
-    Solicita al usuario los datos de inicio seleccionando la materia interactivamente con questionary
-    y pidiendo el tema de estudio.
+    Solicita al usuario los datos de inicio seleccionando la materia interactivamente,
+    ofreciendo las próximas clases del cronograma JSON si existen, y pidiendo profundidad.
     """
     print("=" * 65)
     print(" 🎓 SISTEMA DE TUTORÍA PERSONALIZADO - CLI (ECUADOR) 🇪🇨")
@@ -74,10 +73,36 @@ def pedir_datos_inicio() -> Dict[str, str]:
 
     print(f"✅ Asignatura seleccionada: \033[1;92m{materia}\033[0m\n")
 
-    tema = input("🎯 Ingresa el tema específico que deseas estudiar hoy: ").strip()
-    while not tema:
-        print("⚠️ El tema no puede estar vacío.")
+    # Obtener próximas clases pendientes del cronograma JSON si existe
+    proximas_clases = gestor_archivos.obtener_proximas_clases(materia)
+    tema = ""
+
+    if proximas_clases:
+        print("📅 Se encontraron clases pendientes en el cronograma de la asignatura:")
+        opciones_clases = [f"📅 [{c.get('fecha', 'Sin fecha')}] {c.get('tema', 'Tema')}" for c in proximas_clases]
+        opciones_clases.append("➕ Ingresar un tema manualmente")
+        
+        eleccion_clase = questionary.select(
+            "Selecciona una clase pendiente o ingresa un tema manual:",
+            choices=opciones_clases,
+            style=questionary.Style([
+                ('pointer', 'fg:cyan bold'),
+                ('highlighted', 'fg:cyan bold'),
+                ('answer', 'fg:green bold'),
+            ])
+        ).ask()
+
+        if eleccion_clase and "➕" not in eleccion_clase:
+            idx = opciones_clases.index(eleccion_clase)
+            clase_seleccionada = proximas_clases[idx]
+            tema = clase_seleccionada.get("tema", "")
+            print(f"🎯 Tema seleccionado del cronograma: \033[1;93m{tema}\033[0m")
+
+    if not tema:
         tema = input("🎯 Ingresa el tema específico que deseas estudiar hoy: ").strip()
+        while not tema:
+            print("⚠️ El tema no puede estar vacío.")
+            tema = input("🎯 Ingresa el tema específico que deseas estudiar hoy: ").strip()
 
     print("\n[Nivel de profundidad para las explicaciones]")
     print("  1. BÁSICO (Visión general, analogías)")

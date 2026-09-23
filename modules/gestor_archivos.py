@@ -1,6 +1,7 @@
 import os
+import json
 from datetime import datetime
-from typing import List
+from typing import List, Dict, Any
 
 
 def leer_prompt(nombre_archivo: str) -> str:
@@ -34,7 +35,6 @@ def cargar_materias(archivo_materias: str = os.path.join("data", "materias.txt")
     """Carga la lista de materias desde data/materias.txt. Si no existe, lo crea con valores iniciales."""
     materias_iniciales = ["Seguridad de la Informacion", "IoT"]
     
-    # Asegurar que el directorio data/ exista
     os.makedirs(os.path.dirname(archivo_materias), exist_ok=True)
     
     if not os.path.exists(archivo_materias):
@@ -67,6 +67,45 @@ def agregar_materia(nueva_materia: str, archivo_materias: str = os.path.join("da
                 f.write("\n".join(materias))
         except Exception as e:
             print(f"⚠️ No se pudo guardar la nueva materia en disco: {e}")
+
+
+def obtener_proximas_clases(materia: str) -> List[Dict[str, Any]]:
+    """
+    Lee el archivo cronograma.json correspondiente a la materia en data/cronogramas/,
+    filtra las clases con estado 'pendiente' y devuelve las primeras 5.
+    """
+    carpeta_cronogramas = os.path.join("data", "cronogramas")
+    if not os.path.exists(carpeta_cronogramas):
+        return []
+
+    materia_slug = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in materia).strip().replace(' ', '_')
+    posibles_nombres = [
+        f"{materia}_cronograma.json",
+        f"{materia_slug}_cronograma.json"
+    ]
+
+    ruta_archivo = None
+    for nombre in posibles_nombres:
+        ruta_prueba = os.path.join(carpeta_cronogramas, nombre)
+        if os.path.exists(ruta_prueba):
+            ruta_archivo = ruta_prueba
+            break
+
+    if not ruta_archivo:
+        return []
+
+    try:
+        with open(ruta_archivo, 'r', encoding='utf-8') as f:
+            clases = json.load(f)
+        
+        if not isinstance(clases, list):
+            return []
+
+        pendientes = [c for c in clases if c.get("estado", "").lower() == "pendiente"]
+        return pendientes[:5]
+    except Exception as e:
+        print(f"⚠️ Error al leer el cronograma de {materia}: {e}")
+        return []
 
 
 def guardar_resumen_obsidian(
