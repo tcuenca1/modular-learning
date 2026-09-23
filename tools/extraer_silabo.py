@@ -2,11 +2,14 @@ import sys
 import os
 import json
 import warnings
+
+# Suprimir todas las advertencias (incluyendo FutureWarning de google.generativeai)
+warnings.simplefilter("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 from dotenv import load_dotenv
 import google.generativeai as genai
 
-# Suprimir warnings
-warnings.filterwarnings("ignore")
 
 def procesar_archivo(ruta_archivo: str) -> None:
     # 1. Cargar el .env desde la raíz del proyecto (un nivel arriba de tools/)
@@ -15,8 +18,8 @@ def procesar_archivo(ruta_archivo: str) -> None:
     load_dotenv(os.path.join(ruta_raiz, '.env'))
     
     api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        print("\n[ERROR] No se encontró GEMINI_API_KEY en el archivo .env de la raíz del proyecto.")
+    if not api_key or api_key == "tu_api_key_de_google_gemini_aqui":
+        print("\n[ERROR] Debes configurar tu GEMINI_API_KEY real en el archivo .env de la raíz del proyecto.")
         return
 
     # 2. Configurar la IA
@@ -43,7 +46,7 @@ def procesar_archivo(ruta_archivo: str) -> None:
             
         print("Archivo subido con éxito. Analizando el contenido...")
     except Exception as e:
-        print(f"\n[ERROR] Fallo al subir el archivo: {e}")
+        print(f"\n[ERROR] Fallo al subir el archivo (verifica que tu API Key sea válida): {e}")
         return
 
     # 3. Prompt Estructurado

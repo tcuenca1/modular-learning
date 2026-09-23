@@ -1,11 +1,11 @@
-import os
 import warnings
+warnings.simplefilter("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+import os
 from typing import Optional, List
 from dotenv import load_dotenv
 import google.generativeai as genai
-
-# Suprimir FutureWarning del paquete deprecado google.generativeai
-warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Cargar las variables de entorno desde el archivo .env
 load_dotenv()
@@ -14,12 +14,12 @@ load_dotenv()
 def configurar_ia() -> genai.GenerativeModel:
     """
     Configura y retorna el modelo de Google Gemini 'gemini-3.5-flash-lite' 
-    utilizando la API key del entorno. Lanza ValueError si la clave no está configurada.
+    utilizando la API key del entorno. Lanza ValueError si la clave no está configurada o es el placeholder.
     """
     api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
+    if not api_key or api_key == "tu_api_key_de_google_gemini_aqui":
         raise ValueError(
-            "Error crítico: No se encontró la variable 'GEMINI_API_KEY' en el archivo .env."
+            "Error crítico: Debes configurar tu GEMINI_API_KEY real en el archivo .env (actualmente tiene el valor por defecto o está vacía)."
         )
     
     genai.configure(api_key=api_key)
