@@ -2,6 +2,7 @@ import sys
 import os
 import json
 import warnings
+import time
 
 # Suprimir todas las advertencias de deprecación
 warnings.simplefilter("ignore")
@@ -140,28 +141,42 @@ def procesar_archivo(ruta_archivo: str) -> None:
             f"----------------------------------------"
         )
 
-        try:
-            respuesta = modelo.generate_content(
-                prompt_completo,
-                generation_config={"response_mime_type": "application/json"}
-            )
-            
-            datos = json.loads(respuesta.text)
-            
-            ruta_salida = os.path.splitext(ruta_archivo)[0] + "_cronograma.json"
-            with open(ruta_salida, 'w', encoding='utf-8') as f:
-                json.dump(datos, f, indent=4, ensure_ascii=False)
+        max_intentos = 3
+        for intento in range(max_intentos):
+            try:
+                print(f"⏳ Consultando a la IA (Intento {intento + 1}/{max_intentos})...")
+                respuesta = modelo.generate_content(
+                    prompt_completo,
+                    generation_config={"response_mime_type": "application/json"}
+                )
                 
-            print(f"\n========================================")
-            print(f"[ÉXITO] Se extrajeron {len(datos)} clases válidas de la sección 4.2.")
-            print(f"Archivo guardado en: {ruta_salida}")
-            print(f"========================================")
-            
-        except json.JSONDecodeError:
-            print("\n[ERROR] La respuesta de la IA no tiene un formato JSON válido.")
-            print(f"Respuesta cruda:\n{respuesta.text}")
-        except Exception as e:
-            print(f"\n[ERROR] Fallo en la generación o parseo: {e}")
+                datos = json.loads(respuesta.text)
+                
+                ruta_salida = os.path.splitext(ruta_archivo)[0] + "_cronograma.json"
+                with open(ruta_salida, 'w', encoding='utf-8') as f:
+                    json.dump(datos, f, indent=4, ensure_ascii=False)
+                    
+                print(f"\n========================================")
+                print(f"[ÉXITO] Se extrajeron {len(datos)} clases válidas de la sección 4.2.")
+                print(f"Archivo guardado en: {ruta_salida}")
+                print(f"========================================")
+                break  # Si tiene éxito, rompe el bucle de reintentos
+                
+            except json.JSONDecodeError:
+                print("\n[ERROR] La respuesta de la IA no tiene un formato JSON válido.")
+                print(f"Respuesta cruda:\n{respuesta.text}")
+                break # Rompe porque no es un error de cuota, sino de formato
+                
+            except Exception as e:
+                error_str = str(e)
+                if "429" in error_str or "Quota exceeded" in error_str:
+                    espera = 60
+                    print(f"\n⚠️ Límite de la API gratuita alcanzado.")
+                    print(f"El sistema se pausará {espera} segundos para enfriar la cuota antes de reintentar...")
+                    time.sleep(espera) # Pausa la ejecución sin cerrar el programa
+                else:
+                    print(f"\n[ERROR] Fallo en la generación: {e}")
+                    break # Rompe si es un error distinto a la cuota
 
     except Exception as err:
         print(f"\n[ERROR CRÍTICO]: {err}")
