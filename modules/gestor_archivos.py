@@ -30,9 +30,13 @@ def leer_material_estudio(ruta_archivo: str) -> str:
         raise IOError(f"Error al leer el material de estudio en '{ruta_archivo}': {e}")
 
 
-def cargar_materias(archivo_materias: str = "materias.txt") -> List[str]:
-    """Carga la lista de materias desde el archivo de texto. Si no existe, lo crea con valores iniciales."""
+def cargar_materias(archivo_materias: str = os.path.join("data", "materias.txt")) -> List[str]:
+    """Carga la lista de materias desde data/materias.txt. Si no existe, lo crea con valores iniciales."""
     materias_iniciales = ["Seguridad de la Informacion", "IoT"]
+    
+    # Asegurar que el directorio data/ exista
+    os.makedirs(os.path.dirname(archivo_materias), exist_ok=True)
+    
     if not os.path.exists(archivo_materias):
         try:
             with open(archivo_materias, 'w', encoding='utf-8') as f:
@@ -49,8 +53,8 @@ def cargar_materias(archivo_materias: str = "materias.txt") -> List[str]:
         return materias_iniciales
 
 
-def agregar_materia(nueva_materia: str, archivo_materias: str = "materias.txt") -> None:
-    """Añade una nueva materia al archivo de texto de materias si no existe."""
+def agregar_materia(nueva_materia: str, archivo_materias: str = os.path.join("data", "materias.txt")) -> None:
+    """Añade una nueva materia a data/materias.txt si no existe."""
     nueva_materia = nueva_materia.strip()
     if not nueva_materia:
         return
@@ -58,6 +62,7 @@ def agregar_materia(nueva_materia: str, archivo_materias: str = "materias.txt") 
     if nueva_materia not in materias:
         materias.append(nueva_materia)
         try:
+            os.makedirs(os.path.dirname(archivo_materias), exist_ok=True)
             with open(archivo_materias, 'w', encoding='utf-8') as f:
                 f.write("\n".join(materias))
         except Exception as e:
@@ -88,7 +93,6 @@ def guardar_resumen_obsidian(
         fecha_actual = datetime.now().strftime("%Y-%m-%d")
         materia_sin_espacios = materia.lower().replace(' ', '_')
         
-        # Frontmatter con tags y Wikilink explícito para la constelación de Obsidian
         frontmatter = f"""---
 materia: {materia}
 fecha: {fecha_actual}
@@ -107,7 +111,6 @@ tags: [{materia_sin_espacios}, repaso, tutor_ia]
         with open(ruta_archivo, 'w', encoding='utf-8') as archivo:
             archivo.write(contenido_final)
             
-        # Crear o actualizar el archivo índice de la materia en la raíz de la bóveda para formar el grafo (constelación)
         ruta_indice = os.path.join(ruta_boveda, f"{materia}.md")
         link_tag = f"[[{tema_sanitizado}]]"
         

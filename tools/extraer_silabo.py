@@ -58,28 +58,14 @@ def procesar_archivo(ruta_archivo: str) -> None:
         print(f"\n[ERROR] Fallo al subir el archivo a la API (verifique su GEMINI_API_KEY en el .env): {e}")
         return
 
-    # Prompt estructurado profesional
-    prompt = """
-    Eres un experto en extracción de datos académicos. Analiza este documento (puede ser un sílabo o notas).
-    Busca la tabla, cronograma o sección de contenidos de clases.
-    
-    Reglas de Extracción:
-    1. Extrae cada clase y estructura los datos.
-    2. Identifica la 'fecha', el 'tema' principal, el 'objetivo' y haz un resumen directo del 'contenido'.
-    3. EXCLUYE las clases que sean sobre presentación de proyectos, revisiones, evaluaciones o exámenes.
-    4. Agrega a cada registro la clave "estado" con el valor "pendiente".
-    
-    Devuelve ÚNICAMENTE un arreglo JSON válido con esta estructura exacta:
-    [
-      {
-        "fecha": "DD/MM/YYYY",
-        "tema": "Nombre",
-        "objetivo": "Objetivo",
-        "contenido": "Resumen",
-        "estado": "pendiente"
-      }
-    ]
-    """
+    # Cargar prompt desde la carpeta prompts/
+    ruta_prompt = os.path.join(ruta_raiz, "prompts", "04_extraccion_silabo.md")
+    try:
+        with open(ruta_prompt, 'r', encoding='utf-8') as f:
+            prompt = f.read()
+    except Exception:
+        # Fallback de prompt por si no se encuentra el archivo
+        prompt = "Extrae el cronograma de clases en JSON."
 
     try:
         respuesta = modelo.generate_content(
@@ -116,4 +102,13 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         procesar_archivo(sys.argv[1])
     else:
-        print("ERROR: Debes proporcionar la ruta de un archivo (PDF, MD o TXT).")
+        print("=" * 50)
+        print(" EXTRACTOR DE CRONOGRAMA DE SÍLABO (GEMINI)")
+        print("=" * 50)
+        ruta_input = input("👉 Ingresa la ruta del archivo (PDF, MD o TXT): ").strip()
+        ruta_input = ruta_input.strip('"').strip("'")
+        if ruta_input and os.path.exists(ruta_input):
+            procesar_archivo(ruta_input)
+        else:
+            print("❌ Ruta de archivo no válida o no encontrada.")
+            input("Presiona ENTER para salir...")
