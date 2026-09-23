@@ -2,10 +2,10 @@ ROL
 Actúa como un Tutor Académico Universitario y Metodólogo de Estudio.
 
 CONTEXTO
-Tengo un tema de estudio universitario que deseo dominar en una sola sesión continua. Requiero que analices el tema, identifiques los conceptos clave y estructures una ruta lógica paso a paso para comprenderlo a fondo hoy mismo.
+Tengo un tema de estudio universitario que deseo dominar en una sola sesión continua. Requiero que analices el tema, identifiques los conceptos clave y estruturemos una ruta lógica paso a paso para comprenderlo a fondo hoy mismo.
 
 OBJETIVO
-Analizar el tema indicado y estructurar un roadmap de estudio secuencial y práctico para una única sesión.
+Analizar el tema indicado y estructurar un roadmap de estudio secuencial y práctico para una única sesión, devuelto estrictamente en formato JSON.
 
 ENTRADA
 - Tema a estudiar: [INSERTA AQUÍ EL TEMA]
@@ -13,31 +13,28 @@ ENTRADA
 
 PROCESO
 1. Analiza el tema proporcionado e identifica sus conceptos centrales y subtemas clave.
-2. Estructura una ruta de estudio lógica para esta misma sesión (de lo más básico a lo más complejo).
-3. Explica brevemente, paso por paso, la lógica detrás de cada concepto central para facilitar la asimilación inicial.
-4. Si detectas prerrequisitos críticos necesarios, indícalos claramente.
+2. Estructura una ruta de estudio lógica dividida en pasos secuenciales (de lo más básico a lo más complejo).
+3. Para cada paso, define un título claro y una descripción detallada de la lógica detrás del concepto.
 
 RESTRICCIONES
 - No dividas el aprendizaje en días, semanas ni horas. Todo el roadmap está diseñado para ejecutarse en una sola sentada.
 - Prioriza la precisión sobre la formalidad académica. Usa un tono universitario natural y directo.
-- Elimina introducciones o conclusiones de relleno.
+- Debes responder ESTRICTAMENTE con un objeto JSON válido, sin bloques markdown adicionales ni texto fuera del JSON.
 
-FORMATO DE SALIDA
-Usa formato Markdown estructurado de la siguiente manera:
-
-## 🔍 Análisis del Tema
-- **Tema Central**: (1 línea).
-- **Conceptos Clave Involucrados**: (Lista rápida de los temas teóricos tratados).
-
-## 🗺️ Ruta de Sesión (Paso a Paso)
-### Paso 1: Fundamentos (Qué entender primero)
-- (Explicación técnica paso por paso del concepto más básico necesario).
-
-### Paso 2: Desarrollo (El núcleo del tema)
-- (Desglose del contenido principal. Si hay procesos técnicos, explícalos uno por uno).
-
-### Paso 3: Aplicación / Cierre (Síntesis y práctica mental)
-- (Instrucciones sobre cómo consolidar lo aprendido en los Pasos 1 y 2).
-
-## ⚠️ Prerrequisitos o Advertencias
-- (Conceptos previos necesarios o posibles puntos de confusión).
+FORMATO DE SALIDA (ESTRICTAMENTE JSON)
+{
+  "pasos": [
+    {
+      "titulo": "Paso 1: Fundamentos",
+      "descripcion": "Explicación técnica del concepto básico necesario."
+    },
+    {
+      "titulo": "Paso 2: Desarrollo",
+      "descripcion": "Desglose del contenido principal y procesos técnicos."
+    },
+    {
+      "titulo": "Paso 3: Aplicación",
+      "descripcion": "Síntesis y práctica mental para consolidar el conocimiento."
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import os
-import re
+import json
 import warnings
 from typing import List, Dict, Any
 from dotenv import load_dotenv
@@ -10,67 +10,63 @@ from modules import ai_gemini, gestor_archivos, interaccion
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 
-def extraer_pasos_roadmap(roadmap_texto: str) -> List[str]:
-    """Extrae los pasos o temas de la ruta de sesión del roadmap Markdown generado por Gemini."""
-    pasos = re.findall(r"###\s+Paso\s+\d+:\s*(.+)", roadmap_texto, re.IGNORECASE)
-    if not pasos:
-        pasos = re.findall(r"###\s+(.+)", roadmap_texto)
-    if not pasos:
-        pasos = ["Fundamentos del Tema", "Desarrollo del Núcleo", "Aplicación Práctica y Cierre"]
-    return [p.strip() for p in pasos]
-
-
 def main() -> None:
     load_dotenv()
     ruta_boveda = os.getenv("RUTA_OBSIDIAN", "obsidian_vault")
 
     try:
-        # 1. Recopilar datos de inicio (Asignatura con menú interactivo y Tema)
+        # 1. Recopilar datos de inicio (Asignatura con questionary y Tema)
         datos = interaccion.pedir_datos_inicio()
         materia = datos["materia"]
         tema = datos["tema"]
         nivel_profundidad = datos["nivel_profundidad"]
 
-        # 2. Cargar prompt 01_roadmap_aprendizaje.md y generar ruta de sesión para el tema
-        interaccion.mostrar_mensaje(f"Generando Roadmap de Sesión para el tema: '{tema}'...", "info")
+        # 2. Cargar prompt 01_roadmap_aprendizaje.md y generar ruta de sesión estructurada (JSON)
+        interaccion.mostrar_mensaje(f"Generando Roadmap JSON para el tema: '{tema}'...", "info")
         prompt_roadmap_template = gestor_archivos.leer_prompt("01_roadmap_aprendizaje.md")
         
         prompt_roadmap = (
             prompt_roadmap_template
             .replace("[INSERTA AQUÍ EL TEMA]", tema)
-            .replace("[EJ. ENTENDER EL CONCEPTO / DOMINAR EL FUNCIONAMIENTO TÉCNICO]", f"Estudiar y dominar a fondo el tema dentro de la asignatura {materia}")
+            .replace("[EJ. ENTENDER LAS BASES / DOMINAR EL FUNCIONAMIENTO TÉCNICO]", f"Estudiar y dominar a fondo el tema dentro de la asignatura {materia}")
         )
 
-        respuesta_roadmap = ai_gemini.consultar_gemini(prompt_roadmap)
-        
-        print("\n" + "=" * 65)
-        print(" 🗺️ RUTA DE SESIÓN ESTABLECIDA:")
-        print("=" * 65)
-        interaccion.imprimir_markdown_bonito(respuesta_roadmap)
-        print("=" * 65)
+        # Usar Structured Outputs (JSON) nativo de Gemini
+        data_roadmap = ai_gemini.consultar_gemini_json(prompt_roadmap)
+        pasos_sesion = data_roadmap.get("pasos", [])
 
-        # Extraer pasos de la sesión
-        pasos_sesion = extraer_pasos_roadmap(respuesta_roadmap)
+        if not pasos_sesion:
+            raise ValueError("El JSON del roadmap no contiene la clave 'pasos' esperada.")
+
+        print("\n" + "=" * 65)
+        print(" 🗺️ RUTA DE SESIÓN ESTABLECIDA (JSON STRUCTURED OUTPUT):")
+        print("=" * 65)
+        for idx, p in enumerate(pasos_sesion, 1):
+            print(f"  {idx}. {p.get('titulo', 'Paso')}: {p.get('descripcion', '')}")
+        print("=" * 65)
 
         # Historial de sesión para mantener contexto
         historial_sesion: List[Dict[str, Any]] = [
             {"role": "user", "parts": [prompt_roadmap]},
-            {"role": "model", "parts": [respuesta_roadmap]}
+            {"role": "model", "parts": [json.dumps(data_roadmap, ensure_ascii=False)]}
         ]
 
         # 3. Bucle interactivo por cada paso usando prompt 02_explicacion_tema.md
         prompt_explicacion_template = gestor_archivos.leer_prompt("02_explicacion_tema.md")
 
-        for idx, paso in enumerate(pasos_sesion, 1):
+        for idx, paso_obj in enumerate(pasos_sesion, 1):
+            titulo_paso = paso_obj.get("titulo", f"Paso {idx}")
+            desc_paso = paso_obj.get("descripcion", "")
+            
             print("\n" + "=" * 65)
-            interaccion.mostrar_mensaje(f"Paso {idx}/{len(pasos_sesion)}: {paso}", "info")
+            interaccion.mostrar_mensaje(f"Paso {idx}/{len(pasos_sesion)}: {titulo_paso}", "info")
             print("=" * 65)
 
             prompt_explicacion = (
                 prompt_explicacion_template
-                .replace("[INSERTA EL TEMA AQUÍ]", paso)
+                .replace("[INSERTA EL TEMA AQUÍ]", f"{titulo_paso}: {desc_paso}")
                 .replace("[ELIGE UNO: BÁSICO (visión general) / INTERMEDIO (conceptos y funcionamiento) / AVANZADO (a profundidad técnica)]", nivel_profundidad)
-                .replace("[INSERTA TU ROADMAP, EN QUÉ FASE ESTÁS O BORRA ESTA LÍNEA]", f"Asignatura: {materia}. Tema principal: {tema}. Paso actual: {paso}")
+                .replace("[INSERTA TU ROADMAP, EN QUÉ FASE ESTÁS O BORRA ESTA LÍNEA]", f"Asignatura: {materia}. Tema principal: {tema}. Paso actual: {titulo_paso}")
             )
 
             interaccion.mostrar_mensaje("El tutor está explicando el paso...", "info")
@@ -88,7 +84,7 @@ def main() -> None:
                     break
                 else:
                     interaccion.mostrar_mensaje("Consultando tu duda con el tutor...", "info")
-                    prompt_duda = f"Tengo esta duda sobre el paso '{paso}': {duda}. Respóndela técnicamente y de forma clara."
+                    prompt_duda = f"Tengo esta duda sobre el paso '{titulo_paso}': {duda}. Respóndela técnicamente y de forma clara."
                     
                     respuesta_duda = ai_gemini.consultar_gemini(prompt_duda, contexto_previo=historial_sesion)
                     interaccion.mostrar_mensaje(respuesta_duda, "ia")
@@ -100,10 +96,11 @@ def main() -> None:
         interaccion.mostrar_mensaje("Generando Guía de Estudio y Autoevaluación definitiva...", "info")
         prompt_resumen_template = gestor_archivos.leer_prompt("03_resumen_evaluacion.md")
         
+        nombres_pasos = [p.get("titulo", "") for p in pasos_sesion]
         prompt_resumen = (
             prompt_resumen_template
             .replace("[INSERTA LA MATERIA]", materia)
-            .replace("[INSERTA AQUÍ EL CONTENIDO DE TUS ARCHIVOS .MD]", f"Tema de estudio: {tema}\nPasos cubiertos:\n{', '.join(pasos_sesion)}")
+            .replace("[INSERTA AQUÍ EL CONTENIDO DE TUS ARCHIVOS .MD]", f"Tema de estudio: {tema}\nPasos cubiertos:\n{', '.join(nombres_pasos)}")
         )
 
         guia_estudio_markdown = ai_gemini.consultar_gemini(prompt_resumen, contexto_previo=historial_sesion)

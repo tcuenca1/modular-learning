@@ -3,7 +3,8 @@ warnings.simplefilter("ignore")
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 import os
-from typing import Optional, List
+import json
+from typing import Optional, List, Dict, Any
 from dotenv import load_dotenv
 import google.generativeai as genai
 
@@ -46,3 +47,19 @@ def consultar_gemini(prompt: str, contexto_previo: Optional[List[dict]] = None) 
             
     except Exception as e:
         raise RuntimeError(f"Ocurrió un error al consultar la API de Google Gemini: {e}")
+
+
+def consultar_gemini_json(prompt: str) -> Dict[str, Any]:
+    """
+    Envía un prompt a la API de Gemini exigiendo un Structured Output en JSON 
+    y retorna el diccionario parseado.
+    """
+    try:
+        model = configurar_ia()
+        response = model.generate_content(
+            prompt,
+            generation_config={"response_mime_type": "application/json"}
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        raise RuntimeError(f"Error al obtener JSON estructurado de Gemini: {e}")

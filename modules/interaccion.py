@@ -1,55 +1,30 @@
 import os
-import sys
-import msvcrt
 import re
 from typing import Dict, List
+import questionary
 from modules import gestor_archivos
 
 
 def seleccionar_con_flechas(opciones: List[str]) -> str:
     """
-    Permite seleccionar una opción usando las teclas de flecha Arriba/Abajo y Enter en la terminal (Windows).
+    Permite seleccionar una opción usando la librería multiplataforma questionary.
     """
-    os.system('')  # Activar secuencias ANSI en Windows
-    idx = 0
-    n = len(opciones)
+    seleccion = questionary.select(
+        "Selecciona una opción:",
+        choices=opciones,
+        style=questionary.Style([
+            ('pointer', 'fg:cyan bold'),
+            ('highlighted', 'fg:cyan bold'),
+            ('answer', 'fg:green bold'),
+        ])
+    ).ask()
     
-    print("Usa las flechas [↑] [↓] para moverte y [ENTER] para seleccionar:")
-    # Imprimir por primera vez
-    for i, op in enumerate(opciones):
-        if i == idx:
-            sys.stdout.write(f"  > \033[1;96m{op}\033[0m\n")
-        else:
-            sys.stdout.write(f"    {op}\n")
-    sys.stdout.flush()
-
-    while True:
-        key = msvcrt.getch()
-        if key == b'\xe0':  # Tecla especial
-            sub_key = msvcrt.getch()
-            # Borrar las n líneas anteriores
-            sys.stdout.write(f"\033[{n}A")
-            if sub_key == b'H':  # Arriba
-                idx = (idx - 1) % n
-            elif sub_key == b'P':  # Abajo
-                idx = (idx + 1) % n
-            
-            # Redibujar menú
-            for i, op in enumerate(opciones):
-                sys.stdout.write("\033[K")
-                if i == idx:
-                    sys.stdout.write(f"  > \033[1;96m{op}\033[0m\n")
-                else:
-                    sys.stdout.write(f"    {op}\n")
-            sys.stdout.flush()
-        elif key == b'\r':  # Enter
-            # Borrar menú para dejar limpia la selección
-            sys.stdout.write(f"\033[{n}A")
-            for _ in range(n):
-                sys.stdout.write("\033[K\n")
-            sys.stdout.write(f"\033[{n}A")
-            sys.stdout.flush()
-            return opciones[idx]
+    if seleccion is None:
+        # Si el usuario cancela con Ctrl+C
+        print("\n\n⚠️ Operación cancelada por el usuario.")
+        exit(0)
+        
+    return seleccion
 
 
 def imprimir_markdown_bonito(texto: str) -> None:
@@ -74,7 +49,7 @@ def imprimir_markdown_bonito(texto: str) -> None:
 
 def pedir_datos_inicio() -> Dict[str, str]:
     """
-    Solicita al usuario los datos de inicio seleccionando la materia interactivamente con flechas
+    Solicita al usuario los datos de inicio seleccionando la materia interactivamente con questionary
     y pidiendo el tema de estudio.
     """
     print("=" * 65)
