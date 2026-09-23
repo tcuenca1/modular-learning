@@ -3,7 +3,7 @@ import os
 import json
 import warnings
 
-# Suprimir todas las advertencias (incluyendo FutureWarning de google.generativeai)
+# Suprimir todas las advertencias de deprecación
 warnings.simplefilter("ignore")
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -12,25 +12,34 @@ import google.generativeai as genai
 
 
 def procesar_archivo(ruta_archivo: str) -> None:
-    # 1. Cargar el .env desde la raíz del proyecto (un nivel arriba de tools/)
+    """
+    Procesa un archivo (PDF, Markdown o TXT) subiéndolo a la API de Gemini 
+    para extraer un cronograma estructurado en JSON.
+    """
+    # Localizar y cargar el archivo .env ubicado en la raíz del proyecto (un nivel arriba de tools/)
     ruta_script = os.path.dirname(os.path.abspath(__file__))
     ruta_raiz = os.path.dirname(ruta_script)
-    load_dotenv(os.path.join(ruta_raiz, '.env'))
+    ruta_env = os.path.join(ruta_raiz, '.env')
     
+    if os.path.exists(ruta_env):
+        load_dotenv(ruta_env)
+    else:
+        load_dotenv()  # Fallback a búsqueda estándar
+
     api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key or api_key == "tu_api_key_de_google_gemini_aqui":
-        print("\n[ERROR] Debes configurar tu GEMINI_API_KEY real en el archivo .env de la raíz del proyecto.")
+    if not api_key:
+        print(f"\n[ERROR] No se encontró la variable 'GEMINI_API_KEY' en el archivo .env ubicado en: {ruta_raiz}")
         return
 
-    # 2. Configurar la IA
+    # Configurar la API de Google Generative AI
     genai.configure(api_key=api_key)
     modelo = genai.GenerativeModel('gemini-1.5-flash')
 
-    print(f"\nSubiendo archivo a Gemini: {os.path.basename(ruta_archivo)}")
+    print(f"\nSubiendo archivo a la API de Gemini: {os.path.basename(ruta_archivo)}")
     
     archivo_gemini = None
     try:
-        # Detectar el tipo MIME según la extensión (.pdf, .md, .txt)
+        # Detectar tipo MIME según la extensión
         ext = os.path.splitext(ruta_archivo)[1].lower()
         mime_map = {
             '.pdf': 'application/pdf',
@@ -44,14 +53,14 @@ def procesar_archivo(ruta_archivo: str) -> None:
         else:
             archivo_gemini = genai.upload_file(ruta_archivo)
             
-        print("Archivo subido con éxito. Analizando el contenido...")
+        print("Archivo subido con éxito. Analizando contenido con Gemini...")
     except Exception as e:
-        print(f"\n[ERROR] Fallo al subir el archivo (verifica que tu API Key sea válida): {e}")
+        print(f"\n[ERROR] Fallo al subir el archivo a la API (verifique su GEMINI_API_KEY en el .env): {e}")
         return
 
-    # 3. Prompt Estructurado
+    # Prompt estructurado profesional
     prompt = """
-    Eres un experto en extracción de datos. Analiza este documento (puede ser un sílabo en PDF o notas en Markdown/Texto).
+    Eres un experto en extracción de datos académicos. Analiza este documento (puede ser un sílabo o notas).
     Busca la tabla, cronograma o sección de contenidos de clases.
     
     Reglas de Extracción:
@@ -73,7 +82,6 @@ def procesar_archivo(ruta_archivo: str) -> None:
     """
 
     try:
-        # Generar contenido forzando el formato JSON
         respuesta = modelo.generate_content(
             [archivo_gemini, prompt],
             generation_config={"response_mime_type": "application/json"}
@@ -81,22 +89,22 @@ def procesar_archivo(ruta_archivo: str) -> None:
         
         datos = json.loads(respuesta.text)
         
-        # 4. Guardar el JSON resultante
+        # Guardar el JSON resultante junto al archivo original
         ruta_salida = os.path.splitext(ruta_archivo)[0] + "_cronograma.json"
         with open(ruta_salida, 'w', encoding='utf-8') as f:
             json.dump(datos, f, indent=4, ensure_ascii=False)
             
         print(f"\n========================================")
-        print(f"[EXITO] Se extrajeron {len(datos)} clases válidas.")
+        print(f"[ÉXITO] Se extrajeron {len(datos)} clases válidas.")
         print(f"Archivo guardado en: {ruta_salida}")
         print(f"========================================")
         
     except json.JSONDecodeError:
-        print("\n[ERROR] La IA no devolvió un JSON válido.")
+        print("\n[ERROR] La respuesta de la IA no tiene un formato JSON válido.")
     except Exception as e:
         print(f"\n[ERROR] Fallo en la extracción y parseo: {e}")
     finally:
-        # 5. Limpieza obligatoria: Borrar el archivo de los servidores de Google
+        # Limpieza obligatoria: Borrar el archivo de los servidores de Google
         if archivo_gemini is not None:
             try:
                 genai.delete_file(archivo_gemini.name)
