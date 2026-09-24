@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 from dotenv import load_dotenv
 
 from modules import ai_gemini, gestor_archivos, interaccion
+from modules.plugins import gestor_plugins
 
 # Suprimir FutureWarning de google.generativeai
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -68,6 +69,13 @@ def main() -> None:
                 .replace("[ELIGE UNO: BÁSICO (visión general) / INTERMEDIO (conceptos y funcionamiento) / AVANZADO (a profundidad técnica)]", nivel_profundidad)
                 .replace("[INSERTA TU ROADMAP, EN QUÉ FASE ESTÁS O BORRA ESTA LÍNEA]", f"Asignatura: {materia}. Tema principal: {tema}. Paso actual: {titulo_paso}")
             )
+
+            # Inyectar plugin práctico si existe (Arquitectura Hexagonal / Puertos y Adaptadores)
+            plugin = gestor_plugins.obtener_plugin(materia)
+            if plugin:
+                instrucciones_plugin = plugin.obtener_instrucciones_ia()
+                ejercicio_base = plugin.generar_ejercicio_base(titulo_paso)
+                prompt_explicacion += f"\n\n{instrucciones_plugin}\n\n{ejercicio_base}"
 
             interaccion.mostrar_mensaje("El tutor está explicando el paso...", "info")
             explicacion = ai_gemini.consultar_gemini(prompt_explicacion, contexto_previo=historial_sesion)
