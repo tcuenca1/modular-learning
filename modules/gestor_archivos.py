@@ -33,7 +33,7 @@ def leer_material_estudio(ruta_archivo: str) -> str:
 
 def cargar_materias(archivo_materias: str = os.path.join("data", "materias.txt")) -> List[str]:
     """Carga la lista de materias desde data/materias.txt. Si no existe, lo crea con valores iniciales."""
-    materias_iniciales = ["Seguridad de la Informacion", "IoT"]
+    materias_iniciales = ["Seguridad de la Informacion", "Ingenieria de Software II"]
     
     os.makedirs(os.path.dirname(archivo_materias), exist_ok=True)
     
@@ -73,15 +73,20 @@ def obtener_proximas_clases(materia: str) -> List[Dict[str, Any]]:
     """
     Lee el archivo cronograma.json correspondiente a la materia en data/,
     filtra las clases con estado 'pendiente' y devuelve las primeras 5.
+    Utiliza coincidencia robusta (exacta, slug y búsqueda difusa).
     """
     carpeta_data = "data"
     if not os.path.exists(carpeta_data):
         return []
 
-    materia_slug = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in materia).strip().replace(' ', '_')
+    materia_slug = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in materia).strip().replace(' ', '_').upper()
+    materia_upper = materia.upper().replace(' ', '_')
+    
     posibles_nombres = [
         f"{materia}_cronograma.json",
-        f"{materia_slug}_cronograma.json"
+        f"{materia_slug}_cronograma.json",
+        f"{materia_upper}_cronograma.json",
+        f"{materia_slug.lower()}_cronograma.json"
     ]
 
     ruta_archivo = None
@@ -90,6 +95,18 @@ def obtener_proximas_clases(materia: str) -> List[Dict[str, Any]]:
         if os.path.exists(ruta_prueba):
             ruta_archivo = ruta_prueba
             break
+
+    # Búsqueda difusa si no coincide el nombre exacto
+    if not ruta_archivo:
+        try:
+            archivos_data = os.listdir(carpeta_data)
+            for arch in archivos_data:
+                if arch.endswith("_cronograma.json"):
+                    if materia_slug.replace("_", "") in arch.upper().replace("_", ""):
+                        ruta_archivo = os.path.join(carpeta_data, arch)
+                        break
+        except Exception:
+            pass
 
     if not ruta_archivo:
         return []

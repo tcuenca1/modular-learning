@@ -1,4 +1,5 @@
 Seguridad de la Informacion
-IoT
 Ingenieria de Software II
 Programacion Web
+Internet de las Cosas
+Tecnologias de Conmutacion I
