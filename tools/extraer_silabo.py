@@ -3,6 +3,13 @@ import os
 import json
 import warnings
 
+# Forzar codificación UTF-8 en stdout para evitar errores de encoding en Windows
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 # Suprimir todas las advertencias de deprecación
 warnings.simplefilter("ignore")
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -17,7 +24,7 @@ def extraer_texto_local(ruta_archivo: str) -> str:
     ext = os.path.splitext(ruta_archivo)[1].lower()
     
     if ext == '.pdf':
-        print("📄 Procesando archivo PDF localmente...")
+        print(f"[PDF] Procesando archivo: {os.path.basename(ruta_archivo)}")
         texto_acumulado = []
         try:
             reader = PdfReader(ruta_archivo)
@@ -29,7 +36,7 @@ def extraer_texto_local(ruta_archivo: str) -> str:
         except Exception as e:
             raise RuntimeError(f"No se pudo extraer texto del PDF con pypdf: {e}")
     else:
-        print("📄 Procesando archivo de texto/markdown localmente...")
+        print(f"[TEXTO] Procesando archivo: {os.path.basename(ruta_archivo)}")
         try:
             with open(ruta_archivo, 'r', encoding='utf-8') as f:
                 return f.read()
@@ -64,17 +71,17 @@ def delimitar_seccion_temas(texto: str) -> str:
         if pos_fin != -1 and pos_fin > pos_inicio:
             rel_fin = pos_fin - pos_inicio
             texto_recortado = texto_recortado[:rel_fin]
-        print(f"🎯 Sección 4.2 delimitada con éxito ({len(texto_recortado)} caracteres).")
+        print(f"[OK] Sección 4.2 delimitada con éxito ({len(texto_recortado)} caracteres).")
         return texto_recortado
     else:
-        print("⚠️ No se encontró la sección 4.2 exacta. Se analizará el segmento optimizado.")
+        print("[AVISO] No se encontró la sección 4.2 exacta. Se analizará el segmento optimizado.")
         if len(texto) > 30000:
             return texto[:30000]
         return texto
 
 
-def procesar_archivo(ruta_archivo: str) -> None:
-    """Procesa un sílabo y guarda el cronograma JSON estructurado en data/cronogramas/."""
+def procesar_archivo_individual(ruta_archivo: str) -> None:
+    """Procesa un archivo individual de sílabo y guarda el cronograma en data/."""
     try:
         ruta_script = os.path.dirname(os.path.abspath(__file__))
         ruta_raiz = os.path.dirname(ruta_script)
@@ -93,24 +100,26 @@ def procesar_archivo(ruta_archivo: str) -> None:
         genai.configure(api_key=api_key)
         modelo = genai.GenerativeModel('gemini-3.5-flash-lite')
 
-        print(f"\nLeyendo archivo local: {os.path.basename(ruta_archivo)}")
-        
         try:
             contenido_bruto = extraer_texto_local(ruta_archivo)
             if not contenido_bruto.strip():
-                print("\n[ERROR] El archivo extraído está vacío.")
+                print(f"\n[AVISO] El archivo {os.path.basename(ruta_archivo)} está vacío. Omitiendo...")
                 return
             
             contenido_texto = delimitar_seccion_temas(contenido_bruto)
-            print(f"✅ Texto optimizado ({len(contenido_texto)} caracteres). Analizando con Gemini...")
         except Exception as e:
-            print(f"\n[ERROR] No se pudo leer el archivo: {e}")
+            print(f"\n[ERROR] No se pudo procesar el archivo {os.path.basename(ruta_archivo)}: {e}")
             return
 
-        # Pedir nombre de la materia para el archivo cronograma
-        nombre_materia = input("📚 Ingresa el nombre exacto de la asignatura para este cronograma: ").strip()
+        nombre_base = os.path.splitext(os.path.basename(ruta_archivo))[0]
+        nombre_sugerido = nombre_base.replace("SYLLABUS", "").replace("syllabus", "").replace("-", "").strip()
+        if not nombre_sugerido:
+            nombre_sugerido = nombre_base
+
+        print(f"[MATERIA] Asignatura detectada del archivo: {nombre_sugerido}")
+        nombre_materia = input(f"-> Presiona ENTER para aceptar '{nombre_sugerido}' o escribe otro nombre: ").strip()
         if not nombre_materia:
-            nombre_materia = os.path.splitext(os.path.basename(ruta_archivo))[0]
+            nombre_materia = nombre_sugerido
 
         ruta_prompt = os.path.join(ruta_raiz, "prompts", "04_extraccion_silabo.md")
         try:
@@ -121,13 +130,14 @@ def procesar_archivo(ruta_archivo: str) -> None:
 
         prompt_completo = (
             f"{prompt_base}\n\n"
-            f"Contenido de la Sección 4.2 del Sílabo:\n"
+            f"Contenido de la Sección 4.2 del Sílabo ({nombre_materia}):\n"
             f"----------------------------------------\n"
             f"{contenido_texto}\n"
             f"----------------------------------------"
         )
 
         try:
+            print("[IA] Analizando con Gemini...")
             respuesta = modelo.generate_content(
                 prompt_completo,
                 generation_config={"response_mime_type": "application/json"}
@@ -135,45 +145,64 @@ def procesar_archivo(ruta_archivo: str) -> None:
             
             datos = json.loads(respuesta.text)
             
-            # Guardar en data/cronogramas/
-            carpeta_cronogramas = os.path.join(ruta_raiz, "data", "cronogramas")
-            os.makedirs(carpeta_cronogramas, exist_ok=True)
+            carpeta_data = os.path.join(ruta_raiz, "data")
+            os.makedirs(carpeta_data, exist_ok=True)
             
             materia_slug = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in nombre_materia).strip().replace(' ', '_')
-            ruta_salida = os.path.join(carpeta_cronogramas, f"{materia_slug}_cronograma.json")
+            ruta_salida = os.path.join(carpeta_data, f"{materia_slug}_cronograma.json")
             
             with open(ruta_salida, 'w', encoding='utf-8') as f:
                 json.dump(datos, f, indent=4, ensure_ascii=False)
                 
-            print(f"\n========================================")
-            print(f"[ÉXITO] Se extrajeron {len(datos)} clases válidas.")
-            print(f"Cronograma guardado en: {os.path.abspath(ruta_salida)}")
-            print(f"========================================")
+            print(f"\n[EXITO] Se extrajeron {len(datos)} clases para '{nombre_materia}'.")
+            print(f"Guardado en: {os.path.abspath(ruta_salida)}\n")
             
         except json.JSONDecodeError:
-            print("\n[ERROR] La respuesta de la IA no tiene un formato JSON válido.")
-            print(f"Respuesta cruda:\n{respuesta.text}")
+            print(f"\n[ERROR] La respuesta de la IA para {nombre_materia} no tiene un formato JSON válido.")
         except Exception as e:
-            print(f"\n[ERROR] Fallo en la generación o parseo: {e}")
+            print(f"\n[ERROR] Fallo en la generación o parseo para {nombre_materia}: {e}")
 
     except Exception as err:
-        print(f"\n[ERROR CRÍTICO]: {err}")
-    finally:
-        print("\n" + "=" * 40)
-        input("Presiona ENTER para salir...")
+        print(f"\n[ERROR] {err}")
+
+
+def procesar_ruta(ruta: str) -> None:
+    """Procesa un archivo individual o escanea una carpeta completa en busca de sílabos."""
+    ruta = ruta.strip('"').strip("'")
+    if not os.path.exists(ruta):
+        print(f"[ERROR] La ruta especificada no existe: {ruta}")
+        return
+
+    if os.path.isdir(ruta):
+        print(f"[CARPETA] Analizando carpeta de sílabos:\n   {ruta}")
+        archivos = [
+            os.path.join(ruta, f) for f in os.listdir(ruta)
+            if os.path.isfile(os.path.join(ruta, f)) and f.lower().endswith(('.pdf', '.md', '.txt'))
+        ]
+        if not archivos:
+            print("[AVISO] No se encontraron archivos PDF, MD o TXT en la carpeta especificada.")
+            return
+        
+        print(f"[LOTE] Se encontraron {len(archivos)} archivos. Iniciando procesamiento...")
+        for idx, archivo in enumerate(archivos, 1):
+            print(f"\n" + "=" * 50)
+            print(f" ARCHIVO {idx} DE {len(archivos)}")
+            print("=" * 50)
+            procesar_archivo_individual(archivo)
+    else:
+        procesar_archivo_individual(ruta)
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        procesar_archivo(sys.argv[1])
+        procesar_ruta(sys.argv[1])
     else:
         print("=" * 50)
-        print(" EXTRACTOR DE CRONOGRAMA DE SÍLABO (GEMINI)")
+        print(" EXTRACTOR MASIVO DE CRONOGRAMAS DE SÍLABOS (GEMINI)")
         print("=" * 50)
-        ruta_input = input("👉 Ingresa la ruta del archivo (PDF, MD o TXT): ").strip()
-        ruta_input = ruta_input.strip('"').strip("'")
-        if ruta_input and os.path.exists(ruta_input):
-            procesar_archivo(ruta_input)
+        ruta_input = input("-> Ingresa la ruta de un archivo o carpeta con sílabos: ").strip()
+        if ruta_input:
+            procesar_ruta(ruta_input)
         else:
-            print("❌ Ruta de archivo no válida o no encontrada.")
-            input("Presiona ENTER para salir...")
+            print("[ERROR] Ruta no válida.")
+        input("\nPresiona ENTER para salir...")

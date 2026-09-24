@@ -71,11 +71,11 @@ def agregar_materia(nueva_materia: str, archivo_materias: str = os.path.join("da
 
 def obtener_proximas_clases(materia: str) -> List[Dict[str, Any]]:
     """
-    Lee el archivo cronograma.json correspondiente a la materia en data/cronogramas/,
+    Lee el archivo cronograma.json correspondiente a la materia en data/,
     filtra las clases con estado 'pendiente' y devuelve las primeras 5.
     """
-    carpeta_cronogramas = os.path.join("data", "cronogramas")
-    if not os.path.exists(carpeta_cronogramas):
+    carpeta_data = "data"
+    if not os.path.exists(carpeta_data):
         return []
 
     materia_slug = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in materia).strip().replace(' ', '_')
@@ -86,7 +86,7 @@ def obtener_proximas_clases(materia: str) -> List[Dict[str, Any]]:
 
     ruta_archivo = None
     for nombre in posibles_nombres:
-        ruta_prueba = os.path.join(carpeta_cronogramas, nombre)
+        ruta_prueba = os.path.join(carpeta_data, nombre)
         if os.path.exists(ruta_prueba):
             ruta_archivo = ruta_prueba
             break
