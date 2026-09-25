@@ -193,7 +193,7 @@ def procesar_ruta(ruta: str) -> None:
         procesar_archivo_individual(ruta)
 
 
-if __name__ == "__main__":
+def run():
     if len(sys.argv) > 1:
         procesar_ruta(sys.argv[1])
     else:
@@ -206,3 +206,7 @@ if __name__ == "__main__":
         else:
             print("[ERROR] Ruta no válida.")
         input("\nPresiona ENTER para salir...")
+
+
+if __name__ == "__main__":
+    run()

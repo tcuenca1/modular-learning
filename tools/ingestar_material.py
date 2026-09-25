@@ -165,7 +165,7 @@ def ingestar_material(ruta_archivo: str) -> None:
     input("\nPresiona ENTER para salir...")
 
 
-if __name__ == "__main__":
+def run():
     if len(sys.argv) > 1:
         ingestar_material(sys.argv[1])
     else:
@@ -178,3 +178,7 @@ if __name__ == "__main__":
         else:
             print("❌ Ruta no válida.")
             input("Presiona ENTER para salir...")
+
+
+if __name__ == "__main__":
+    run()
