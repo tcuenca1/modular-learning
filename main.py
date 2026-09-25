@@ -4,7 +4,8 @@ import warnings
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 
-from modules import ai_gemini, gestor_archivos, interaccion
+from modules.core import ai_gemini, gestor_archivos
+from modules.ui import interaccion
 from modules.plugins import gestor_plugins
 
 # Suprimir FutureWarning de google.generativeai
