@@ -20,7 +20,7 @@ import google.generativeai as genai
 from halo import Halo
 import questionary
 
-# Importar core y ui desde modules
+# Importar core desde modules
 ruta_script = os.path.dirname(os.path.abspath(__file__))
 ruta_raiz = os.path.dirname(ruta_script)
 sys.path.append(ruta_raiz)
@@ -45,14 +45,17 @@ def ingestar_material(ruta_archivo: str) -> None:
         return
 
     genai.configure(api_key=api_key)
-    # Usar exclusivamente gemini-3.5-flash-lite
     modelo = genai.GenerativeModel('gemini-3.5-flash-lite')
 
     nombre_base = os.path.splitext(os.path.basename(ruta_archivo))[0]
     ext = os.path.splitext(ruta_archivo)[1].lower()
 
-    # Selección interactiva de asignatura
+    # Asegurar que existan las 5 carpetas de materias en obsidian_vault/
     materias = gestor_archivos.cargar_materias()
+    vault_path = os.path.join(ruta_raiz, "obsidian_vault")
+    for mat in materias:
+        os.makedirs(os.path.join(vault_path, mat), exist_ok=True)
+
     opciones_menu = materias + ["[ + ] Añadir nueva asignatura..."]
     
     print("\n📚 Selecciona la asignatura a la que pertenece este material:")
@@ -77,6 +80,7 @@ def ingestar_material(ruta_archivo: str) -> None:
             nueva_mat = input("✍️ Ingresa el nombre de la nueva asignatura: ").strip()
         gestor_archivos.agregar_materia(nueva_mat)
         materia_input = nueva_mat
+        os.makedirs(os.path.join(vault_path, materia_input), exist_ok=True)
     else:
         materia_input = seleccion
 
@@ -103,22 +107,21 @@ def ingestar_material(ruta_archivo: str) -> None:
         print(f"❌ Error al leer el archivo localmente: {e}")
         return
 
+    # Cargar prompt desde prompts/05_ingesta_material.md
+    try:
+        prompt_template = gestor_archivos.leer_prompt("05_ingesta_material.md")
+    except Exception:
+        prompt_template = "Actúa como un extractor de conocimiento experto y transcribe este documento en Markdown."
+
+    materia_slug = materia_input.lower().replace(' ', '_')
+    fecha_actual = time.strftime('%Y-%m-%d')
+
     prompt = (
-        "Actúa como un extractor de conocimiento experto.\n"
-        "Transcribe el contenido de estas diapositivas o documento de forma estructurada usando Markdown limpio.\n\n"
-        "REGLA CRÍTICA PARA IMÁGENES: Si detectas diagramas, gráficos, topologías de red o capturas de código, "
-        "NO los ignores. Crea un bloque blockquote (>) y describe detalladamente lo que muestra la imagen "
-        "(ej. '> **Diagrama detectado:** Topología de red en estrella con un switch central conectado a 3 PCs...').\n\n"
-        "REGLA PARA OBSIDIAN: Identifica los conceptos técnicos, nombres de protocolos o tecnologías clave y envuélvelos "
-        "en corchetes dobles para crear Wikilinks (ej. [[Protocolo MQTT]], [[VLAN]]). Opcionalmente incluye al inicio un Wikilink a la asignatura principal: "
-        f"[[{materia_input}]].\n\n"
-        "REGLA DE FORMATO: Añade un YAML Frontmatter al inicio del documento con esta estructura exacta:\n"
-        "---\n"
-        f"materia: {materia_input}\n"
-        f"tipo: {tipo_input}\n"
-        f"fecha_procesamiento: {time.strftime('%Y-%m-%d')}\n"
-        f"tags: [{materia_input.lower().replace(' ', '_')}, {tipo_input}, ingesta_ia]\n"
-        "---\n"
+        prompt_template
+        .replace("{materia}", materia_input)
+        .replace("{tipo}", tipo_input)
+        .replace("{fecha}", fecha_actual)
+        .replace("{materia_slug}", materia_slug)
     )
 
     max_reintentos = 3
@@ -132,7 +135,8 @@ def ingestar_material(ruta_archivo: str) -> None:
             
             contenido_md = respuesta.text
             
-            carpeta_salida = os.path.join(ruta_raiz, "obsidian_vault", materia_input)
+            # Guardar en obsidian_vault/{materia_input}/
+            carpeta_salida = os.path.join(vault_path, materia_input)
             os.makedirs(carpeta_salida, exist_ok=True)
             
             nombre_archivo_salida = f"{nombre_base.replace(' ', '_')}_Notas.md"
