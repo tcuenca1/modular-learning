@@ -3,6 +3,7 @@ import os
 import time
 import json
 import warnings
+import mimetypes
 
 # Forzar UTF-8 en stdout
 if hasattr(sys.stdout, 'reconfigure'):
@@ -26,11 +27,10 @@ sys.path.append(ruta_raiz)
 
 from modules.core import gestor_archivos
 
-
 def ingestar_material(ruta_archivo: str) -> None:
     """
-    Sube un archivo de material de estudio (PDF, diapositiva, DOCX) a Gemini (gemini-1.5-flash),
-    extrae texto y describe imágenes semánticamente con Wikilinks y Frontmatter, manejando rate limits (429).
+    Sube un archivo (PDF, imágenes) a Gemini (gemini-3.5-flash-lite) mediante Inline Data,
+    extrae texto y describe imágenes semánticamente con Wikilinks para Obsidian.
     """
     ruta_archivo = ruta_archivo.strip('"').strip("'")
     if not os.path.exists(ruta_archivo):
@@ -45,11 +45,13 @@ def ingestar_material(ruta_archivo: str) -> None:
         return
 
     genai.configure(api_key=api_key)
-    modelo = genai.GenerativeModel('gemini-1.5-flash')
+    # Usar exclusivamente gemini-3.5-flash-lite
+    modelo = genai.GenerativeModel('gemini-3.5-flash-lite')
 
     nombre_base = os.path.splitext(os.path.basename(ruta_archivo))[0]
+    ext = os.path.splitext(ruta_archivo)[1].lower()
 
-    # Selección de asignatura estandarizada usando gestor_archivos y questionary
+    # Selección interactiva de asignatura
     materias = gestor_archivos.cargar_materias()
     opciones_menu = materias + ["[ + ] Añadir nueva asignatura..."]
     
@@ -84,7 +86,23 @@ def ingestar_material(ruta_archivo: str) -> None:
     if not tipo_input:
         tipo_input = "diapositiva"
 
-    ruta_prompt = os.path.join(ruta_raiz, "prompts", "03_resumen_evaluacion.md") # O prompt personalizado
+    if ext == '.pdf':
+        mime_type = 'application/pdf'
+    else:
+        mime_type = mimetypes.guess_type(ruta_archivo)[0] or 'text/plain'
+
+    try:
+        with open(ruta_archivo, "rb") as f:
+            datos_binarios = f.read()
+            
+        documento_inline = {
+            "mime_type": mime_type,
+            "data": datos_binarios
+        }
+    except Exception as e:
+        print(f"❌ Error al leer el archivo localmente: {e}")
+        return
+
     prompt = (
         "Actúa como un extractor de conocimiento experto.\n"
         "Transcribe el contenido de estas diapositivas o documento de forma estructurada usando Markdown limpio.\n\n"
@@ -103,34 +121,13 @@ def ingestar_material(ruta_archivo: str) -> None:
         "---\n"
     )
 
-    archivo_gemini = None
     max_reintentos = 3
-    intento = 0
-
-    while intento < max_reintentos:
-        with Halo(text=f'Subiendo archivo a Gemini (Intento {intento+1}/{max_reintentos})...', spinner='dots') as spinner:
-            try:
-                archivo_gemini = genai.upload_file(path=ruta_archivo)
-                spinner.succeed("Archivo subido con éxito a la File API de Gemini.")
-                break
-            except Exception as e:
-                spinner.fail(f"Fallo al subir el archivo: {e}")
-                intento += 1
-                if intento < max_reintentos:
-                    with Halo(text='Esperando 10 segundos antes de reintentar...', spinner='line'):
-                        time.sleep(10)
-                else:
-                    print("❌ Se agotaron los reintentos de subida.")
-                    return
-
-    if not archivo_gemini:
-        return
-
     intento_gen = 0
+
     while intento_gen < max_reintentos:
         try:
-            with Halo(text='Analizando documento y extrayendo conocimiento con Gemini 1.5 Flash...', spinner='line') as spinner_gen:
-                respuesta = modelo.generate_content([archivo_gemini, prompt])
+            with Halo(text='Analizando documento y extrayendo conocimiento visual con Gemini 3.5 Flash Lite...', spinner='line') as spinner_gen:
+                respuesta = modelo.generate_content([documento_inline, prompt])
                 spinner_gen.succeed("Contenido procesado y extraído correctamente.")
             
             contenido_md = respuesta.text
@@ -158,16 +155,9 @@ def ingestar_material(ruta_archivo: str) -> None:
                 with Halo(text=f'Esperando {tiempo_espera}s por Rate Limit...', spinner='line'):
                     time.sleep(tiempo_espera)
             else:
-                print(f"❌ Error durante la generación: {e}")
+                print(f"\n❌ Error durante la generación: {e}")
                 break
     
-    if archivo_gemini is not None:
-        with Halo(text='Eliminando archivo temporal de los servidores de Google...', spinner='dots'):
-            try:
-                genai.delete_file(archivo_gemini.name)
-            except Exception as del_err:
-                pass
-
     input("\nPresiona ENTER para salir...")
 
 
@@ -178,7 +168,7 @@ if __name__ == "__main__":
         print("=" * 60)
         print(" INGESTA DE MATERIAL DE ESTUDIO CON GEMINI (VISIÓN Y TEXTO)")
         print("=" * 60)
-        ruta = input("👉 Ingresa la ruta del archivo PDF/DOCX/Diapositiva: ").strip()
+        ruta = input("👉 Ingresa la ruta del archivo (PDF/Imágenes): ").strip()
         if ruta:
             ingestar_material(ruta)
         else:
