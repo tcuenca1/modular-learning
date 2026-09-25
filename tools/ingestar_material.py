@@ -17,6 +17,14 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 from dotenv import load_dotenv
 import google.generativeai as genai
 from halo import Halo
+import questionary
+
+# Importar core y ui desde modules
+ruta_script = os.path.dirname(os.path.abspath(__file__))
+ruta_raiz = os.path.dirname(ruta_script)
+sys.path.append(ruta_raiz)
+
+from modules.core import gestor_archivos
 
 
 def ingestar_material(ruta_archivo: str) -> None:
@@ -29,8 +37,6 @@ def ingestar_material(ruta_archivo: str) -> None:
         print(f"❌ Error: El archivo no existe en la ruta: {ruta_archivo}")
         return
 
-    ruta_script = os.path.dirname(os.path.abspath(__file__))
-    ruta_raiz = os.path.dirname(ruta_script)
     load_dotenv(os.path.join(ruta_raiz, '.env'), override=True)
 
     api_key = os.getenv("GEMINI_API_KEY")
@@ -39,18 +45,46 @@ def ingestar_material(ruta_archivo: str) -> None:
         return
 
     genai.configure(api_key=api_key)
-    # Usar gemini-1.5-flash para visión y análisis multimodal de imágenes en documentos
     modelo = genai.GenerativeModel('gemini-1.5-flash')
 
     nombre_base = os.path.splitext(os.path.basename(ruta_archivo))[0]
-    materia_input = input(f"📚 Ingresa el nombre de la asignatura para este material [{nombre_base}]: ").strip()
-    if not materia_input:
-        materia_input = nombre_base
+
+    # Selección de asignatura estandarizada usando gestor_archivos y questionary
+    materias = gestor_archivos.cargar_materias()
+    opciones_menu = materias + ["[ + ] Añadir nueva asignatura..."]
+    
+    print("\n📚 Selecciona la asignatura a la que pertenece este material:")
+    seleccion = questionary.select(
+        "Selecciona una opción:",
+        choices=opciones_menu,
+        style=questionary.Style([
+            ('pointer', 'fg:cyan bold'),
+            ('highlighted', 'fg:cyan bold'),
+            ('answer', 'fg:green bold'),
+        ])
+    ).ask()
+
+    if seleccion is None:
+        print("\nOperación cancelada.")
+        return
+
+    if "[ + ]" in seleccion:
+        nueva_mat = input("\n✍️ Ingresa el nombre de la nueva asignatura: ").strip()
+        while not nueva_mat:
+            print("⚠️ El nombre no puede estar vacío.")
+            nueva_mat = input("✍️ Ingresa el nombre de la nueva asignatura: ").strip()
+        gestor_archivos.agregar_materia(nueva_mat)
+        materia_input = nueva_mat
+    else:
+        materia_input = seleccion
+
+    print(f"✅ Asignatura seleccionada: {materia_input}")
 
     tipo_input = input("📄 Tipo de material (diapositiva / actividad / lectura) [diapositiva]: ").strip().lower()
     if not tipo_input:
         tipo_input = "diapositiva"
 
+    ruta_prompt = os.path.join(ruta_raiz, "prompts", "03_resumen_evaluacion.md") # O prompt personalizado
     prompt = (
         "Actúa como un extractor de conocimiento experto.\n"
         "Transcribe el contenido de estas diapositivas o documento de forma estructurada usando Markdown limpio.\n\n"
@@ -74,37 +108,33 @@ def ingestar_material(ruta_archivo: str) -> None:
     intento = 0
 
     while intento < max_reintentos:
-        spinner = Halo(text=f'Subiendo archivo a Gemini (Intento {intento+1}/{max_reintentos})...', spinner='dots')
-        try:
-            spinner.start()
-            archivo_gemini = genai.upload_file(path=ruta_archivo)
-            spinner.succeed("Archivo subido con éxito a la File API de Gemini.")
-            break
-        except Exception as e:
-            spinner.fail(f"Fallo al subir el archivo: {e}")
-            intento += 1
-            if intento < max_reintentos:
-                print("⏳ Esperando 10 segundos antes de reintentar...")
-                time.sleep(10)
-            else:
-                print("❌ Se agotaron los reintentos de subida.")
-                return
+        with Halo(text=f'Subiendo archivo a Gemini (Intento {intento+1}/{max_reintentos})...', spinner='dots') as spinner:
+            try:
+                archivo_gemini = genai.upload_file(path=ruta_archivo)
+                spinner.succeed("Archivo subido con éxito a la File API de Gemini.")
+                break
+            except Exception as e:
+                spinner.fail(f"Fallo al subir el archivo: {e}")
+                intento += 1
+                if intento < max_reintentos:
+                    with Halo(text='Esperando 10 segundos antes de reintentar...', spinner='line'):
+                        time.sleep(10)
+                else:
+                    print("❌ Se agotaron los reintentos de subida.")
+                    return
 
     if not archivo_gemini:
         return
 
-    # Generar contenido con reintento ante Rate Limit (429)
     intento_gen = 0
     while intento_gen < max_reintentos:
-        spinner_gen = Halo(text='Analizando documento, texto e imágenes con Gemini 1.5 Flash...', spinner='line')
         try:
-            spinner_gen.start()
-            respuesta = modelo.generate_content([archivo_gemini, prompt])
-            spinner_gen.succeed("Contenido procesado y extraído correctamente.")
+            with Halo(text='Analizando documento y extrayendo conocimiento con Gemini 1.5 Flash...', spinner='line') as spinner_gen:
+                respuesta = modelo.generate_content([archivo_gemini, prompt])
+                spinner_gen.succeed("Contenido procesado y extraído correctamente.")
             
             contenido_md = respuesta.text
             
-            # Guardar en obsidian_vault/{materia}/
             carpeta_salida = os.path.join(ruta_raiz, "obsidian_vault", materia_input)
             os.makedirs(carpeta_salida, exist_ok=True)
             
@@ -121,23 +151,22 @@ def ingestar_material(ruta_archivo: str) -> None:
             break
 
         except Exception as e:
-            spinner_gen.fail(f"Error durante la generación: {e}")
             if "429" in str(e) or "ResourceExhausted" in str(e):
                 intento_gen += 1
                 tiempo_espera = 20 * intento_gen
-                print(f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s antes de reintentar...")
-                time.sleep(tiempo_espera)
+                print(f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s...")
+                with Halo(text=f'Esperando {tiempo_espera}s por Rate Limit...', spinner='line'):
+                    time.sleep(tiempo_espera)
             else:
+                print(f"❌ Error durante la generación: {e}")
                 break
     
-    # Limpieza obligatoria en la nube de Google
     if archivo_gemini is not None:
-        try:
-            print("🧹 Eliminando archivo temporal de los servidores de Google...")
-            genai.delete_file(archivo_gemini.name)
-            print("✅ Archivo temporal borrado de la nube con éxito.")
-        except Exception as del_err:
-            print(f"⚠️ No se pudo eliminar el archivo remoto: {del_err}")
+        with Halo(text='Eliminando archivo temporal de los servidores de Google...', spinner='dots'):
+            try:
+                genai.delete_file(archivo_gemini.name)
+            except Exception as del_err:
+                pass
 
     input("\nPresiona ENTER para salir...")
 

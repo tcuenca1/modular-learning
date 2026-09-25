@@ -1,8 +1,8 @@
 import os
-import re
 from typing import Dict, List
 import questionary
-from modules import gestor_archivos
+from modules.core import gestor_archivos
+from modules.ui.formateador import imprimir_markdown_bonito
 
 
 def seleccionar_con_flechas(opciones: List[str]) -> str:
@@ -24,26 +24,6 @@ def seleccionar_con_flechas(opciones: List[str]) -> str:
         exit(0)
         
     return seleccion
-
-
-def imprimir_markdown_bonito(texto: str) -> None:
-    """Formatea texto Markdown con colores y estilos atractivos para la consola."""
-    os.system('')
-    lineas = texto.split('\n')
-    for linea in lineas:
-        if linea.startswith('# '):
-            print(f"\n\033[1;95m{linea[2:].upper()}\033[0m")
-        elif linea.startswith('## '):
-            print(f"\n\033[1;94m{linea[3:]}\033[0m")
-        elif linea.startswith('### '):
-            print(f"\n\033[1;96m  🔹 {linea[4:]}\033[0m")
-        elif linea.startswith('- ') or linea.startswith('* '):
-            linea_fmt = re.sub(r'\*\*(.*?)\*\*', r'\033[1m\1\033[0m', linea[2:])
-            print(f"    • {linea_fmt}")
-        else:
-            linea_fmt = re.sub(r'\*\*(.*?)\*\*', r'\033[1m\1\033[0m', linea)
-            print(f"    {linea_fmt}")
-    print()
 
 
 def pedir_datos_inicio() -> Dict[str, str]:
@@ -73,7 +53,6 @@ def pedir_datos_inicio() -> Dict[str, str]:
 
     print(f"✅ Asignatura seleccionada: \033[1;92m{materia}\033[0m\n")
 
-    # Obtener próximas clases pendientes del cronograma JSON si existe
     proximas_clases = gestor_archivos.obtener_proximas_clases(materia)
     tema = ""
 
