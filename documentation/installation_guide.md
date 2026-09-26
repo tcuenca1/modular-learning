@@ -1,31 +1,28 @@
-# Guía de Instalación y Uso - Sistema de Tutoría CLI
+# Guía de Instalación y Uso - Modular Learning CLI (ml-cli)
 
-Esta guía detalla los pasos necesarios para instalar, configurar y utilizar el Sistema de Tutoría Personalizado por CLI conectado a Google Gemini.
+Esta guía detalla los pasos necesarios para instalar, configurar y utilizar **Modular Learning CLI (`ml`)**, una plataforma de tutoría académica interactiva y gestión de conocimiento conectada a Google Gemini (`gemini-3.5-flash-lite`) con exportación automática a Obsidian.
 
 ---
 
 ## 1. Arquitectura y Estructura del Proyecto
 ```text
-SistemaAprendizaje/
-├── main.py                    # Orquestador principal del tutor CLI
+modular-learning-cli/
+├── cli.py                     # Enrutador principal CLI nativo (entry_point: ml)
+├── main.py                    # Orquestador de sesiones de tutoría interactiva
+├── pyproject.toml             # Configuración de empaquetado moderno (PEP 621)
 ├── .env                       # Variables de entorno (GEMINI_API_KEY, RUTA_OBSIDIAN)
 ├── .env.example               # Plantilla de configuración
 ├── requirements.txt           # Dependencias del proyecto
-├── data/
-│   └── materias.txt           # Persistencia de asignaturas
-├── modules/                   # Módulos lógicos del sistema
-│   ├── ai_gemini.py           # Conexión con la API de Google Gemini (Gemini 3.5 Flash Lite)
-│   ├── gestor_archivos.py     # Manejo de disco y generación de constelaciones en Obsidian
-│   └── interaccion.py         # UI de terminal, selección interactiva con flechas y formato Markdown
-├── tools/                     # Herramientas auxiliares independientes
-│   └── extraer_silabo.py      # Extractor local de cronograma de sílabos (Sección 4.2)
-├── prompts/                   # Instrucciones y directivas para la IA
-│   ├── 01_roadmap_aprendizaje.md
-│   ├── 02_explicacion_tema.md
-│   ├── 03_resumen_evaluacion.md
-│   └── 04_extraccion_silabo.md
-└── documentation/
-    └── installation_guide.md  # Esta guía de uso
+├── data/                      # Base de datos local (cronogramas JSON y materias.txt)
+├── modules/                   # Módulos lógicos (capas de negocio, UI y adaptadores)
+│   ├── core/                  # ai_gemini.py, gestor_archivos.py
+│   ├── ui/                    # formateador.py, interaccion.py
+│   └── plugins/               # Sistema de plugins para arquitectura hexagonal (Cisco, Node-RED)
+├── tools/                     # Herramientas auxiliares
+│   ├── extraer_silabo.py      # Extractor masivo/individual de sílabos (Sección 4.2)
+│   └── ingestar_material.py   # Ingesta multimodal con conversión automática a PDF y tracking
+├── prompts/                   # Instrucciones externas en Markdown
+└── obsidian_vault/            # Bóveda local de Obsidian (constelación de grafos)
 ```
 
 ---
@@ -33,22 +30,24 @@ SistemaAprendizaje/
 ## 2. Requisitos Previos
 - **Python 3.10 o superior** instalado en el sistema.
 - Una clave de API válida de **Google Gemini** (`GEMINI_API_KEY`) obtenida en [Google AI Studio](https://aistudio.google.com/).
+- (Opcional para conversión Office) Microsoft Word / PowerPoint instalados localmente para procesamiento de `.docx` y `.pptx`.
 
 ---
 
-## 3. Instalación de Dependencias
-Abre una terminal en la carpeta raíz del proyecto y ejecuta el siguiente comando para instalar las librerías necesarias (`google-generativeai`, `python-dotenv`, `pypdf`, etc.):
+## 3. Instalación Nativa y Editable
+Abre una terminal en la carpeta raíz del proyecto y ejecuta el comando de instalación editable:
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
+
+Esto registrará globalmente el comando `ml` en tu sistema operativo, permitiéndote ejecutarlo desde cualquier terminal.
 
 ---
 
 ## 4. Configuración de Variables de Entorno
-1. Crea o duplica el archivo `.env.example` renombrándolo a `.env` en la raíz del proyecto.
-2. Configura tus credenciales con el siguiente formato:
-
+1. Duplica el archivo `.env.example` y nómbralo `.env` en la raíz del proyecto.
+2. Configura tus credenciales:
 ```env
 GEMINI_API_KEY=tu_clave_api_real_aqui
 RUTA_OBSIDIAN="C:\Users\TuUsuario\Documents\Obsidian Vault"
@@ -56,23 +55,35 @@ RUTA_OBSIDIAN="C:\Users\TuUsuario\Documents\Obsidian Vault"
 
 ---
 
-## 5. Ejecución del Sistema
+## 5. Uso del Comando Global `ml`
 
-### A. Tutoría Personalizada (CLI)
-Inicia el orquestador principal directamente con Python:
-```bash
-python main.py
-```
-- Selecciona tu asignatura usando las flechas del teclado `[↑]` `[↓]` y presiona `[ENTER]` (o añade una nueva).
-- Ingresa el tema de estudio y el nivel de profundidad deseado.
-- Estudia paso a paso de forma interactiva y guarda tus notas automáticamente en Obsidian formando un grafo de constelación.
+El enrutador nativo expone las siguientes opciones:
 
-### B. Herramienta Auxiliar: Extracción de Sílabo (`toJson`)
-Si deseas convertir un sílabo (PDF, Markdown o TXT) en un archivo `_cronograma.json` (delimitando estrictamente la sección 4.2):
+### A. Tutoría Personalizada (`ml init`)
+Inicia el orquestador principal de tutoría guiada paso a paso:
 ```bash
-python tools/extraer_silabo.py
+ml init
 ```
-O pasando la ruta como argumento:
+- Selecciona la asignatura y tema (o elige clases pendientes del cronograma del sílabo).
+- Estudia de forma interactiva con explicaciones técnicas adaptadas por IA y guárdalo automáticamente en tu bóveda de Obsidian. Al concluir, el sistema marcará automáticamente la clase como **`completado`** en el cronograma JSON.
+
+### B. Extracción de Sílabos (`ml es`)
+Convierte sílabos (archivos individuales o carpetas completas en formato PDF, Markdown o TXT) en cronogramas JSON estructurados ubicados en `data/`:
 ```bash
-python tools/extraer_silabo.py "ruta/a/tu/silabo.pdf"
+ml es "ruta/a/tu/carpeta_o_silabo.pdf"
+```
+
+### C. Ingesta Inteligente de Material (`ml im`)
+Procesa diapositivas, lecturas, documentos Word (`.docx`), presentaciones PowerPoint (`.pptx`) o imágenes mediante visión multimodal de Gemini y los convierte en notas formateadas para Obsidian:
+```bash
+ml im "ruta/a/tu/material.pptx"
+```
+*Características avanzadas:*
+- **Conversión Automática**: Convierte archivos `.docx` y `.pptx` a PDF en segundo plano (`docx2pdf` / `comtypes`) antes de enviarlos a Gemini.
+- **Sistema de Tracking / Registro**: Evita procesar documentos duplicados consultando `data/registro_materiales.json`, preguntando mediante confirmación interactiva si se desea forzar el reprocesamiento.
+
+### D. Panel de Ayuda (`ml --help`)
+Muestra las opciones disponibles en pantalla:
+```bash
+ml --help
 ```

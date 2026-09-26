@@ -4,6 +4,7 @@ import time
 import json
 import warnings
 import mimetypes
+import tempfile
 
 # Forzar UTF-8 en stdout
 if hasattr(sys.stdout, 'reconfigure'):
@@ -27,15 +28,70 @@ sys.path.append(ruta_raiz)
 
 from modules.core import gestor_archivos
 
+
+def convertir_a_pdf_si_es_necesario(ruta_archivo: str) -> str:
+    """
+    Convierte archivos .docx o .pptx a PDF temporal para que Gemini pueda procesarlos óptimamente.
+    Retorna la ruta del archivo PDF (o la misma ruta si ya es PDF u otro formato).
+    """
+    ext = os.path.splitext(ruta_archivo)[1].lower()
+    if ext == '.pdf':
+        return ruta_archivo
+
+    temp_dir = tempfile.gettempdir()
+    nombre_base = os.path.splitext(os.path.basename(ruta_archivo))[0]
+    ruta_pdf = os.path.join(temp_dir, f"{nombre_base}.pdf")
+
+    if ext == '.docx':
+        try:
+            with Halo(text='Convirtiendo documento Word (.docx) a PDF...', spinner='line') as spinner:
+                import docx2pdf
+                docx2pdf.convert(ruta_archivo, ruta_pdf)
+                spinner.succeed("Conversión de Word a PDF completada.")
+                return ruta_pdf
+        except Exception as e:
+            print(f"⚠️ Error al convertir .docx a PDF: {e}. Procesando archivo original...")
+            return ruta_archivo
+
+    elif ext == '.pptx':
+        try:
+            with Halo(text='Convirtiendo presentación PowerPoint (.pptx) a PDF...', spinner='line') as spinner:
+                import comtypes.client
+                powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
+                powerpoint.Visible = 1
+                deck = powerpoint.Presentations.Open(os.path.abspath(ruta_archivo), ReadOnly=True, WithWindow=False)
+                # Formato PDF en PowerPoint es 32
+                deck.SaveAs(os.path.abspath(ruta_pdf), 32)
+                deck.Close()
+                powerpoint.Quit()
+                spinner.succeed("Conversión de PowerPoint a PDF completada.")
+                return ruta_pdf
+        except Exception as e:
+            print(f"⚠️ Error al convertir .pptx a PDF: {e}. Asegúrate de tener PowerPoint instalado. Procesando archivo original...")
+            return ruta_archivo
+
+    return ruta_archivo
+
+
 def ingestar_material(ruta_archivo: str) -> None:
     """
-    Sube un archivo (PDF, imágenes) a Gemini (gemini-3.5-flash-lite) mediante Inline Data,
+    Sube un archivo (PDF, imágenes, Word, PPT) a Gemini (gemini-3.5-flash-lite) mediante Inline Data,
     extrae texto y describe imágenes semánticamente con Wikilinks para Obsidian.
     """
     ruta_archivo = ruta_archivo.strip('"').strip("'")
     if not os.path.exists(ruta_archivo):
         print(f"❌ Error: El archivo no existe en la ruta: {ruta_archivo}")
         return
+
+    nombre_archivo_original = os.path.basename(ruta_archivo)
+
+    # Verificar si el material ya fue ingestado previamente
+    if gestor_archivos.verificar_material_ingestado(nombre_archivo_original):
+        print(f"\n⚠️ El archivo '{nombre_archivo_original}' ya fue registrado previamente en el sistema de ingesta.")
+        reprocesar = questionary.confirm("¿Desea forzar el reprocesamiento de este material?").ask()
+        if not reprocesar:
+            print("Operación cancelada por el usuario.")
+            return
 
     load_dotenv(os.path.join(ruta_raiz, '.env'), override=True)
 
@@ -47,10 +103,13 @@ def ingestar_material(ruta_archivo: str) -> None:
     genai.configure(api_key=api_key)
     modelo = genai.GenerativeModel('gemini-3.5-flash-lite')
 
-    nombre_base = os.path.splitext(os.path.basename(ruta_archivo))[0]
-    ext = os.path.splitext(ruta_archivo)[1].lower()
+    nombre_base = os.path.splitext(nombre_archivo_original)[0]
 
-    # Asegurar que existan las 5 carpetas de materias en obsidian_vault/
+    # Convertir a PDF si es Word o PowerPoint
+    ruta_para_procesar = convertir_a_pdf_si_es_necesario(ruta_archivo)
+    ext = os.path.splitext(ruta_para_procesar)[1].lower()
+
+    # Asegurar que existan las carpetas de materias en obsidian_vault/
     materias = gestor_archivos.cargar_materias()
     vault_path = os.path.join(ruta_raiz, "obsidian_vault")
     for mat in materias:
@@ -93,10 +152,10 @@ def ingestar_material(ruta_archivo: str) -> None:
     if ext == '.pdf':
         mime_type = 'application/pdf'
     else:
-        mime_type = mimetypes.guess_type(ruta_archivo)[0] or 'text/plain'
+        mime_type = mimetypes.guess_type(ruta_para_procesar)[0] or 'text/plain'
 
     try:
-        with open(ruta_archivo, "rb") as f:
+        with open(ruta_para_procesar, "rb") as f:
             datos_binarios = f.read()
             
         documento_inline = {
@@ -149,6 +208,9 @@ def ingestar_material(ruta_archivo: str) -> None:
             print(f"[ÉXITO] Material ingestado y convertido a Markdown.")
             print(f"Archivo guardado en: {os.path.abspath(ruta_salida)}")
             print(f"========================================")
+            
+            # Registrar material en tracking
+            gestor_archivos.registrar_material(nombre_archivo_original, materia_input)
             break
 
         except Exception as e:
@@ -172,7 +234,7 @@ def run():
         print("=" * 60)
         print(" INGESTA DE MATERIAL DE ESTUDIO CON GEMINI (VISIÓN Y TEXTO)")
         print("=" * 60)
-        ruta = input("👉 Ingresa la ruta del archivo (PDF/Imágenes): ").strip()
+        ruta = input("👉 Ingresa la ruta del archivo (PDF/Imágenes/Word/PPT): ").strip()
         if ruta:
             ingestar_material(ruta)
         else:

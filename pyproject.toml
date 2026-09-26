@@ -13,7 +13,9 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pypdf>=3.0.0",
     "questionary>=2.0.0",
-    "halo>=0.0.31"
+    "halo>=0.0.31",
+    "docx2pdf>=0.1.8",
+    "comtypes>=1.1.14"
 ]
 
 [project.scripts]

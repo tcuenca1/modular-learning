@@ -119,6 +119,8 @@ def main() -> None:
 
         if exito:
             interaccion.mostrar_mensaje(f"¡Guía de estudio guardada exitosamente en tu bóveda de Obsidian bajo la asignatura '{materia}'!", "exito")
+            # Actualizar estado de la clase en el cronograma JSON a completado
+            gestor_archivos.marcar_clase_completada(materia, tema)
         else:
             interaccion.mostrar_mensaje("No se pudo guardar el archivo en Obsidian.", "error")
 
