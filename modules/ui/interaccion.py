@@ -32,7 +32,7 @@ def pedir_datos_inicio() -> Dict[str, str]:
     ofreciendo las próximas clases del cronograma JSON si existen, y pidiendo profundidad.
     """
     print("=" * 65)
-    print(" 🎓 SISTEMA DE TUTORÍA PERSONALIZADO - CLI (ECUADOR) 🇪🇨")
+    print(" 🎓 SISTEMA DE TUTORÍA PERSONALIZADO - CLI")
     print("=" * 65)
     
     materias = gestor_archivos.cargar_materias()
