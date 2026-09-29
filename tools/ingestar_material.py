@@ -21,12 +21,13 @@ import google.generativeai as genai
 from halo import Halo
 import questionary
 
-# Importar core desde modules
+# Importar core y plugins desde modules
 ruta_script = os.path.dirname(os.path.abspath(__file__))
 ruta_raiz = os.path.dirname(ruta_script)
 sys.path.append(ruta_raiz)
 
 from modules.core import gestor_archivos
+from modules.plugins import gestor_plugins
 
 
 def convertir_a_pdf_si_es_necesario(ruta_archivo: str) -> str:
@@ -98,7 +99,8 @@ def clasificar_tipo_material(ruta_archivo: str, ruta_raiz_lote: str) -> str:
 def ingestar_material(ruta_entrada: str) -> None:
     """
     Procesa archivos individuales o lotes completos de directorios (Batch Processing) 
-    con clasificación automática, conversión a PDF, anonimización de datos y organización estructurada en Obsidian.
+    con clasificación automática, conversión a PDF, anonimización de datos, organización estructurada en Obsidian
+    y ciclo de retroalimentación de memoria técnica para plugins prácticos.
     """
     ruta_entrada = ruta_entrada.strip('"').strip("'")
     if not os.path.exists(ruta_entrada):
@@ -274,6 +276,24 @@ def ingestar_material(ruta_entrada: str) -> None:
                 
                 # Registrar material en tracking
                 gestor_archivos.registrar_material(nombre_archivo_original, materia_input)
+
+                # Ciclo de retroalimentación de plugins prácticos (actualizar memoria técnica)
+                plugin = gestor_plugins.obtener_plugin(materia_input)
+                if plugin:
+                    try:
+                        with Halo(text='Extrayendo metadatos técnicos para memoria del plugin...', spinner='line'):
+                            prompt_tecnico = (
+                                "Extrae únicamente un listado técnico de los comandos, nodos, topologías o configuraciones "
+                                "exactas que aparecen en este documento. Devuelve solo la lista, sin introducciones."
+                            )
+                            res_tecnica = modelo.generate_content([documento_inline, prompt_tecnico])
+                            texto_tecnico = res_tecnica.text.strip()
+                            if texto_tecnico:
+                                plugin.guardar_contexto_extraido(texto_tecnico)
+                                print(f"🧠 Contexto técnico extraído y guardado en la memoria del plugin para '{materia_input}'.")
+                    except Exception as err_plugin:
+                        print(f"⚠️ No se pudo actualizar la memoria del plugin: {err_plugin}")
+
                 contador_exito += 1
                 exito_archivo = True
                 break

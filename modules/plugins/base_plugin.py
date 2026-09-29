@@ -16,3 +16,13 @@ class PluginPracticoBase(ABC):
     def generar_ejercicio_base(self, tema: str) -> str:
         """Devuelve el contexto técnico inicial, plantilla o boilerplate práctico para el tema indicado."""
         pass
+
+    @abstractmethod
+    def guardar_contexto_extraido(self, metadatos: str) -> None:
+        """Guarda y acumula contexto técnico extraído de materiales ingestados (historial máx. 5)."""
+        pass
+
+    @abstractmethod
+    def cargar_contexto_reciente(self) -> str:
+        """Carga el contexto técnico reciente guardado para inyectarlo al system prompt de la IA."""
+        pass
