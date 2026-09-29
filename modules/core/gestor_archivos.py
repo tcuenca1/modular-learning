@@ -31,9 +31,9 @@ def leer_material_estudio(ruta_archivo: str) -> str:
         raise IOError(f"Error al leer el material de estudio en '{ruta_archivo}': {e}")
 
 
-def cargar_materias(archivo_materias: str = os.path.join("data", "materias.txt")) -> List[str]:
-    """Carga la lista de materias desde data/materias.txt. Si no existe, lo crea con valores iniciales."""
-    materias_iniciales = ["Seguridad de la Informacion", "Ingenieria de Software II"]
+def cargar_materias(archivo_materias: str = os.path.join("data", "config", "materias.txt")) -> List[str]:
+    """Carga la lista de materias desde data/config/materias.txt. Si no existe, lo crea con valores iniciales."""
+    materias_iniciales = ["Seguridad de la Informacion", "Ingenieria de Software II", "Programacion Web", "Internet de las Cosas", "Tecnologias de Conmutacion I"]
     
     os.makedirs(os.path.dirname(archivo_materias), exist_ok=True)
     
@@ -53,8 +53,8 @@ def cargar_materias(archivo_materias: str = os.path.join("data", "materias.txt")
         return materias_iniciales
 
 
-def agregar_materia(nueva_materia: str, archivo_materias: str = os.path.join("data", "materias.txt")) -> None:
-    """Añade una nueva materia a data/materias.txt si no existe."""
+def agregar_materia(nueva_materia: str, archivo_materias: str = os.path.join("data", "config", "materias.txt")) -> None:
+    """Añade una nueva materia a data/config/materias.txt si no existe."""
     nueva_materia = nueva_materia.strip()
     if not nueva_materia:
         return
@@ -71,11 +71,11 @@ def agregar_materia(nueva_materia: str, archivo_materias: str = os.path.join("da
 
 def obtener_proximas_clases(materia: str) -> List[Dict[str, Any]]:
     """
-    Lee el archivo cronograma.json correspondiente a la materia en data/,
+    Lee el archivo cronograma.json correspondiente a la materia en data/schedules/,
     filtra las clases con estado 'pendiente' y devuelve las primeras 5.
     Utiliza coincidencia robusta (exacta, slug y búsqueda difusa).
     """
-    carpeta_data = "data"
+    carpeta_data = os.path.join("data", "schedules")
     if not os.path.exists(carpeta_data):
         return []
 
@@ -96,7 +96,6 @@ def obtener_proximas_clases(materia: str) -> List[Dict[str, Any]]:
             ruta_archivo = ruta_prueba
             break
 
-    # Búsqueda difusa si no coincide el nombre exacto
     if not ruta_archivo:
         try:
             archivos_data = os.listdir(carpeta_data)
@@ -123,6 +122,125 @@ def obtener_proximas_clases(materia: str) -> List[Dict[str, Any]]:
     except Exception as e:
         print(f"⚠️ Error al leer el cronograma de {materia}: {e}")
         return []
+
+
+def marcar_clase_completada(materia: str, tema_exacto: str) -> bool:
+    """
+    Busca el archivo cronograma.json de la materia en data/schedules/ y marca la clase cuyo tema 
+    coincida con tema_exacto como 'completado'.
+    """
+    carpeta_data = os.path.join("data", "schedules")
+    if not os.path.exists(carpeta_data):
+        return False
+
+    materia_slug = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in materia).strip().replace(' ', '_').upper()
+    materia_upper = materia.upper().replace(' ', '_')
+    
+    posibles_nombres = [
+        f"{materia}_cronograma.json",
+        f"{materia_slug}_cronograma.json",
+        f"{materia_upper}_cronograma.json",
+        f"{materia_slug.lower()}_cronograma.json"
+    ]
+
+    ruta_archivo = None
+    for nombre in posibles_nombres:
+        ruta_prueba = os.path.join(carpeta_data, nombre)
+        if os.path.exists(ruta_prueba):
+            ruta_archivo = ruta_prueba
+            break
+
+    if not ruta_archivo:
+        try:
+            for arch in os.listdir(carpeta_data):
+                if arch.endswith("_cronograma.json"):
+                    if materia_slug.replace("_", "") in arch.upper().replace("_", ""):
+                        ruta_archivo = os.path.join(carpeta_data, arch)
+                        break
+        except Exception:
+            pass
+
+    if not ruta_archivo or not os.path.exists(ruta_archivo):
+        return False
+
+    try:
+        with open(ruta_archivo, 'r', encoding='utf-8') as f:
+            clases = json.load(f)
+        
+        if not isinstance(clases, list):
+            return False
+
+        actualizado = False
+        tema_buscado = tema_exacto.strip().lower()
+
+        for clase in clases:
+            tema_clase = clase.get("tema", "").strip().lower()
+            if tema_buscado in tema_clase or tema_clase in tema_buscado or tema_buscado == tema_clase:
+                clase["estado"] = "completado"
+                actualizado = True
+
+        if actualizado:
+            with open(ruta_archivo, 'w', encoding='utf-8') as f:
+                json.dump(clases, f, indent=4, ensure_ascii=False)
+            return True
+
+        return False
+    except Exception as e:
+        print(f"⚠️ Error al actualizar el estado de la clase en cronograma: {e}")
+        return False
+
+
+def _obtener_ruta_registro() -> str:
+    return os.path.join("data", "config", "registro_materiales.json")
+
+
+def verificar_material_ingestado(nombre_archivo: str) -> bool:
+    """Verifica si un archivo de material ya fue procesado e ingestado previamente."""
+    ruta = _obtener_ruta_registro()
+    if not os.path.exists(ruta):
+        return False
+    try:
+        with open(ruta, 'r', encoding='utf-8') as f:
+            registro = json.load(f)
+        if isinstance(registro, list):
+            return any(item.get("nombre", "").lower() == nombre_archivo.lower() for item in registro)
+        elif isinstance(registro, dict):
+            return nombre_archivo in registro or nombre_archivo.lower() in [k.lower() for k in registro.keys()]
+        return False
+    except Exception:
+        return False
+
+
+def registrar_material(nombre_archivo: str, materia: str) -> None:
+    """Registra un nuevo material ingestado en el archivo JSON de tracking ubicado en data/config/."""
+    ruta = _obtener_ruta_registro()
+    os.makedirs(os.path.dirname(ruta), exist_ok=True)
+    registro = []
+    if os.path.exists(ruta):
+        try:
+            with open(ruta, 'r', encoding='utf-8') as f:
+                contenido = json.load(f)
+                if isinstance(contenido, list):
+                    registro = contenido
+                elif isinstance(contenido, dict):
+                    registro = [{"nombre": k, "materia": v.get("materia", ""), "fecha": v.get("fecha", "")} for k, v in contenido.items()]
+        except Exception:
+            registro = []
+    
+    nombre_lower = nombre_archivo.lower()
+    registro = [r for r in registro if r.get("nombre", "").lower() != nombre_lower]
+    
+    registro.append({
+        "nombre": nombre_archivo,
+        "materia": materia,
+        "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
+    
+    try:
+        with open(ruta, 'w', encoding='utf-8') as f:
+            json.dump(registro, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"⚠️ No se pudo guardar el registro de material: {e}")
 
 
 def guardar_resumen_obsidian(
@@ -185,122 +303,3 @@ tags: [{materia_sin_espacios}, repaso, tutor_ia]
     except Exception as e:
         print(f"❌ Error al guardar el resumen en Obsidian: {e}")
         return False
-
-
-def marcar_clase_completada(materia: str, tema_exacto: str) -> bool:
-    """
-    Busca el archivo cronograma.json de la materia y marca la clase cuyo tema 
-    coincida con tema_exacto como 'completado'.
-    """
-    carpeta_data = "data"
-    if not os.path.exists(carpeta_data):
-        return False
-
-    materia_slug = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in materia).strip().replace(' ', '_').upper()
-    materia_upper = materia.upper().replace(' ', '_')
-    
-    posibles_nombres = [
-        f"{materia}_cronograma.json",
-        f"{materia_slug}_cronograma.json",
-        f"{materia_upper}_cronograma.json",
-        f"{materia_slug.lower()}_cronograma.json"
-    ]
-
-    ruta_archivo = None
-    for nombre in posibles_nombres:
-        ruta_prueba = os.path.join(carpeta_data, nombre)
-        if os.path.exists(ruta_prueba):
-            ruta_archivo = ruta_prueba
-            break
-
-    if not ruta_archivo:
-        try:
-            for arch in os.listdir(carpeta_data):
-                if arch.endswith("_cronograma.json"):
-                    if materia_slug.replace("_", "") in arch.upper().replace("_", ""):
-                        ruta_archivo = os.path.join(carpeta_data, arch)
-                        break
-        except Exception:
-            pass
-
-    if not ruta_archivo or not os.path.exists(ruta_archivo):
-        return False
-
-    try:
-        with open(ruta_archivo, 'r', encoding='utf-8') as f:
-            clases = json.load(f)
-        
-        if not isinstance(clases, list):
-            return False
-
-        actualizado = False
-        tema_buscado = tema_exacto.strip().lower()
-
-        for clase in clases:
-            tema_clase = clase.get("tema", "").strip().lower()
-            if tema_buscado in tema_clase or tema_clase in tema_buscado or tema_buscado == tema_clase:
-                clase["estado"] = "completado"
-                actualizado = True
-
-        if actualizado:
-            with open(ruta_archivo, 'w', encoding='utf-8') as f:
-                json.dump(clases, f, indent=4, ensure_ascii=False)
-            return True
-
-        return False
-    except Exception as e:
-        print(f"⚠️ Error al actualizar el estado de la clase en cronograma: {e}")
-        return False
-
-
-def _obtener_ruta_registro() -> str:
-    return os.path.join("data", "registro_materiales.json")
-
-
-def verificar_material_ingestado(nombre_archivo: str) -> bool:
-    """Verifica si un archivo de material ya fue procesado e ingestado previamente."""
-    ruta = _obtener_ruta_registro()
-    if not os.path.exists(ruta):
-        return False
-    try:
-        with open(ruta, 'r', encoding='utf-8') as f:
-            registro = json.load(f)
-        if isinstance(registro, list):
-            return any(item.get("nombre", "").lower() == nombre_archivo.lower() for item in registro)
-        elif isinstance(registro, dict):
-            return nombre_archivo in registro or nombre_archivo.lower() in [k.lower() for k in registro.keys()]
-        return False
-    except Exception:
-        return False
-
-
-def registrar_material(nombre_archivo: str, materia: str) -> None:
-    """Registra un nuevo material ingestado en el archivo JSON de tracking."""
-    ruta = _obtener_ruta_registro()
-    os.makedirs(os.path.dirname(ruta), exist_ok=True)
-    registro = []
-    if os.path.exists(ruta):
-        try:
-            with open(ruta, 'r', encoding='utf-8') as f:
-                contenido = json.load(f)
-                if isinstance(contenido, list):
-                    registro = contenido
-                elif isinstance(contenido, dict):
-                    registro = [{"nombre": k, "materia": v.get("materia", ""), "fecha": v.get("fecha", "")} for k, v in contenido.items()]
-        except Exception:
-            registro = []
-    
-    nombre_lower = nombre_archivo.lower()
-    registro = [r for r in registro if r.get("nombre", "").lower() != nombre_lower]
-    
-    registro.append({
-        "nombre": nombre_archivo,
-        "materia": materia,
-        "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    })
-    
-    try:
-        with open(ruta, 'w', encoding='utf-8') as f:
-            json.dump(registro, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        print(f"⚠️ No se pudo guardar el registro de material: {e}")

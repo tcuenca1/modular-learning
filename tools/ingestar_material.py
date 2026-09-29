@@ -21,13 +21,14 @@ import google.generativeai as genai
 from halo import Halo
 import questionary
 
-# Importar core y plugins desde modules
+# Importar core, plugins y ui desde modules
 ruta_script = os.path.dirname(os.path.abspath(__file__))
 ruta_raiz = os.path.dirname(ruta_script)
 sys.path.append(ruta_raiz)
 
 from modules.core import gestor_archivos
 from modules.plugins import gestor_plugins
+from modules.ui import formateador
 
 
 def convertir_a_pdf_si_es_necesario(ruta_archivo: str) -> str:
@@ -96,17 +97,12 @@ def clasificar_tipo_material(ruta_archivo: str, ruta_raiz_lote: str) -> str:
         return "material_complementario"
 
 
-def ingestar_material(ruta_entrada: str) -> None:
+def ingestar_material(ruta_entrada: str = None) -> None:
     """
-    Procesa archivos individuales o lotes completos de directorios (Batch Processing) 
-    con clasificación automática, conversión a PDF, anonimización de datos, organización estructurada en Obsidian
-    y ciclo de retroalimentación de memoria técnica para plugins prácticos.
+    Ingesta automática de material desde RUTA_BASE_UNIVERSIDAD/{materia} 
+    con filtrado silencioso de duplicados, clasificación, conversión a PDF, anonimización,
+    organización estructurada en Obsidian y actualización de plugins.
     """
-    ruta_entrada = ruta_entrada.strip('"').strip("'")
-    if not os.path.exists(ruta_entrada):
-        print(f"❌ Error: La ruta no existe en el sistema: {ruta_entrada}")
-        return
-
     load_dotenv(os.path.join(ruta_raiz, '.env'), override=True)
 
     api_key = os.getenv("GEMINI_API_KEY")
@@ -117,7 +113,7 @@ def ingestar_material(ruta_entrada: str) -> None:
     genai.configure(api_key=api_key)
     modelo = genai.GenerativeModel('gemini-3.5-flash-lite')
 
-    # Asegurar que existan las carpetas de materias en obsidian_vault/
+    # Cargar materias y asegurar vault
     materias = gestor_archivos.cargar_materias()
     vault_path = os.path.join(ruta_raiz, "obsidian_vault")
     for mat in materias:
@@ -125,7 +121,7 @@ def ingestar_material(ruta_entrada: str) -> None:
 
     opciones_menu = materias + ["[ + ] Añadir nueva asignatura..."]
     
-    print("\n📚 Selecciona la asignatura a la que pertenece este material:")
+    print("\n📚 Selecciona la asignatura a la que pertenece la ingesta:")
     seleccion = questionary.select(
         "Selecciona una opción:",
         choices=opciones_menu,
@@ -153,27 +149,53 @@ def ingestar_material(ruta_entrada: str) -> None:
 
     print(f"✅ Asignatura seleccionada: {materia_input}")
 
-    # Recopilar archivos a procesar (Individual o Lote mediante os.walk)
-    archivos_a_procesar = []
-    if os.path.isdir(ruta_entrada):
-        print(f"📁 Escaneando directorio raíz para procesamiento por lote (Batch):\n   {ruta_entrada}")
-        for root, dirs, files in os.walk(ruta_entrada):
+    # TAREA 1: Ingesta Automática desde Ruta Fija (RUTA_BASE_UNIVERSIDAD)
+    ruta_base_uni = os.getenv("RUTA_BASE_UNIVERSIDAD", "C:/Universidad")
+    ruta_objetivo = os.path.join(ruta_base_uni, materia_input)
+
+    if not os.path.exists(ruta_objetivo):
+        print(f"⚠️ La ruta automática '{ruta_objetivo}' no existe en disco.")
+        resp_alt = input("👉 ¿Desea ingresar una ruta manual alternativa? (s/N): ").strip().lower()
+        if resp_alt in ['s', 'si', 'sí']:
+            ruta_objetivo = input("Ingresa la ruta de la carpeta o archivo: ").strip().strip('"').strip("'")
+        if not ruta_objetivo or not os.path.exists(ruta_objetivo):
+            print("❌ Ruta no válida o no encontrada. Operación finalizada.")
+            return
+
+    archivos_a_escanear = []
+    if os.path.isdir(ruta_objetivo):
+        print(f"📁 Escaneando directorio base automático:\n   {ruta_objetivo}")
+        for root, dirs, files in os.walk(ruta_objetivo):
             for file in files:
                 if file.lower().endswith(('.pdf', '.docx', '.pptx')):
-                    archivos_a_procesar.append(os.path.join(root, file))
-        ruta_raiz_lote = ruta_entrada
+                    archivos_a_escanear.append(os.path.join(root, file))
+        ruta_raiz_lote = ruta_objetivo
     else:
-        archivos_a_procesar = [ruta_entrada]
-        ruta_raiz_lote = os.path.dirname(ruta_entrada)
+        archivos_a_escanear = [ruta_objetivo]
+        ruta_raiz_lote = os.path.dirname(ruta_objetivo)
 
-    if not archivos_a_procesar:
-        print("⚠️ No se encontraron archivos soportados (.pdf, .docx, .pptx) para procesar.")
+    if not archivos_a_escanear:
+        print(f"⚠️ No se encontraron archivos soportados (.pdf, .docx, .pptx) en '{ruta_objetivo}'.")
         return
 
-    print(f"🚀 Total de archivos detectados para ingesta: {len(archivos_a_procesar)}")
+    # Filtrar silenciosamente los ya procesados usando verificar_material_ingestado
+    archivos_nuevos = []
+    contador_saltados_silenciosos = 0
+    for archivo_path in archivos_a_escanear:
+        nombre_archivo_original = os.path.basename(archivo_path)
+        if gestor_archivos.verificar_material_ingestado(nombre_archivo_original):
+            contador_saltados_silenciosos += 1
+        else:
+            archivos_nuevos.append(archivo_path)
+
+    print(f"🚀 Archivos totales: {len(archivos_a_escanear)} | Ya procesados (saltados silenciosamente): {contador_saltados_silenciosos} | Nuevos a procesar: {len(archivos_nuevos)}")
+
+    if not archivos_nuevos:
+        print("✨ Todos los archivos de la asignatura ya han sido ingestados previamente. No hay archivos nuevos pendientes.")
+        input("\nPresiona ENTER para salir...")
+        return
 
     contador_exito = 0
-    contador_saltados = 0
     contador_fallidos = 0
 
     # Cargar prompt desde prompts/05_ingesta_material.md
@@ -182,25 +204,11 @@ def ingestar_material(ruta_entrada: str) -> None:
     except Exception:
         prompt_template = "Actúa como un extractor de conocimiento experto y transcribe este documento en Markdown."
 
-    for idx, archivo_path in enumerate(archivos_a_procesar, 1):
+    for idx, archivo_path in enumerate(archivos_nuevos, 1):
         nombre_archivo_original = os.path.basename(archivo_path)
         print(f"\n" + "-" * 60)
-        print(f"[{idx}/{len(archivos_a_procesar)}] Procesando: {nombre_archivo_original}")
+        print(f"[{idx}/{len(archivos_nuevos)}] Procesando nuevo archivo: {nombre_archivo_original}")
         print("-" * 60)
-
-        # Verificar si el material ya fue ingestado previamente
-        if gestor_archivos.verificar_material_ingestado(nombre_archivo_original):
-            print(f"ℹ️ El archivo '{nombre_archivo_original}' ya consta en el registro de ingesta.")
-            if len(archivos_a_procesar) == 1:
-                reprocesar = questionary.confirm("¿Desea forzar el reprocesamiento de este material?").ask()
-                if not reprocesar:
-                    print("Saltando archivo...")
-                    contador_saltados += 1
-                    continue
-            else:
-                print("⏭️ Omitiendo automáticamente por lote (ya procesado).")
-                contador_saltados += 1
-                continue
 
         # Clasificación automática de tipo según ubicación en árbol de carpetas
         tipo_input = clasificar_tipo_material(archivo_path, ruta_raiz_lote)
@@ -260,6 +268,9 @@ def ingestar_material(ruta_entrada: str) -> None:
                 
                 contenido_md = respuesta.text
                 
+                # TAREA 2: Tarea de Formateador Universal para salida de IA
+                formateador.imprimir_markdown_bonito(contenido_md)
+                
                 # Organización estructurada en el Vault: obsidian_vault/{Materia}/{Tipo.capitalize()}/
                 tipo_carpeta = tipo_input.capitalize()
                 carpeta_salida = os.path.join(vault_path, materia_input, tipo_carpeta)
@@ -277,7 +288,7 @@ def ingestar_material(ruta_entrada: str) -> None:
                 # Registrar material en tracking
                 gestor_archivos.registrar_material(nombre_archivo_original, materia_input)
 
-                # Ciclo de retroalimentación de plugins prácticos (actualizar memoria técnica)
+                # Ciclo de retroalimentación de plugins prácticos (memoria técnica)
                 plugin = gestor_plugins.obtener_plugin(materia_input)
                 if plugin:
                     try:
@@ -314,30 +325,18 @@ def ingestar_material(ruta_entrada: str) -> None:
 
     # Resumen final de procesamiento por lote
     print("\n" + "=" * 60)
-    print(" 📊 RESUMEN DE PROCESAMIENTO POR LOTE (BATCH INGESTION)")
+    print(" 📊 RESUMEN DE INGESTA AUTOMÁTICA DESDE RUTA BASE")
     print("=" * 60)
-    print(f"   Total de archivos evaluados : {len(archivos_a_procesar)}")
-    print(f"   Procesados con éxito        : {contador_exito}")
-    print(f"   Omitidos (ya procesados)    : {contador_saltados}")
-    print(f"   Fallidos                    : {contador_fallidos}")
+    print(f"   Archivos nuevos procesados    : {contador_exito}")
+    print(f"   Omitidos (ya procesados prev.): {contador_saltados_silenciosos}")
+    print(f"   Fallidos                      : {contador_fallidos}")
     print("=" * 60)
     
     input("\nPresiona ENTER para salir...")
 
 
 def run():
-    if len(sys.argv) > 1:
-        ingestar_material(sys.argv[1])
-    else:
-        print("=" * 60)
-        print(" INGESTA MASIVA DE MATERIAL DE ESTUDIO (BATCH / PDF / WORD / PPT)")
-        print("=" * 60)
-        ruta = input("👉 Ingresa la ruta del archivo o carpeta raíz con materiales: ").strip()
-        if ruta:
-            ingestar_material(ruta)
-        else:
-            print("❌ Ruta no válida.")
-            input("Presiona ENTER para salir...")
+    ingestar_material()
 
 
 if __name__ == "__main__":

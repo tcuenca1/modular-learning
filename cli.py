@@ -32,6 +32,10 @@ def app():
         from tools import ingestar_material
         sys.argv = [sys.argv[0]] + args_restantes
         ingestar_material.run()
+    elif comando == "up":
+        from tools import actualizar_plugins
+        sys.argv = [sys.argv[0]] + args_restantes
+        actualizar_plugins.run()
     elif comando in ["help", "--help", "-h"]:
         mostrar_ayuda()
     else:
@@ -48,6 +52,7 @@ def mostrar_ayuda():
     print("   ml init    -> Inicia la sesión de tutoría interactiva personalizada.")
     print("   ml es      -> Extraer cronogramas de sílabos (archivos o carpetas).")
     print("   ml im      -> Ingestar material de estudio multimodal hacia Obsidian.")
+    print("   ml up      -> Actualiza el contexto técnico de proyectos de código en plugins.")
     print("   ml --help  -> Muestra este panel de ayuda.")
     print("=" * 65)
 

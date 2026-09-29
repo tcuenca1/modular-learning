@@ -7,7 +7,7 @@ class NodeRedPlugin(PluginPracticoBase):
     """Adaptador práctico para IoT y Node-RED."""
 
     def __init__(self):
-        self.ruta_memoria = os.path.join("data", "nodered_memoria.json")
+        self.ruta_memoria = os.path.join("data", "plugins", "nodered_memoria.json")
 
     def guardar_contexto_extraido(self, metadatos: str) -> None:
         metadatos = metadatos.strip()

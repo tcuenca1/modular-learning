@@ -2,6 +2,7 @@ from typing import Optional
 from modules.plugins.base_plugin import PluginPracticoBase
 from modules.plugins.plugin_cisco import CiscoPlugin
 from modules.plugins.plugin_nodered import NodeRedPlugin
+from modules.plugins.plugin_web import WebPlugin
 
 
 def obtener_plugin(materia: str) -> Optional[PluginPracticoBase]:
@@ -18,5 +19,9 @@ def obtener_plugin(materia: str) -> Optional[PluginPracticoBase]:
     # Coincidencias para IoT / Node-RED / Internet de las Cosas
     if any(kw in materia_lower for kw in ["iot", "internet", "node", "red"]):
         return NodeRedPlugin()
+
+    # Coincidencias para Desarrollo y Programación Web
+    if any(kw in materia_lower for kw in ["web", "programacion", "frontend", "backend", "javascript", "html", "css"]):
+        return WebPlugin()
         
     return None
