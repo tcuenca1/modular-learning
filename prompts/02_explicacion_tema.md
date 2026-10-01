@@ -12,6 +12,8 @@ ENTRADA
 - Nivel de profundidad deseado: [ELIGE UNO: BÁSICO (visión general) / INTERMEDIO (conceptos y funcionamiento) / AVANZADO (a profundidad técnica)]
 - Roadmap o contexto previo (opcional): [INSERTA TU ROADMAP, EN QUÉ FASE ESTÁS O BORRA ESTA LÍNEA]
 
+DIRECTIVA DE CONOCIMIENTO: Explica y desglosa el tema conectándolo con los estándares de la industria, las mejores prácticas de arquitectura y la profundidad técnica adecuada.
+
 PROCESO
 1. Analiza el tema y el nivel de profundidad solicitado.
 2. Si falta contexto crítico para dar una respuesta precisa o el tema es demasiado amplio, hazme las preguntas necesarias antes de generar una explicación masiva.

@@ -10,8 +10,10 @@ El sistema es una plataforma de tutoría y gestión de conocimiento académica b
   - `cli.py`: Enrutador nativo multiplataforma basado en `entry_points` (`console_scripts`: `ml = "cli:app"`).
   - `main.py`: Orquestador principal del ciclo de vida de la tutoría CLI.
 - **`modules/core/` (Capa Lógica de Negocio y Persistencia)**:
-  - `ai_gemini.py`: Comunicación con la API de Google Generative AI (texto, Structured Outputs en JSON, spinners con `halo`).
-  - `gestor_archivos.py`: Operaciones de disco, gestión de asignaturas (`data/config/materias.txt`), cronogramas en `data/schedules/`, tracking en `data/config/registro_materiales.json`, y exportación a Obsidian.
+  - `gestor_llm.py`: Fábrica y enrutador de adaptadores LLM (Hexagonal).
+  - `llm_gemini_adapter.py`: Adaptador concreto para Google Gemini (`gemini-3.5-flash-lite`).
+  - `alineador_curricular.py`: Motor de mapeo curricular con pesos y afinidad (Segundo Cerebro), asignando material nuevo a clases oficiales (`subtemas_adicionales` y `materiales_asociados`) o transversalmente.
+  - `gestor_archivos.py`: Operaciones de disco, gestión de asignaturas (`data/config/materias.txt`), cronogramas enriquecidos en `data/schedules/`, tracking en `data/config/registro_materiales.json`, y exportación a Obsidian.
 - **`modules/ui/` (Capa de Interfaz de Usuario)**:
   - `formateador.py`: Renderizado y estilización universal de sintaxis Markdown con colores ANSI en consola.
   - `interaccion.py`: Menús interactivos multiplataforma con `questionary.select()`.

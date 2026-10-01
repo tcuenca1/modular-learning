@@ -14,34 +14,38 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 def app():
     """Enrutador principal CLI para Modular Learning CLI (ml)."""
-    if len(sys.argv) < 2:
-        mostrar_ayuda()
-        return
+    try:
+        if len(sys.argv) < 2:
+            mostrar_ayuda()
+            return
 
-    comando = sys.argv[1].lower()
-    args_restantes = sys.argv[2:]
-    
-    if comando == "init":
-        from main import main as run_main
-        run_main()
-    elif comando == "es":
-        from tools import extraer_silabo
-        sys.argv = [sys.argv[0]] + args_restantes
-        extraer_silabo.run()
-    elif comando == "im":
-        from tools import ingestar_material
-        sys.argv = [sys.argv[0]] + args_restantes
-        ingestar_material.run()
-    elif comando == "up":
-        from tools import actualizar_plugins
-        sys.argv = [sys.argv[0]] + args_restantes
-        actualizar_plugins.run()
-    elif comando in ["help", "--help", "-h"]:
-        mostrar_ayuda()
-    else:
-        print(f"❌ Comando desconocido: '{comando}'\n")
-        mostrar_ayuda()
-        sys.exit(1)
+        comando = sys.argv[1].lower()
+        args_restantes = sys.argv[2:]
+        
+        if comando == "init":
+            from main import main as run_main
+            run_main()
+        elif comando == "es":
+            from tools import extraer_silabo
+            sys.argv = [sys.argv[0]] + args_restantes
+            extraer_silabo.run()
+        elif comando == "im":
+            from tools import ingestar_material
+            sys.argv = [sys.argv[0]] + args_restantes
+            ingestar_material.run()
+        elif comando == "up":
+            from tools import actualizar_plugins
+            sys.argv = [sys.argv[0]] + args_restantes
+            actualizar_plugins.run()
+        elif comando in ["help", "--help", "-h"]:
+            mostrar_ayuda()
+        else:
+            print(f"❌ Comando desconocido: '{comando}'\n")
+            mostrar_ayuda()
+            sys.exit(1)
+    except KeyboardInterrupt:
+        print("\n\033[1;33m[!] Proceso cancelado por el usuario.\033[0m")
+        sys.exit(0)
 
 def mostrar_ayuda():
     """Imprime un panel de ayuda estilizado con las opciones disponibles."""

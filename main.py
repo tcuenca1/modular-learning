@@ -4,17 +4,18 @@ import warnings
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 
-from modules.core import ai_gemini, gestor_archivos
+from modules.core import gestor_llm, gestor_archivos
 from modules.ui import interaccion
 from modules.plugins import gestor_plugins
 
-# Suprimir FutureWarning de google.generativeai
+# Suprimir advertencias de deprecación
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 def main() -> None:
     load_dotenv()
     ruta_boveda = os.getenv("RUTA_OBSIDIAN", "obsidian_vault")
+    llm = gestor_llm.obtener_llm()
 
     try:
         # 1. Recopilar datos de inicio (Asignatura con questionary y Tema)
@@ -22,6 +23,19 @@ def main() -> None:
         materia = datos["materia"]
         tema = datos["tema"]
         nivel_profundidad = datos["nivel_profundidad"]
+
+        # Recuperar datos enriquecidos del Segundo Cerebro (Alineador Curricular)
+        detalle_clase = gestor_archivos.obtener_detalle_clase(materia, tema)
+        materiales_asociados = detalle_clase.get("materiales_asociados", [])
+        subtemas_adicionales = detalle_clase.get("subtemas_adicionales", [])
+
+        if materiales_asociados or subtemas_adicionales:
+            print("\n" + "🧠" + "=" * 60)
+            if materiales_asociados:
+                print(f" \033[1;95m[🧠 Segundo Cerebro Activo]\033[0m Contexto inyectado desde: {', '.join(materiales_asociados)}")
+            if subtemas_adicionales:
+                print(f" \033[1;96m[+]\033[0m Subtemas detectados: {', '.join(subtemas_adicionales)}")
+            print("=" * 62 + "\n")
 
         # 2. Cargar prompt 01_roadmap_aprendizaje.md y generar ruta de sesión estructurada (JSON)
         interaccion.mostrar_mensaje(f"Generando Roadmap JSON para el tema: '{tema}'...", "info")
@@ -33,8 +47,8 @@ def main() -> None:
             .replace("[EJ. ENTENDER LAS BASES / DOMINAR EL FUNCIONAMIENTO TÉCNICO]", f"Estudiar y dominar a fondo el tema dentro de la asignatura {materia}")
         )
 
-        # Usar Structured Outputs (JSON) nativo de Gemini
-        data_roadmap = ai_gemini.consultar_gemini_json(prompt_roadmap)
+        # Usar Structured Outputs (JSON) nativo a través del puerto LLM
+        data_roadmap = llm.generar_json_estructurado(prompt_roadmap)
         pasos_sesion = data_roadmap.get("pasos", [])
 
         if not pasos_sesion:
@@ -71,6 +85,20 @@ def main() -> None:
                 .replace("[INSERTA TU ROADMAP, EN QUÉ FASE ESTÁS O BORRA ESTA LÍNEA]", f"Asignatura: {materia}. Tema principal: {tema}. Paso actual: {titulo_paso}")
             )
 
+            # Inyección y Directiva Estricta de Prompt (Segundo Cerebro)
+            if materiales_asociados or subtemas_adicionales:
+                lista_materiales_str = ", ".join(materiales_asociados) if materiales_asociados else "Ninguno específico"
+                lista_subtemas_str = ", ".join(subtemas_adicionales) if subtemas_adicionales else "Ninguno específico"
+                
+                bloque_segundo_cerebro = f"""
+CONTEXTO DEL SEGUNDO CEREBRO (Material local del estudiante):
+- Archivos de referencia: {lista_materiales_str}
+- Subtemas clave a integrar: {lista_subtemas_str}
+
+DIRECTIVA OBLIGATORIA: En tu respuesta, DEBES hacer referencia explícitamente a que estás utilizando estos subtemas extraídos de sus propios apuntes. Hazlo de forma natural pero evidente (ej. "Basándome en tu archivo X, profundicemos en Y..."). Integra estos subtemas en tu explicación del tema principal.
+"""
+                prompt_explicacion += "\n" + bloque_segundo_cerebro
+
             # Inyectar plugin práctico si existe (Arquitectura Hexagonal / Puertos y Adaptadores)
             plugin = gestor_plugins.obtener_plugin(materia)
             if plugin:
@@ -79,7 +107,7 @@ def main() -> None:
                 prompt_explicacion += f"\n\n{instrucciones_plugin}\n\n{ejercicio_base}"
 
             interaccion.mostrar_mensaje("El tutor está explicando el paso...", "info")
-            explicacion = ai_gemini.consultar_gemini(prompt_explicacion, contexto_previo=historial_sesion)
+            explicacion = llm.generar_texto(prompt_explicacion, contexto_previo=historial_sesion)
             interaccion.mostrar_mensaje(explicacion, "ia")
 
             historial_sesion.append({"role": "user", "parts": [prompt_explicacion]})
@@ -95,7 +123,7 @@ def main() -> None:
                     interaccion.mostrar_mensaje("Consultando tu duda con el tutor...", "info")
                     prompt_duda = f"Tengo esta duda sobre el paso '{titulo_paso}': {duda}. Respóndela técnicamente y de forma clara."
                     
-                    respuesta_duda = ai_gemini.consultar_gemini(prompt_duda, contexto_previo=historial_sesion)
+                    respuesta_duda = llm.generar_texto(prompt_duda, contexto_previo=historial_sesion)
                     interaccion.mostrar_mensaje(respuesta_duda, "ia")
 
                     historial_sesion.append({"role": "user", "parts": [prompt_duda]})
@@ -112,7 +140,7 @@ def main() -> None:
             .replace("[INSERTA AQUÍ EL CONTENIDO DE TUS ARCHIVOS .MD]", f"Tema de estudio: {tema}\nPasos cubiertos:\n{', '.join(nombres_pasos)}")
         )
 
-        guia_estudio_markdown = ai_gemini.consultar_gemini(prompt_resumen, contexto_previo=historial_sesion)
+        guia_estudio_markdown = llm.generar_texto(prompt_resumen, contexto_previo=historial_sesion)
 
         interaccion.mostrar_mensaje(f"Guardando guía de repaso en Obsidian ({ruta_boveda})...", "info")
         exito = gestor_archivos.guardar_resumen_obsidian(materia, tema, guia_estudio_markdown, ruta_boveda)

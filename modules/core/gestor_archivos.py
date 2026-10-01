@@ -112,16 +112,93 @@ def obtener_proximas_clases(materia: str) -> List[Dict[str, Any]]:
 
     try:
         with open(ruta_archivo, 'r', encoding='utf-8') as f:
-            clases = json.load(f)
+            data = json.load(f)
         
+        if isinstance(data, list):
+            clases = data
+        elif isinstance(data, dict):
+            clases = data.get("clases", data.get("cronograma", []))
+        else:
+            clases = []
+
         if not isinstance(clases, list):
             return []
 
         pendientes = [c for c in clases if c.get("estado", "").lower() == "pendiente"]
+        for c in pendientes:
+            if "subtemas_adicionales" not in c:
+                c["subtemas_adicionales"] = []
+            if "materiales_asociados" not in c:
+                c["materiales_asociados"] = []
         return pendientes[:5]
     except Exception as e:
         print(f"⚠️ Error al leer el cronograma de {materia}: {e}")
         return []
+
+
+def obtener_detalle_clase(materia: str, tema: str) -> dict:
+    """
+    Busca en el cronograma de la materia la clase cuyo tema coincida con el tema indicado
+    y retorna su diccionario con 'subtemas_adicionales' y 'materiales_asociados' garantizados.
+    """
+    carpeta_data = os.path.join("data", "schedules")
+    if not os.path.exists(carpeta_data):
+        return {"subtemas_adicionales": [], "materiales_asociados": []}
+
+    materia_slug = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in materia).strip().replace(' ', '_').upper()
+    materia_upper = materia.upper().replace(' ', '_')
+    
+    posibles_nombres = [
+        f"{materia}_cronograma.json",
+        f"{materia_slug}_cronograma.json",
+        f"{materia_upper}_cronograma.json",
+        f"{materia_slug.lower()}_cronograma.json"
+    ]
+
+    ruta_archivo = None
+    for nombre in posibles_nombres:
+        ruta_prueba = os.path.join(carpeta_data, nombre)
+        if os.path.exists(ruta_prueba):
+            ruta_archivo = ruta_prueba
+            break
+
+    if not ruta_archivo:
+        try:
+            for arch in os.listdir(carpeta_data):
+                if arch.endswith("_cronograma.json"):
+                    if materia_slug.replace("_", "") in arch.upper().replace("_", ""):
+                        ruta_archivo = os.path.join(carpeta_data, arch)
+                        break
+        except Exception:
+            pass
+
+    if not ruta_archivo or not os.path.exists(ruta_archivo):
+        return {"subtemas_adicionales": [], "materiales_asociados": []}
+
+    try:
+        with open(ruta_archivo, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        if isinstance(data, list):
+            clases = data
+        elif isinstance(data, dict):
+            clases = data.get("clases", data.get("cronograma", []))
+        else:
+            clases = []
+
+        tema_buscado = tema.strip().lower()
+        for clase in clases:
+            tema_clase = clase.get("tema", "").strip().lower()
+            if tema_buscado in tema_clase or tema_clase in tema_buscado or tema_buscado == tema_clase:
+                if "subtemas_adicionales" not in clase:
+                    clase["subtemas_adicionales"] = []
+                if "materiales_asociados" not in clase:
+                    clase["materiales_asociados"] = []
+                return clase
+    except Exception:
+        pass
+
+    return {"subtemas_adicionales": [], "materiales_asociados": []}
 
 
 def marcar_clase_completada(materia: str, tema_exacto: str) -> bool:
@@ -165,8 +242,17 @@ def marcar_clase_completada(materia: str, tema_exacto: str) -> bool:
 
     try:
         with open(ruta_archivo, 'r', encoding='utf-8') as f:
-            clases = json.load(f)
+            data = json.load(f)
         
+        if isinstance(data, list):
+            clases = data
+            es_lista = True
+        elif isinstance(data, dict):
+            clases = data.get("clases", data.get("cronograma", []))
+            es_lista = False
+        else:
+            return False
+
         if not isinstance(clases, list):
             return False
 
@@ -181,7 +267,11 @@ def marcar_clase_completada(materia: str, tema_exacto: str) -> bool:
 
         if actualizado:
             with open(ruta_archivo, 'w', encoding='utf-8') as f:
-                json.dump(clases, f, indent=4, ensure_ascii=False)
+                if es_lista:
+                    json.dump(clases, f, indent=4, ensure_ascii=False)
+                else:
+                    data["clases"] = clases
+                    json.dump(data, f, indent=4, ensure_ascii=False)
             return True
 
         return False

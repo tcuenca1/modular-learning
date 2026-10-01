@@ -12,3 +12,4 @@ __pycache__/
  session-*.md
  *.egg-info/
  modular_learning_cli.egg-info/
+ data/vectordb/

@@ -15,8 +15,14 @@ warnings.simplefilter("ignore")
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 from dotenv import load_dotenv
-import google.generativeai as genai
 from pypdf import PdfReader
+
+# Importar core desde modules
+ruta_script = os.path.dirname(os.path.abspath(__file__))
+ruta_raiz = os.path.dirname(ruta_script)
+sys.path.append(ruta_raiz)
+
+from modules.core import gestor_llm
 
 
 def extraer_texto_local(ruta_archivo: str) -> str:
@@ -81,7 +87,7 @@ def delimitar_seccion_temas(texto: str) -> str:
 
 
 def procesar_archivo_individual(ruta_archivo: str) -> None:
-    """Procesa un archivo individual de sílabo y guarda el cronograma en data/."""
+    """Procesa un archivo individual de sílabo y guarda el cronograma en data/schedules/."""
     try:
         ruta_script = os.path.dirname(os.path.abspath(__file__))
         ruta_raiz = os.path.dirname(ruta_script)
@@ -92,13 +98,7 @@ def procesar_archivo_individual(ruta_archivo: str) -> None:
         else:
             load_dotenv(override=True)
 
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            print(f"\n[ERROR] No se encontró la variable 'GEMINI_API_KEY' en el archivo .env ubicado en: {ruta_raiz}")
-            return
-
-        genai.configure(api_key=api_key)
-        modelo = genai.GenerativeModel('gemini-3.5-flash-lite')
+        llm = gestor_llm.obtener_llm()
 
         try:
             contenido_bruto = extraer_texto_local(ruta_archivo)
@@ -137,19 +137,14 @@ def procesar_archivo_individual(ruta_archivo: str) -> None:
         )
 
         try:
-            print("[IA] Analizando con Gemini...")
-            respuesta = modelo.generate_content(
-                prompt_completo,
-                generation_config={"response_mime_type": "application/json"}
-            )
+            print("[IA] Analizando y estructurando cronograma mediante puerto LLM...")
+            datos = llm.generar_json_estructurado(prompt_completo)
             
-            datos = json.loads(respuesta.text)
-            
-            carpeta_data = os.path.join(ruta_raiz, "data")
-            os.makedirs(carpeta_data, exist_ok=True)
+            carpeta_schedules = os.path.join(ruta_raiz, "data", "schedules")
+            os.makedirs(carpeta_schedules, exist_ok=True)
             
             materia_slug = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in nombre_materia).strip().replace(' ', '_')
-            ruta_salida = os.path.join(carpeta_data, f"{materia_slug}_cronograma.json")
+            ruta_salida = os.path.join(carpeta_schedules, f"{materia_slug}_cronograma.json")
             
             with open(ruta_salida, 'w', encoding='utf-8') as f:
                 json.dump(datos, f, indent=4, ensure_ascii=False)
@@ -198,7 +193,7 @@ def run():
         procesar_ruta(sys.argv[1])
     else:
         print("=" * 50)
-        print(" EXTRACTOR MASIVO DE CRONOGRAMAS DE SÍLABOS (GEMINI)")
+        print(" EXTRACTOR MASIVO DE CRONOGRAMAS DE SÍLABOS (LLM PORT)")
         print("=" * 50)
         ruta_input = input("-> Ingresa la ruta de un archivo o carpeta con sílabos: ").strip()
         if ruta_input:
