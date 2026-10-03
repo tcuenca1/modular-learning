@@ -6,10 +6,12 @@ __pycache__/
 *.pyo
 .pyd
 .pytest_cache/
- obsidian_vault/
- *.log
- .DS_Store
- session-*.md
- *.egg-info/
- modular_learning_cli.egg-info/
- data/vectordb/
+.ruff_cache/
+build/
+venv/
+obsidian_vault/
+*.log
+.DS_Store
+session-*.md
+*.egg-info/
+data/vectordb/

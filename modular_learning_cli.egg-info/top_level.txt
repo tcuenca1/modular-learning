@@ -1,4 +1,0 @@
-cli
-main
-modules
-tools
