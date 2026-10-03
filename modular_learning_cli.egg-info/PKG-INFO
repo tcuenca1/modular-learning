@@ -11,3 +11,8 @@ Requires-Dist: questionary>=2.0.0
 Requires-Dist: halo>=0.0.31
 Requires-Dist: docx2pdf>=0.1.8
 Requires-Dist: comtypes>=1.1.14
+Provides-Extra: dev
+Requires-Dist: ruff>=0.3.0; extra == "dev"
+Requires-Dist: pre-commit>=3.0.0; extra == "dev"
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-mock>=3.10.0; extra == "dev"

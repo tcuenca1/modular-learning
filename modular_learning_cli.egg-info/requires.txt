@@ -5,3 +5,9 @@ questionary>=2.0.0
 halo>=0.0.31
 docx2pdf>=0.1.8
 comtypes>=1.1.14
+
+[dev]
+ruff>=0.3.0
+pre-commit>=3.0.0
+pytest>=7.0.0
+pytest-mock>=3.10.0
