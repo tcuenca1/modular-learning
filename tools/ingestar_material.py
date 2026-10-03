@@ -1,33 +1,32 @@
-import sys
-import os
-import time
-import json
-import warnings
 import mimetypes
+import os
+import sys
 import tempfile
+import time
+import warnings
 
 # Forzar UTF-8 en stdout
-if hasattr(sys.stdout, 'reconfigure'):
+if hasattr(sys.stdout, "reconfigure"):
     try:
-        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
 
 warnings.simplefilter("ignore")
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-from dotenv import load_dotenv
 import google.generativeai as genai
-from halo import Halo
 import questionary
+from dotenv import load_dotenv
+from halo import Halo
 
 # Importar core, plugins y ui desde modules
 ruta_script = os.path.dirname(os.path.abspath(__file__))
 ruta_raiz = os.path.dirname(ruta_script)
 sys.path.append(ruta_raiz)
 
+from modules.core.domain import alineador_curricular
 from modules.core.services import gestor_archivos
-from modules.core.domain.alineador_curricular import asignar_material_a_clase
 from modules.plugins.services import gestor_plugins
 from modules.ui import formateador
 
@@ -38,17 +37,20 @@ def convertir_a_pdf_si_es_necesario(ruta_archivo: str) -> str:
     Retorna la ruta del archivo PDF (o la misma ruta si ya es PDF u otro formato).
     """
     ext = os.path.splitext(ruta_archivo)[1].lower()
-    if ext == '.pdf':
+    if ext == ".pdf":
         return ruta_archivo
 
     temp_dir = tempfile.gettempdir()
     nombre_base = os.path.splitext(os.path.basename(ruta_archivo))[0]
     ruta_pdf = os.path.join(temp_dir, f"{nombre_base}.pdf")
 
-    if ext == '.docx':
+    if ext == ".docx":
         try:
-            with Halo(text='Convirtiendo documento Word (.docx) a PDF...', spinner='line') as spinner:
+            with Halo(
+                text="Convirtiendo documento Word (.docx) a PDF...", spinner="line"
+            ) as spinner:
                 import docx2pdf
+
                 docx2pdf.convert(ruta_archivo, ruta_pdf)
                 spinner.succeed("Conversión de Word a PDF completada.")
                 return ruta_pdf
@@ -56,20 +58,27 @@ def convertir_a_pdf_si_es_necesario(ruta_archivo: str) -> str:
             print(f"⚠️ Error al convertir .docx a PDF: {e}. Procesando archivo original...")
             return ruta_archivo
 
-    elif ext == '.pptx':
+    elif ext == ".pptx":
         try:
-            with Halo(text='Convirtiendo presentación PowerPoint (.pptx) a PDF...', spinner='line') as spinner:
+            with Halo(
+                text="Convirtiendo presentación PowerPoint (.pptx) a PDF...", spinner="line"
+            ) as spinner:
                 import comtypes.client
+
                 powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
                 powerpoint.Visible = 1
-                deck = powerpoint.Presentations.Open(os.path.abspath(ruta_archivo), ReadOnly=True, WithWindow=False)
+                deck = powerpoint.Presentations.Open(
+                    os.path.abspath(ruta_archivo), ReadOnly=True, WithWindow=False
+                )
                 deck.SaveAs(os.path.abspath(ruta_pdf), 32)
                 deck.Close()
                 powerpoint.Quit()
                 spinner.succeed("Conversión de PowerPoint a PDF completada.")
                 return ruta_pdf
         except Exception as e:
-            print(f"⚠️ Error al convertir .pptx a PDF: {e}. Asegúrate de tener PowerPoint instalado. Procesando archivo original...")
+            print(
+                f"⚠️ Error al convertir .pptx a PDF: {e}. Asegúrate de tener PowerPoint instalado. Procesando archivo original..."
+            )
             return ruta_archivo
 
     return ruta_archivo
@@ -85,10 +94,10 @@ def clasificar_tipo_material(ruta_archivo: str, ruta_raiz_lote: str) -> str:
     """
     rel_path = os.path.relpath(ruta_archivo, ruta_raiz_lote)
     partes = rel_path.split(os.sep)
-    
+
     if len(partes) == 1:
         return "actividad"
-    
+
     ruta_upper = rel_path.upper()
     if "MATERIAL DE ESTUDIO" in ruta_upper:
         return "diapositiva"
@@ -98,7 +107,9 @@ def clasificar_tipo_material(ruta_archivo: str, ruta_raiz_lote: str) -> str:
         return "material_complementario"
 
 
-def _procesar_materia(materia_input: str, modelo, prompt_template: str, vault_path: str, ruta_base_uni: str) -> None:
+def _procesar_materia(
+    materia_input: str, modelo, prompt_template: str, vault_path: str, ruta_base_uni: str
+) -> None:
     print(f"\n📚 Procesando asignatura: \033[1;92m{materia_input}\033[0m")
     ruta_objetivo = os.path.join(ruta_base_uni, materia_input)
 
@@ -110,7 +121,7 @@ def _procesar_materia(materia_input: str, modelo, prompt_template: str, vault_pa
     if os.path.isdir(ruta_objetivo):
         for root, dirs, files in os.walk(ruta_objetivo):
             for file in files:
-                if file.lower().endswith(('.pdf', '.docx', '.pptx')):
+                if file.lower().endswith((".pdf", ".docx", ".pptx")):
                     archivos_a_escanear.append(os.path.join(root, file))
         ruta_raiz_lote = ruta_objetivo
     else:
@@ -130,7 +141,9 @@ def _procesar_materia(materia_input: str, modelo, prompt_template: str, vault_pa
         else:
             archivos_nuevos.append(archivo_path)
 
-    print(f"🚀 Archivos totales: {len(archivos_a_escanear)} | Omitidos (ya procesados): {contador_saltados_silenciosos} | Nuevos a procesar: {len(archivos_nuevos)}")
+    print(
+        f"🚀 Archivos totales: {len(archivos_a_escanear)} | Omitidos (ya procesados): {contador_saltados_silenciosos} | Nuevos a procesar: {len(archivos_nuevos)}"
+    )
 
     if not archivos_nuevos:
         print(f"✨ Todos los archivos de '{materia_input}' ya han sido ingestados previamente.")
@@ -141,8 +154,10 @@ def _procesar_materia(materia_input: str, modelo, prompt_template: str, vault_pa
 
     for idx, archivo_path in enumerate(archivos_nuevos, 1):
         nombre_archivo_original = os.path.basename(archivo_path)
-        print(f"\n" + "-" * 60)
-        print(f"[{idx}/{len(archivos_nuevos)}] Archivo: {nombre_archivo_original} ({materia_input})")
+        print("\n" + "-" * 60)
+        print(
+            f"[{idx}/{len(archivos_nuevos)}] Archivo: {nombre_archivo_original} ({materia_input})"
+        )
         print("-" * 60)
 
         tipo_input = clasificar_tipo_material(archivo_path, ruta_raiz_lote)
@@ -151,26 +166,23 @@ def _procesar_materia(materia_input: str, modelo, prompt_template: str, vault_pa
         ruta_para_procesar = convertir_a_pdf_si_es_necesario(archivo_path)
         ext = os.path.splitext(ruta_para_procesar)[1].lower()
 
-        if ext == '.pdf':
-            mime_type = 'application/pdf'
+        if ext == ".pdf":
+            mime_type = "application/pdf"
         else:
-            mime_type = mimetypes.guess_type(ruta_para_procesar)[0] or 'text/plain'
+            mime_type = mimetypes.guess_type(ruta_para_procesar)[0] or "text/plain"
 
         try:
             with open(ruta_para_procesar, "rb") as f:
                 datos_binarios = f.read()
-                
-            documento_inline = {
-                "mime_type": mime_type,
-                "data": datos_binarios
-            }
+
+            documento_inline = {"mime_type": mime_type, "data": datos_binarios}
         except Exception as e:
             print(f"❌ Error al leer archivo localmente: {e}")
             contador_fallidos += 1
             continue
 
-        materia_slug = materia_input.lower().replace(' ', '_')
-        fecha_actual = time.strftime('%Y-%m-%d')
+        materia_slug = materia_input.lower().replace(" ", "_")
+        fecha_actual = time.strftime("%Y-%m-%d")
 
         regla_privacidad = (
             "\n\n[REGLA ESTRICTA DE PRIVACIDAD Y ANONIMIZACIÓN]:\n"
@@ -180,8 +192,7 @@ def _procesar_materia(materia_input: str, modelo, prompt_template: str, vault_pa
         )
 
         prompt = (
-            prompt_template
-            .replace("{materia}", materia_input)
+            prompt_template.replace("{materia}", materia_input)
             .replace("{tipo}", tipo_input)
             .replace("{fecha}", fecha_actual)
             .replace("{materia_slug}", materia_slug)
@@ -194,53 +205,68 @@ def _procesar_materia(materia_input: str, modelo, prompt_template: str, vault_pa
 
         while intento_gen < max_reintentos:
             try:
-                with Halo(text=f'Extrayendo conocimiento con Gemini (Privacidad Activa)...', spinner='line') as spinner_gen:
+                with Halo(
+                    text="Extrayendo conocimiento con Gemini (Privacidad Activa)...", spinner="line"
+                ) as spinner_gen:
                     respuesta = modelo.generate_content([documento_inline, prompt])
                     spinner_gen.succeed("Contenido procesado y anonimizado correctamente.")
-                
+
                 contenido_md = respuesta.text
                 formateador.imprimir_markdown_bonito(contenido_md)
-                
+
                 tipo_carpeta = tipo_input.capitalize()
                 carpeta_salida = os.path.join(vault_path, materia_input, tipo_carpeta)
                 os.makedirs(carpeta_salida, exist_ok=True)
-                
+
                 nombre_base = os.path.splitext(nombre_archivo_original)[0]
                 nombre_archivo_salida = f"{nombre_base.replace(' ', '_')}_Notas.md"
                 ruta_salida = os.path.join(carpeta_salida, nombre_archivo_salida)
-                
-                with open(ruta_salida, 'w', encoding='utf-8') as f:
+
+                with open(ruta_salida, "w", encoding="utf-8") as f:
                     f.write(contenido_md)
-                    
+
                 print(f"[ÉXITO] Guardado en: {os.path.abspath(ruta_salida)}")
-                
+
                 gestor_archivos.registrar_material(nombre_archivo_original, materia_input)
 
                 # Alineación Curricular (Motor de Pesos y Afinidad)
                 try:
-                    with Halo(text="Calculando afinidad con el cronograma...", spinner='line') as spinner_alineacion:
-                        resultado_alineacion = alineador_curricular.asignar_material_a_clase(materia_input, contenido_md, nombre_archivo_original)
+                    with Halo(
+                        text="Calculando afinidad con el cronograma...", spinner="line"
+                    ) as spinner_alineacion:
+                        resultado_alineacion = alineador_curricular.asignar_material_a_clase(
+                            materia_input, contenido_md, nombre_archivo_original
+                        )
                         spinner_alineacion.succeed("Alineación curricular completada.")
-                    
+
                     clase_asig = resultado_alineacion.get("clase_asignada", "X")
                     afinidad = resultado_alineacion.get("peso_afinidad", 0)
-                    print(f"[✓] Asignado a Clase {clase_asig} (Afinidad: {afinidad}%) - Nuevos subtemas agregados")
+                    print(
+                        f"[✓] Asignado a Clase {clase_asig} (Afinidad: {afinidad}%) - Nuevos subtemas agregados"
+                    )
                 except Exception as err_alin:
                     print(f"⚠️ No se pudo completar la alineación curricular: {err_alin}")
 
                 plugin = gestor_plugins.obtener_plugin(materia_input)
                 if plugin:
                     try:
-                        with Halo(text='Extrayendo metadatos técnicos para memoria del plugin...', spinner='line'):
+                        with Halo(
+                            text="Extrayendo metadatos técnicos para memoria del plugin...",
+                            spinner="line",
+                        ):
                             prompt_tecnico = (
                                 "Extrae únicamente un listado técnico de los comandos, nodos, topologías o configuraciones "
                                 "exactas que aparecen en este documento. Devuelve solo la lista, sin introducciones."
                             )
-                            res_tecnica = modelo.generate_content([documento_inline, prompt_tecnico])
+                            res_tecnica = modelo.generate_content(
+                                [documento_inline, prompt_tecnico]
+                            )
                             texto_tecnico = res_tecnica.text.strip()
                             if texto_tecnico:
                                 plugin.guardar_contexto_extraido(texto_tecnico)
-                                print(f"🧠 Contexto técnico extraído y guardado en la memoria del plugin para '{materia_input}'.")
+                                print(
+                                    f"🧠 Contexto técnico extraído y guardado en la memoria del plugin para '{materia_input}'."
+                                )
                     except Exception as err_plugin:
                         print(f"⚠️ No se pudo actualizar la memoria del plugin: {err_plugin}")
 
@@ -252,8 +278,10 @@ def _procesar_materia(materia_input: str, modelo, prompt_template: str, vault_pa
                 if "429" in str(e) or "ResourceExhausted" in str(e):
                     intento_gen += 1
                     tiempo_espera = 20 * intento_gen
-                    print(f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s...")
-                    with Halo(text=f'Esperando {tiempo_espera}s por Rate Limit...', spinner='line'):
+                    print(
+                        f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s..."
+                    )
+                    with Halo(text=f"Esperando {tiempo_espera}s por Rate Limit...", spinner="line"):
                         time.sleep(tiempo_espera)
                 else:
                     print(f"\n❌ Error durante la generación: {e}")
@@ -277,7 +305,7 @@ def ingestar_material(ruta_entrada: str = None) -> None:
     de todas las materias, filtrado de duplicados, clasificación, conversión a PDF, anonimización,
     organización en Obsidian y alineación curricular.
     """
-    load_dotenv(os.path.join(ruta_raiz, '.env'), override=True)
+    load_dotenv(os.path.join(ruta_raiz, ".env"), override=True)
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -285,24 +313,28 @@ def ingestar_material(ruta_entrada: str = None) -> None:
         return
 
     genai.configure(api_key=api_key)
-    modelo = genai.GenerativeModel('gemini-3.5-flash-lite')
+    modelo = genai.GenerativeModel("gemini-3.5-flash-lite")
 
     materias = gestor_archivos.cargar_materias()
     vault_path = os.path.join(ruta_raiz, "obsidian_vault")
     for mat in materias:
         os.makedirs(os.path.join(vault_path, mat), exist_ok=True)
 
-    opciones_menu = ["✨ Actualizar todas las materias"] + materias + ["[ + ] Añadir nueva asignatura..."]
-    
+    opciones_menu = (
+        ["✨ Actualizar todas las materias"] + materias + ["[ + ] Añadir nueva asignatura..."]
+    )
+
     print("\n📚 Selecciona la asignatura o modo de ingesta:")
     seleccion = questionary.select(
         "Selecciona una opción:",
         choices=opciones_menu,
-        style=questionary.Style([
-            ('pointer', 'fg:cyan bold'),
-            ('highlighted', 'fg:cyan bold'),
-            ('answer', 'fg:green bold'),
-        ])
+        style=questionary.Style(
+            [
+                ("pointer", "fg:cyan bold"),
+                ("highlighted", "fg:cyan bold"),
+                ("answer", "fg:green bold"),
+            ]
+        ),
     ).ask()
 
     if seleccion is None:
@@ -322,7 +354,9 @@ def ingestar_material(ruta_entrada: str = None) -> None:
             try:
                 _procesar_materia(mat, modelo, prompt_template, vault_path, ruta_base_uni)
             except Exception as e:
-                print(f"\n❌ Error al procesar la materia '{mat}': {e}. Continuando con la siguiente...")
+                print(
+                    f"\n❌ Error al procesar la materia '{mat}': {e}. Continuando con la siguiente..."
+                )
         print("\n✨ ¡Actualización global de todas las materias finalizada!")
     elif "[ + ]" in seleccion:
         nueva_mat = input("\n✍️ Ingresa el nombre de la nueva asignatura: ").strip()

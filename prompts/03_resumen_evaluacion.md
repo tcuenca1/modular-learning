@@ -8,8 +8,8 @@ OBJETIVO
 Sintetizar múltiples apuntes de clase en una guía de estudio definitiva enfocada en retención, explicando procesos técnicos e incluyendo autoevaluación.
 
 ENTRADA
-- Materia/Asignatura: [INSERTA LA MATERIA]
-- Apuntes de las clases: [INSERTA AQUÍ EL CONTENIDO DE TUS ARCHIVOS .MD]
+- Materia/Asignatura: {materia}
+- Apuntes de las clases: {contenido_apuntes}
 
 PROCESO
 1. Analiza transversalmente todos los apuntes proporcionados.

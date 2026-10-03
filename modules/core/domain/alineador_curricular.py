@@ -1,6 +1,6 @@
-import os
 import json
-from typing import Dict, Any, List
+import os
+
 from modules.core.services import gestor_llm
 
 
@@ -10,14 +10,19 @@ def _encontrar_ruta_cronograma(materia: str) -> str:
     if not os.path.exists(carpeta_data):
         return ""
 
-    materia_slug = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in materia).strip().replace(' ', '_').upper()
-    materia_upper = materia.upper().replace(' ', '_')
-    
+    materia_slug = (
+        "".join(c if c.isalnum() or c in (" ", "_", "-") else "" for c in materia)
+        .strip()
+        .replace(" ", "_")
+        .upper()
+    )
+    materia_upper = materia.upper().replace(" ", "_")
+
     posibles_nombres = [
         f"{materia}_cronograma.json",
         f"{materia_slug}_cronograma.json",
         f"{materia_upper}_cronograma.json",
-        f"{materia_slug.lower()}_cronograma.json"
+        f"{materia_slug.lower()}_cronograma.json",
     ]
 
     for nombre in posibles_nombres:
@@ -36,7 +41,9 @@ def _encontrar_ruta_cronograma(materia: str) -> str:
     return ""
 
 
-def asignar_material_a_clase(materia: str, contenido_md: str, nombre_archivo: str = "material_nuevo.md") -> dict:
+def asignar_material_a_clase(
+    materia: str, contenido_md: str, nombre_archivo: str = "material_nuevo.md"
+) -> dict:
     """
     Evalúa la afinidad del contenido de un material recién ingestado contra cada clase del cronograma oficial
     usando IA, limpia estrictamente la respuesta JSON, y asigna los subtemas y materiales asociados.
@@ -44,20 +51,27 @@ def asignar_material_a_clase(materia: str, contenido_md: str, nombre_archivo: st
     ruta_cronograma = _encontrar_ruta_cronograma(materia)
     if not ruta_cronograma or not os.path.exists(ruta_cronograma):
         print(f"⚠️ [Alineador] No se encontró cronograma para la materia '{materia}'.")
-        return {"clase_asignada": 0, "peso_afinidad": 0, "justificacion": "Cronograma no encontrado", "subtemas_a_incorporar": []}
+        return {
+            "clase_asignada": 0,
+            "peso_afinidad": 0,
+            "justificacion": "Cronograma no encontrado",
+            "subtemas_a_incorporar": [],
+        }
 
     try:
-        with open(ruta_cronograma, 'r', encoding='utf-8') as f:
+        with open(ruta_cronograma, "r", encoding="utf-8") as f:
             data = json.load(f)
     except Exception as e:
         print(f"⚠️ [Alineador] Error al leer el cronograma: {e}")
-        return {"clase_asignada": 0, "peso_afinidad": 0, "justificacion": f"Error de lectura: {e}", "subtemas_a_incorporar": []}
+        return {
+            "clase_asignada": 0,
+            "peso_afinidad": 0,
+            "justificacion": f"Error de lectura: {e}",
+            "subtemas_a_incorporar": [],
+        }
 
     if isinstance(data, list):
-        cronograma_dict = {
-            "clases": data,
-            "material_transversal": []
-        }
+        cronograma_dict = {"clases": data, "material_transversal": []}
     elif isinstance(data, dict):
         cronograma_dict = data
         if "clases" not in cronograma_dict:
@@ -69,7 +83,12 @@ def asignar_material_a_clase(materia: str, contenido_md: str, nombre_archivo: st
 
     clases = cronograma_dict["clases"]
     if not clases:
-        return {"clase_asignada": 0, "peso_afinidad": 0, "justificacion": "Cronograma vacío", "subtemas_a_incorporar": []}
+        return {
+            "clase_asignada": 0,
+            "peso_afinidad": 0,
+            "justificacion": "Cronograma vacío",
+            "subtemas_a_incorporar": [],
+        }
 
     resumen_clases = []
     for idx, c in enumerate(clases, 1):
@@ -102,13 +121,18 @@ def asignar_material_a_clase(materia: str, contenido_md: str, nombre_archivo: st
     try:
         llm = gestor_llm.obtener_llm()
         texto_respuesta = llm.generar_texto(prompt)
-    except Exception as e:
+    except Exception:
         try:
             res_obj = llm.generar_json_estructurado(prompt)
             texto_respuesta = json.dumps(res_obj)
         except Exception as err:
             print(f"⚠️ [Alineador] Error al consultar la IA: {err}")
-            return {"clase_asignada": 1, "peso_afinidad": 50, "justificacion": "Error de comunicación con IA", "subtemas_a_incorporar": []}
+            return {
+                "clase_asignada": 1,
+                "peso_afinidad": 50,
+                "justificacion": "Error de comunicación con IA",
+                "subtemas_a_incorporar": [],
+            }
 
     # TAREA 1: Limpieza estricta de delimitadores Markdown antes de json.loads()
     texto_limpio = texto_respuesta.strip()
@@ -128,13 +152,17 @@ def asignar_material_a_clase(materia: str, contenido_md: str, nombre_archivo: st
         if not isinstance(resultado_json, dict):
             raise ValueError("El JSON parseado no es un diccionario.")
     except (json.JSONDecodeError, KeyError, ValueError, Exception) as parse_err:
-        print(f"\033[1;91m❌ [ERROR] Fallo crítico al parsear respuesta JSON de la IA:\033[0m {parse_err}")
-        print(f"\033[1;93m--- RESPUESTA CRUDA RECIBIDA DE LA IA ---\033[0m\n{texto_respuesta}\n\033[1;93m-----------------------------------------\033[0m")
+        print(
+            f"\033[1;91m❌ [ERROR] Fallo crítico al parsear respuesta JSON de la IA:\033[0m {parse_err}"
+        )
+        print(
+            f"\033[1;93m--- RESPUESTA CRUDA RECIBIDA DE LA IA ---\033[0m\n{texto_respuesta}\n\033[1;93m-----------------------------------------\033[0m"
+        )
         return {
             "clase_asignada": 1,
             "peso_afinidad": 50,
             "justificacion": f"Error de parseo JSON: {parse_err}",
-            "subtemas_a_incorporar": []
+            "subtemas_a_incorporar": [],
         }
 
     # TAREA 2: Logs de depuración visibles
@@ -172,13 +200,13 @@ def asignar_material_a_clase(materia: str, contenido_md: str, nombre_archivo: st
             "archivo": nombre_archivo,
             "justificacion": resultado_json.get("justificacion", ""),
             "subtemas": subtemas,
-            "peso_afinidad": peso
+            "peso_afinidad": peso,
         }
         cronograma_dict["material_transversal"].append(transversal_item)
 
     # TAREA 3: Verificación de escritura en disco
     try:
-        with open(ruta_cronograma, 'w', encoding='utf-8') as f:
+        with open(ruta_cronograma, "w", encoding="utf-8") as f:
             json.dump(cronograma_dict, f, indent=4, ensure_ascii=False)
         print("[✓] JSON del cronograma actualizado y guardado en disco correctamente.")
     except Exception as e:

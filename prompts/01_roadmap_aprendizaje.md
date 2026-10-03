@@ -8,8 +8,8 @@ OBJETIVO
 Analizar el tema indicado y estructurar un roadmap de estudio secuencial y práctico para una única sesión, devuelto estrictamente en formato JSON.
 
 ENTRADA
-- Tema a estudiar: [INSERTA AQUÍ EL TEMA]
-- Mi objetivo hoy es: [EJ. ENTENDER LAS BASES / DOMINAR EL FUNCIONAMIENTO TÉCNICO]
+- Tema a estudiar: {tema}
+- Mi objetivo hoy es: {objetivo}
 
 PROCESO
 1. Analiza el tema proporcionado e identifica sus conceptos centrales y subtemas clave.

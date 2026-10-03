@@ -33,11 +33,14 @@ dev = [
 line-length = 100
 target-version = "py310"
 
+[tool.ruff.lint]
+ignore = ["E402"]
+
 [tool.ruff.format]
 quote-style = "double"
 
 [project.scripts]
-ml = "cli:app"
+ml = "cli:main"
 
 [tool.setuptools]
 py-modules = ["cli", "main"]

@@ -8,9 +8,9 @@ OBJETIVO
 Explicar el tema indicado ajustando estrictamente el nivel de profundidad, el rigor técnico y la estructura según mis indicaciones, conectando la información con mi roadmap si se proporciona.
 
 ENTRADA
-- Tema a explicar: [INSERTA EL TEMA AQUÍ]
-- Nivel de profundidad deseado: [ELIGE UNO: BÁSICO (visión general) / INTERMEDIO (conceptos y funcionamiento) / AVANZADO (a profundidad técnica)]
-- Roadmap o contexto previo (opcional): [INSERTA TU ROADMAP, EN QUÉ FASE ESTÁS O BORRA ESTA LÍNEA]
+- Tema a explicar: {tema}
+- Nivel de profundidad deseado: {nivel_profundidad}
+- Roadmap o contexto previo (opcional): {contexto_roadmap}
 
 DIRECTIVA DE CONOCIMIENTO: Explica y desglosa el tema conectándolo con los estándares de la industria, las mejores prácticas de arquitectura y la profundidad técnica adecuada.
 

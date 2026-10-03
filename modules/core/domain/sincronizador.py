@@ -1,7 +1,6 @@
-import os
 import json
-from typing import List, Dict, Any
-from halo import Halo
+import os
+
 from modules.core.services import gestor_llm
 
 
@@ -11,14 +10,19 @@ def _encontrar_ruta_cronograma(materia: str) -> str:
     if not os.path.exists(carpeta_data):
         return ""
 
-    materia_slug = "".join(c if c.isalnum() or c in (' ', '_', '-') else '' for c in materia).strip().replace(' ', '_').upper()
-    materia_upper = materia.upper().replace(' ', '_')
-    
+    materia_slug = (
+        "".join(c if c.isalnum() or c in (" ", "_", "-") else "" for c in materia)
+        .strip()
+        .replace(" ", "_")
+        .upper()
+    )
+    materia_upper = materia.upper().replace(" ", "_")
+
     posibles_nombres = [
         f"{materia}_cronograma.json",
         f"{materia_slug}_cronograma.json",
         f"{materia_upper}_cronograma.json",
-        f"{materia_slug.lower()}_cronograma.json"
+        f"{materia_slug.lower()}_cronograma.json",
     ]
 
     for nombre in posibles_nombres:
@@ -49,7 +53,7 @@ def extraer_y_fusionar_subtemas(materia: str, contenido_md: str) -> int:
         return 0
 
     try:
-        with open(ruta_cronograma, 'r', encoding='utf-8') as f:
+        with open(ruta_cronograma, "r", encoding="utf-8") as f:
             cronograma_data = json.load(f)
     except Exception as e:
         print(f"⚠️ [Sincronizador] Error al leer el cronograma: {e}")
@@ -65,7 +69,7 @@ def extraer_y_fusionar_subtemas(materia: str, contenido_md: str) -> int:
         return 0
 
     cronograma_str = json.dumps(cronograma_data, indent=2, ensure_ascii=False)
-    
+
     prompt = (
         "Aquí tienes el cronograma oficial de la materia y unos apuntes recién extraídos. "
         "Identifica qué conceptos técnicos, subtemas o herramientas aparecen en los apuntes que "
@@ -82,12 +86,9 @@ def extraer_y_fusionar_subtemas(materia: str, contenido_md: str) -> int:
         try:
             texto_resp = llm.generar_texto(prompt)
             texto_limpio = texto_resp.strip()
-            if texto_limpio.startswith("```json"):
-                texto_limpio = texto_limpio[7:]
-            if texto_limpio.startswith("```"):
-                texto_limpio = texto_limpio[3:]
-            if texto_limpio.endswith("```"):
-                texto_limpio = texto_limpio[:-3]
+            texto_limpio = texto_limpio.removeprefix("```json")
+            texto_limpio = texto_limpio.removeprefix("```")
+            texto_limpio = texto_limpio.removesuffix("```")
             resultado_json = json.loads(texto_limpio.strip())
         except Exception as e:
             print(f"⚠️ [Sincronizador] No se pudo parsear la respuesta de la IA como JSON: {e}")
@@ -122,7 +123,10 @@ def extraer_y_fusionar_subtemas(materia: str, contenido_md: str) -> int:
                 encontrado = True
 
         if not encontrado and cronograma_data:
-            clase_target = next((c for c in cronograma_data if c.get("estado", "").lower() == "pendiente"), cronograma_data[-1])
+            clase_target = next(
+                (c for c in cronograma_data if c.get("estado", "").lower() == "pendiente"),
+                cronograma_data[-1],
+            )
             if "subtemas_adicionales" not in clase_target:
                 clase_target["subtemas_adicionales"] = []
             for sub in nuevos:
@@ -133,7 +137,7 @@ def extraer_y_fusionar_subtemas(materia: str, contenido_md: str) -> int:
 
     if subtemas_nuevos_totales > 0:
         try:
-            with open(ruta_cronograma, 'w', encoding='utf-8') as f:
+            with open(ruta_cronograma, "w", encoding="utf-8") as f:
                 json.dump(cronograma_data, f, indent=4, ensure_ascii=False)
         except Exception as e:
             print(f"⚠️ [Sincronizador] Error al guardar el cronograma actualizado: {e}")

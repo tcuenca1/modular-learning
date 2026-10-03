@@ -1,7 +1,9 @@
 import os
+
 from dotenv import load_dotenv
-from modules.core.ports.llm_base import LLMAdapterBase
+
 from modules.core.adapters.llm_gemini_adapter import LLM_GeminiAdapter
+from modules.core.ports.llm_base import LLMAdapterBase
 
 load_dotenv()
 

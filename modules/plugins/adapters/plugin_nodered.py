@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 from modules.plugins.ports.base_plugin import PluginPracticoBase
 
 
@@ -13,12 +14,12 @@ class NodeRedPlugin(PluginPracticoBase):
         metadatos = metadatos.strip()
         if not metadatos:
             return
-        
+
         historial = []
         os.makedirs(os.path.dirname(self.ruta_memoria), exist_ok=True)
         if os.path.exists(self.ruta_memoria):
             try:
-                with open(self.ruta_memoria, 'r', encoding='utf-8') as f:
+                with open(self.ruta_memoria, "r", encoding="utf-8") as f:
                     contenido = json.load(f)
                     if isinstance(contenido, list):
                         historial = contenido
@@ -29,7 +30,7 @@ class NodeRedPlugin(PluginPracticoBase):
         historial = historial[-5:]
 
         try:
-            with open(self.ruta_memoria, 'w', encoding='utf-8') as f:
+            with open(self.ruta_memoria, "w", encoding="utf-8") as f:
                 json.dump(historial, f, indent=4, ensure_ascii=False)
         except Exception as e:
             print(f"⚠️ No se pudo guardar la memoria del plugin Node-RED: {e}")
@@ -38,7 +39,7 @@ class NodeRedPlugin(PluginPracticoBase):
         if not os.path.exists(self.ruta_memoria):
             return ""
         try:
-            with open(self.ruta_memoria, 'r', encoding='utf-8') as f:
+            with open(self.ruta_memoria, "r", encoding="utf-8") as f:
                 historial = json.load(f)
             if isinstance(historial, list) and historial:
                 return "\n".join([f"- {item}" for item in historial])

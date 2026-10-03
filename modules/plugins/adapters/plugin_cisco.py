@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 from modules.plugins.ports.base_plugin import PluginPracticoBase
 
 
@@ -13,12 +14,12 @@ class CiscoPlugin(PluginPracticoBase):
         metadatos = metadatos.strip()
         if not metadatos:
             return
-        
+
         historial = []
         os.makedirs(os.path.dirname(self.ruta_memoria), exist_ok=True)
         if os.path.exists(self.ruta_memoria):
             try:
-                with open(self.ruta_memoria, 'r', encoding='utf-8') as f:
+                with open(self.ruta_memoria, "r", encoding="utf-8") as f:
                     contenido = json.load(f)
                     if isinstance(contenido, list):
                         historial = contenido
@@ -29,7 +30,7 @@ class CiscoPlugin(PluginPracticoBase):
         historial = historial[-5:]
 
         try:
-            with open(self.ruta_memoria, 'w', encoding='utf-8') as f:
+            with open(self.ruta_memoria, "w", encoding="utf-8") as f:
                 json.dump(historial, f, indent=4, ensure_ascii=False)
         except Exception as e:
             print(f"⚠️ No se pudo guardar la memoria del plugin Cisco: {e}")
@@ -40,7 +41,7 @@ class CiscoPlugin(PluginPracticoBase):
 
         try:
             if os.path.exists(self.ruta_memoria):
-                with open(self.ruta_memoria, 'r', encoding='utf-8') as f:
+                with open(self.ruta_memoria, "r", encoding="utf-8") as f:
                     historial = json.load(f)
                 if isinstance(historial, list) and historial:
                     return "\n".join([f"- {item}" for item in historial])
@@ -55,7 +56,21 @@ class CiscoPlugin(PluginPracticoBase):
             return
 
         elementos_tecnicos = []
-        keywords_redes = ["switch", "router", "cli", "vlan", "stp", "ospf", "mac", "ip", "packet tracer", "ethernet", "interfaz", "puerto", "puente"]
+        keywords_redes = [
+            "switch",
+            "router",
+            "cli",
+            "vlan",
+            "stp",
+            "ospf",
+            "mac",
+            "ip",
+            "packet tracer",
+            "ethernet",
+            "interfaz",
+            "puerto",
+            "puente",
+        ]
 
         try:
             for root, dirs, files in os.walk(vault_materia):
@@ -63,11 +78,15 @@ class CiscoPlugin(PluginPracticoBase):
                     if file.endswith(".md"):
                         ruta_md = os.path.join(root, file)
                         try:
-                            with open(ruta_md, 'r', encoding='utf-8') as md_file:
+                            with open(ruta_md, "r", encoding="utf-8") as md_file:
                                 lineas = md_file.readlines()
                             for linea in lineas:
                                 linea_clean = linea.strip()
-                                if any(kw in linea_clean.lower() for kw in keywords_redes) and len(linea_clean) > 20 and not linea_clean.startswith("#"):
+                                if (
+                                    any(kw in linea_clean.lower() for kw in keywords_redes)
+                                    and len(linea_clean) > 20
+                                    and not linea_clean.startswith("#")
+                                ):
                                     limpia = linea_clean.lstrip("-*# >").strip()
                                     if limpia and limpia not in elementos_tecnicos:
                                         elementos_tecnicos.append(limpia)

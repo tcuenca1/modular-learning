@@ -1,16 +1,16 @@
-from crewai import Agent, Task, Crew, Process
+from crewai import Agent, Crew, Process, Task
+
 from modules.agents.herramientas_agentes import (
+    actualizar_documentacion,
+    ejecutar_git,
     ejecutar_pruebas,
     modificar_codigo,
-    ejecutar_git,
-    actualizar_documentacion,
 )
-
 
 qa_agent = Agent(
     role="QA",
     goal="Calidad y verificación de pruebas",
-    backstory="Experto en testing de software y aseguramiento de calidad.",
+    backstory="REGLA CRÍTICA DE ARQUITECTURA: Está estrictamente prohibido que el código fuente (.py) contenga textos largos que actúen como prompts. Todo prompt debe existir en un archivo .md en 'prompts/'. Si detectas un prompt hardcodeado, instruye al Dev para extraerlo. Experto en testing de software y aseguramiento de calidad.",
     tools=[ejecutar_pruebas],
     llm="gemini/gemini-3.5-flash-lite",
 )
@@ -64,7 +64,10 @@ crew = Crew(
     agents=[qa_agent, dev_agent, docs_agent, devops_agent],
     tasks=[task_test, task_fix, task_docs, task_commit],
     process=Process.sequential,
+    verbose=True,
 )
 
 if __name__ == "__main__":
+    print("Iniciando auditoría de agentes...")
     crew.kickoff()
+    print("Auditoría finalizada.")

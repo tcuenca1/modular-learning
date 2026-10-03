@@ -15,3 +15,5 @@ obsidian_vault/
 session-*.md
 *.egg-info/
 data/vectordb/
+.agent_logs/
+data/config/*.log

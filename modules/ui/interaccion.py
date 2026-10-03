@@ -1,32 +1,33 @@
-import os
-from typing import Dict, List
 import questionary
+
 from modules.core.services import gestor_archivos
 from modules.ui.formateador import imprimir_markdown_bonito
 
 
-def seleccionar_con_flechas(opciones: List[str]) -> str:
+def seleccionar_con_flechas(opciones: list[str]) -> str:
     """
     Permite seleccionar una opción usando la librería multiplataforma questionary.
     """
     seleccion = questionary.select(
         "Selecciona una opción:",
         choices=opciones,
-        style=questionary.Style([
-            ('pointer', 'fg:cyan bold'),
-            ('highlighted', 'fg:cyan bold'),
-            ('answer', 'fg:green bold'),
-        ])
+        style=questionary.Style(
+            [
+                ("pointer", "fg:cyan bold"),
+                ("highlighted", "fg:cyan bold"),
+                ("answer", "fg:green bold"),
+            ]
+        ),
     ).ask()
-    
+
     if seleccion is None:
         print("\n\n⚠️ Operación cancelada por el usuario.")
         exit(0)
-        
+
     return seleccion
 
 
-def pedir_datos_inicio() -> Dict[str, str]:
+def pedir_datos_inicio() -> dict[str, str]:
     """
     Solicita al usuario los datos de inicio seleccionando la materia interactivamente,
     ofreciendo las próximas clases del cronograma JSON si existen, y pidiendo profundidad.
@@ -34,13 +35,13 @@ def pedir_datos_inicio() -> Dict[str, str]:
     print("=" * 65)
     print(" 🎓 SISTEMA DE TUTORÍA PERSONALIZADO - CLI")
     print("=" * 65)
-    
+
     materias = gestor_archivos.cargar_materias()
     opciones_menu = materias + ["[ + ] Añadir nueva asignatura..."]
-    
+
     print("\n📚 Selecciona la asignatura para la sesión de hoy:")
     seleccion = seleccionar_con_flechas(opciones_menu)
-    
+
     if "[ + ]" in seleccion:
         nueva_mat = input("\n✍️ Ingresa el nombre de la nueva asignatura: ").strip()
         while not nueva_mat:
@@ -58,17 +59,21 @@ def pedir_datos_inicio() -> Dict[str, str]:
 
     if proximas_clases:
         print("📅 Se encontraron clases pendientes en el cronograma de la asignatura:")
-        opciones_clases = [f"📅 [{c.get('fecha', 'Sin fecha')}] {c.get('tema', 'Tema')}" for c in proximas_clases]
+        opciones_clases = [
+            f"📅 [{c.get('fecha', 'Sin fecha')}] {c.get('tema', 'Tema')}" for c in proximas_clases
+        ]
         opciones_clases.append("➕ Ingresar un tema manualmente")
-        
+
         eleccion_clase = questionary.select(
             "Selecciona una clase pendiente o ingresa un tema manual:",
             choices=opciones_clases,
-            style=questionary.Style([
-                ('pointer', 'fg:cyan bold'),
-                ('highlighted', 'fg:cyan bold'),
-                ('answer', 'fg:green bold'),
-            ])
+            style=questionary.Style(
+                [
+                    ("pointer", "fg:cyan bold"),
+                    ("highlighted", "fg:cyan bold"),
+                    ("answer", "fg:green bold"),
+                ]
+            ),
         ).ask()
 
         if eleccion_clase and "➕" not in eleccion_clase:
@@ -87,16 +92,14 @@ def pedir_datos_inicio() -> Dict[str, str]:
     print("  1. BÁSICO (Visión general, analogías)")
     print("  2. INTERMEDIO (Conceptos, funcionamiento lógico)")
     print("  3. AVANZADO (Arquitectura, rigor técnico profundo)")
-    opcion_profundidad = input("👉 Elige el nivel de profundidad (1/2/3) [Por defecto: 2 Intermedio]: ").strip()
-    
+    opcion_profundidad = input(
+        "👉 Elige el nivel de profundidad (1/2/3) [Por defecto: 2 Intermedio]: "
+    ).strip()
+
     niveles_map = {"1": "BÁSICO", "2": "INTERMEDIO", "3": "AVANZADO"}
     nivel_profundidad = niveles_map.get(opcion_profundidad, "INTERMEDIO")
 
-    return {
-        "materia": materia,
-        "tema": tema,
-        "nivel_profundidad": nivel_profundidad
-    }
+    return {"materia": materia, "tema": tema, "nivel_profundidad": nivel_profundidad}
 
 
 def mostrar_mensaje(mensaje: str, tipo: str = "info") -> None:
@@ -120,5 +123,7 @@ def mostrar_mensaje(mensaje: str, tipo: str = "info") -> None:
 def pausa_estudio() -> str:
     """Pausa el flujo para comprobar comprensión o plantear dudas."""
     print("-" * 65)
-    respuesta = input("👉 Presiona ENTER si entendiste para pasar al siguiente paso, o escribe tu duda/pregunta: ").strip()
+    respuesta = input(
+        "👉 Presiona ENTER si entendiste para pasar al siguiente paso, o escribe tu duda/pregunta: "
+    ).strip()
     return respuesta
