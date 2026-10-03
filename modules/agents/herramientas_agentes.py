@@ -64,43 +64,44 @@ def modificar_codigo(ruta_archivo: str, nuevo_codigo: str):
 
 @tool
 def ejecutar_git(mensaje_commit: str = ""):
-    """Realiza git add y commit validando conventional commits y manejando pre-commit hooks con resiliencia."""
+    """Realiza git add y commit manejando pre-commit hooks con resiliencia y reportando errores claramente."""
     try:
         status_res = subprocess.run(
             ["git", "status", "--porcelain"],
             capture_output=True,
             text=True,
-            check=True,
             encoding="utf-8",
         )
         if not status_res.stdout.strip():
             return "No hay cambios para commitear."
 
-        prefixes = ("feat:", "fix:", "docs:", "chore:", "refactor:", "test:")
-        if not mensaje_commit.startswith(prefixes):
-            mensaje_commit = f"chore: {mensaje_commit}"
+        if not mensaje_commit:
+            mensaje_commit = "chore: actualización del sistema"
+        else:
+            prefixes = ("feat:", "fix:", "docs:", "chore:", "refactor:", "test:")
+            if not mensaje_commit.startswith(prefixes):
+                mensaje_commit = f"chore: {mensaje_commit}"
 
-        subprocess.run(["git", "add", "."], check=True)
+        subprocess.run(["git", "add", "."], capture_output=True, text=True, encoding="utf-8")
 
-        commit_res = subprocess.run(
+        res = subprocess.run(
             ["git", "commit", "-m", mensaje_commit],
             capture_output=True,
             text=True,
             encoding="utf-8",
         )
-        if commit_res.returncode != 0:
-            subprocess.run(["git", "add", "."], check=True)
-            retry_res = subprocess.run(
+        if res.returncode != 0:
+            subprocess.run(["git", "add", "."], capture_output=True, text=True, encoding="utf-8")
+            res2 = subprocess.run(
                 ["git", "commit", "-m", mensaje_commit],
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
             )
-            if retry_res.returncode != 0:
-                return f"Error en git commit tras reintento por pre-commit:\nStdout: {retry_res.stdout}\nStderr: {retry_res.stderr}"
-            return f"Cambios consolidados en Git tras reintento por pre-commit con mensaje: {mensaje_commit}"
+            if res2.returncode != 0:
+                return f"Fallo al hacer commit. Error de Git/pre-commit: {res2.stdout} \n {res2.stderr}"
 
-        return f"Cambios consolidados en Git con mensaje: {mensaje_commit}"
+        return "Commit realizado exitosamente."
     except Exception as e:
         return f"Error en Git: {e!s}"
 

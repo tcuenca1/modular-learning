@@ -1,4 +1,6 @@
 import re
+from rich.console import Console
+from rich.markdown import Markdown
 
 
 def _limpiar_artefactos_latex(texto: str) -> str:
@@ -23,3 +25,12 @@ def formatear_texto(texto: str) -> str:
     Formatea el texto general aplicando limpieza de LaTeX.
     """
     return _limpiar_artefactos_latex(texto)
+
+
+def imprimir_markdown_bonito(texto: str) -> None:
+    """
+    Imprime texto en formato Markdown renderizado con Rich y limpiando artefactos LaTeX.
+    """
+    texto_limpio = formatear_texto(texto)
+    console = Console()
+    console.print(Markdown(texto_limpio))
