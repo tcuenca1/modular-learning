@@ -135,6 +135,21 @@ def app():
             console.print(
                 f"\n[bold green]🔌 Módulos / Plugins Activos en Memoria:[/bold green] {stats['plugins_activos']}\n"
             )
+        elif comando == "dev":
+            from rich.console import Console
+
+            console = Console()
+            try:
+                from modules.agents.orquestador_crew import crew
+
+                console.print("[bold green]Iniciando entorno de desarrollo con CrewAI...[/]")
+                crew.kickoff()
+            except ImportError:
+                console.print("[bold red]Faltan dependencias de desarrollo.[/]")
+                console.print(
+                    "Para usar los agentes, instala la CLI con: [yellow]pip install -e .[dev][/]"
+                )
+                sys.exit(1)
         elif comando in ["help", "--help", "-h"]:
             mostrar_ayuda()
         else:
@@ -176,6 +191,7 @@ def mostrar_ayuda():
     print("   ml up      -> Actualiza el contexto técnico de proyectos de código en plugins.")
     print("   ml quiz    -> Motor de Recuerdo Activo (Quiz interactivo de temas completados).")
     print("   ml stats   -> Muestra el Dashboard visual de telemetría y progreso académico.")
+    print("   ml dev     -> Inicia el entorno de desarrollo y auditoría con agentes (CrewAI).")
     print("   ml --help  -> Muestra este panel de ayuda.")
     print("=" * 65)
 
