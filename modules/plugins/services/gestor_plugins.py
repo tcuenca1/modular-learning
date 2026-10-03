@@ -1,8 +1,8 @@
 from typing import Optional
-from modules.plugins.base_plugin import PluginPracticoBase
-from modules.plugins.plugin_cisco import CiscoPlugin
-from modules.plugins.plugin_nodered import NodeRedPlugin
-from modules.plugins.plugin_web import WebPlugin
+from modules.plugins.ports.base_plugin import PluginPracticoBase
+from modules.plugins.adapters.plugin_cisco import CiscoPlugin
+from modules.plugins.adapters.plugin_nodered import NodeRedPlugin
+from modules.plugins.adapters.plugin_web import WebPlugin
 
 
 def obtener_plugin(materia: str) -> Optional[PluginPracticoBase]:

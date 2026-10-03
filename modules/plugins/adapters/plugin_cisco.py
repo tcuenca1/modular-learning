@@ -1,6 +1,6 @@
 import os
 import json
-from modules.plugins.base_plugin import PluginPracticoBase
+from modules.plugins.ports.base_plugin import PluginPracticoBase
 
 
 class CiscoPlugin(PluginPracticoBase):

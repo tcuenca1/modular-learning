@@ -1,226 +1,279 @@
-[
-    {
-        "fecha": "07/09/2026",
-        "tema": "Fundamentos IoT",
-        "objetivo": "Identificar los temas de la asignatura a través del sílabo, plan analítico para asociarlos al perfil de egreso de la carrera",
-        "contenido": "Estructura, reglas y temas de la asignatura, encuadre de la asignatura mediante revisión del syllabus y revisión del aula virtual en el EVA.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "09/09/2026",
-        "tema": "Fundamentos IoT",
-        "objetivo": "Analizar los fundamentos conceptuales del Internet de las Cosas (IoT), identificando su arquitectura, componentes y campos de aplicación, mediante discusión técnica y análisis de casos reales, fortaleciendo el pensamiento crítico y el trabajo en equipo en la interpretación de escenarios tecnológicos.",
-        "contenido": "Definición y evolución del Internet de las Cosas. Arquitectura básica del IoT (capa de dispositivos, red, plataforma y aplicación). Componentes fundamentales: sensores, actuadores, gateways y servicios. Ámbitos de aplicación del IoT (industria, salud, agricultura, ciudades inteligentes). Retos actuales del IoT: interoperabilidad, seguridad y escalabilidad.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "14/09/2026",
-        "tema": "Node- red",
-        "objetivo": "Analizar la plataforma Node-RED como herramienta de integración en arquitecturas IoT, identificando su estructura, componentes principales y flujo de trabajo, mediante análisis de casos y modelado conceptual, fortaleciendo el trabajo en equipo y el pensamiento crítico en la interpretación de entornos de desarrollo IoT.",
-        "contenido": "Introducción a Node-RED. Arquitectura de Node-RED. Interfaz gráfica: Paleta de nodos, Workspace, Panel de configuración. Tipos de nodos: Input, Processing, Output. Concepto de flujo (Flow). Ventajas y limitaciones de Node-RED en sistemas IoT.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "16/09/2026",
-        "tema": "Node- red",
-        "objetivo": "Implementar flujos básicos en Node-RED mediante la integración de nodos de entrada, procesamiento y salida, desarrollando un prototipo funcional simple, fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de problemas técnicos.",
-        "contenido": "Creación de flujos en Node-RED. Nodos básicos: Inject, Debug, Function, Change. Conexión y configuración de nodos. Flujo de datos en tiempo real. Validación y prueba de flujos. Errores comunes en configuración.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "21/09/2026",
-        "tema": "Dashboard en Node-red",
-        "objetivo": "Analizar el funcionamiento del módulo Dashboard en Node-RED, identificando sus componentes, estructura visual y posibilidades de integración en arquitecturas IoT, mediante análisis de casos y diseño conceptual de interfaces, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones sobre visualización de datos.",
-        "contenido": "Introducción al módulo Dashboard en Node-RED. Concepto de visualización en sistemas IoT. Componentes principales: ui_tab, ui_group, ui_chart, ui_gauge, ui_text, ui_switch. Estructura lógica de un dashboard. Buenas prácticas de diseño de interfaces IoT. Errores comunes en diseño de dashboards. Relación entre flujo y visualización.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "23/09/2026",
-        "tema": "Dashboard en Node-red",
-        "objetivo": "Implementar un dashboard funcional en Node-RED integrando datos en tiempo real desde flujos previamente desarrollados, aplicando criterios de diseño visual y usabilidad, fortaleciendo el trabajo en equipo y el pensamiento crítico en la optimización de interfaces IoT.",
-        "contenido": "Instalación y activación del módulo Node-RED Dashboard. Integración de nodos: ui_tab, ui_group, ui_chart, ui_gauge, ui_text. Conexión entre flujo y dashboard. Configuración de propiedades visuales. Buenas prácticas de visualización en sistemas IoT. Validación y prueba del dashboard.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "28/09/2026",
-        "tema": "DevOps para Node-red",
-        "objetivo": "Analizar la estructura, planificación y organización de proyectos en Node-RED dentro de una arquitectura IoT, identificando buenas prácticas de diseño, modularidad y escalabilidad, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones técnicas.",
-        "contenido": "Concepto de proyecto en Node-RED. Organización de flujos por módulos. Separación lógica de procesos. Buenas prácticas en diseño de proyectos IoT: Modularidad, Reutilización de flujos, Organización por pestañas (tabs). Documentación interna del proyecto. Errores comunes en diseño de proyectos IoT. Escalabilidad y mantenimiento.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "30/09/2026",
-        "tema": "DevOps para Node-red",
-        "objetivo": "Aplicar conceptos de control de versiones utilizando Git para gestionar proyectos IoT desarrollados en Node-RED, implementando repositorios, commits y control de cambios, fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de conflictos de versionamiento.",
-        "contenido": "Concepto de control de versiones. Importancia del versionamiento en proyectos IoT. Instalación y configuración básica de Git. Comandos fundamentales: git init, git add, git commit, git status, git log. Concepto de repositorio local. Concepto de ramas (branch). Conflictos de versiones. Buenas prácticas en versionamiento colaborativo.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "05/10/2026",
-        "tema": "Protocolos IoT",
-        "objetivo": "Analizar los principales protocolos de comunicación utilizados en arquitecturas IoT, identificando sus características, ventajas y limitaciones, mediante el estudio comparativo de escenarios reales, fortaleciendo el trabajo en equipo y el pensamiento crítico en la selección adecuada de tecnologías de comunicación.",
-        "contenido": "Concepto de protocolo de comunicación en IoT. Arquitectura cliente-servidor vs. publicación-suscripción. Protocolos principales: MQTT, HTTP, REST, CoAP (visión general). Parámetros comparativos: Consumo de ancho de banda, Latencia, Seguridad, Escalabilidad. Casos de uso según aplicación. Criterios técnicos de selección de protocolo.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "07/10/2026",
-        "tema": "Protocolos IoT",
-        "objetivo": "Analizar el funcionamiento de brokers y clientes MQTT en entornos locales y en la nube, identificando sus diferencias arquitectónicas, ventajas y limitaciones, mediante el estudio comparativo de escenarios IoT reales, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones sobre infraestructura de comunicación.",
-        "contenido": "Arquitectura MQTT (publicación–suscripción). Rol del broker MQTT. Rol de los clientes (publisher / subscriber). Brokers locales: Concepto, Ventajas, Limitaciones. Brokers en la cloud: Concepto, Escalabilidad, Seguridad. Comparación: Latencia, Dependencia de internet, Costos, Escalabilidad. Criterios técnicos para elegir broker local o cloud.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "12/10/2026",
-        "tema": "MQTT",
-        "objetivo": "Analizar la integración del protocolo MQTT en Node-RED, identificando la configuración conceptual de nodos publisher y subscriber, así como su interacción con brokers locales y en la nube, mediante el estudio de casos técnicos, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones sobre comunicación IoT.",
-        "contenido": "Arquitectura MQTT aplicada en Node-RED. Nodos MQTT en Node-RED: mqtt in, mqtt out. Configuración conceptual de broker. Parámetros de conexión: Host, Puerto, Topic, QoS. Publicación y suscripción de mensajes. Flujo de datos con MQTT en Node-RED. Errores comunes en configuración. Buenas prácticas en diseño de tópicos.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "14/10/2026",
-        "tema": "MQTT",
-        "objetivo": "Implementar la comunicación bidireccional mediante MQTT en Node-RED, integrando múltiples publishers y subscribers en un entorno experimental, resolviendo problemas reales de configuración, fortaleciendo el trabajo en equipo y el pensamiento crítico en la optimización de sistemas de comunicación IoT.",
-        "contenido": "Configuración avanzada de nodos MQTT en Node-RED. Conexión a broker local y/o cloud. Publicación de múltiples tópicos. Suscripción a múltiples tópicos. Jerarquía estructurada de topics. Configuración de QoS. Manejo de errores de conexión. Diagnóstico de fallos en comunicación MQTT. Pruebas de latencia y validación de mensajes.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "19/10/2026",
-        "tema": "REST API",
-        "objetivo": "Analizar la arquitectura REST aplicada en Node-RED, identificando el funcionamiento de servicios cliente-servidor, métodos HTTP y rutas (endpoints), mediante el diseño conceptual de soluciones IoT, fortaleciendo el trabajo en equipo y el pensamiento crítico en la estructuración de servicios web.",
-        "contenido": "Concepto de API. Arquitectura REST. Modelo cliente-servidor. Métodos HTTP: GET, POST, PUT, DELETE. Concepto de endpoint. JSON como formato de intercambio. Nodos REST en Node-RED: http in, http response. Flujo básico REST en Node-RED. Comparación MQTT vs REST en IoT. Casos de uso típicos en IoT.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "21/10/2026",
-        "tema": "REST API",
-        "objetivo": "Implementar un servicio REST funcional en Node-RED mediante la configuración de endpoints y métodos HTTP, integrando procesamiento de datos en formato JSON, fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de problemas de integración IoT.",
-        "contenido": "Configuración práctica de nodos: http in, http response. Creación de endpoints. Uso de métodos HTTP (GET y POST). Manipulación de mensajes JSON. Validación de solicitudes desde navegador o cliente REST. Manejo de errores básicos (respuesta 404, datos inválidos). Pruebas de funcionamiento y depuración. Buenas prácticas en diseño de servicios REST en IoT.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "26/10/2026",
-        "tema": "Proyecto integrador nivel-1",
-        "objetivo": "Evaluar los avances del proyecto integrador IoT mediante la revisión estructurada de arquitectura, protocolos y diseño de solución, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones técnicas y planificación del desarrollo.",
-        "contenido": "Revisión del planteamiento del problema del proyecto. Validación de arquitectura IoT propuesta. Revisión de: Selección de protocolo (MQTT o REST), Tipo de broker (local o cloud), Diseño de flujo en Node-RED, Estructura de dashboard. Análisis de escalabilidad. Identificación de riesgos técnicos. Planificación de siguientes fases. Coherencia entre problema, solución y arquitectura.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "28/10/2026",
-        "tema": "Proyecto integrador nivel-1",
-        "objetivo": "Integrar los fundamentos conceptuales y técnicos desarrollados en la asignatura hasta la fecha, mediante el análisis y resolución colaborativa de casos tipo examen, fortaleciendo el trabajo en equipo y el pensamiento crítico en la argumentación de soluciones IoT.",
-        "contenido": "Fundamentos de IoT. Arquitectura por capas. Node-RED (flujos y dashboard). Gestión de proyectos en Node-RED. Control de versiones con Git. Protocolos IoT (MQTT vs REST). Brokers locales y cloud. Integración MQTT en Node-RED. REST API en Node-RED. Criterios de selección tecnológica. Errores comunes en arquitectura IoT.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "02/11/2026",
-        "tema": "Dispositivos IoT virtuales",
-        "objetivo": "IAnalizar el funcionamiento y la integración de dispositivos IoT virtuales dentro de una arquitectura IoT, mediante el diseño conceptual de soluciones basadas en simulación de sensores, fortaleciendo el trabajo en equipo y el pensamiento crítico en la estructuración de sistemas distribuidos.",
-        "contenido": "Concepto de dispositivo IoT. Diferencia entre dispositivo físico y dispositivo virtual. Simulación de sensores en entornos IoT. Generación de datos virtuales. Integración de dispositivos virtuales con: MQTT, REST, Node-RED. Ventajas del uso de dispositivos virtuales: Pruebas, Desarrollo, Escalabilidad. Limitaciones de la simulación. Casos de uso académicos e industriales.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "04/11/2026",
-        "tema": "Dispositivos IoT virtuales",
-        "objetivo": "Implementar dispositivos IoT virtuales integrados en una arquitectura funcional mediante Node-RED y protocolos de comunicación, validando la transmisión y transmisión de datos en tiempo real, fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de problemas de simulación y comunicación.",
-        "contenido": "Creación de dispositivos virtuales mediante: Nodo Inject (simulación periódica), Nodo Function (generación de datos dinámicos). Generación de datos simulados (temperatura, humedad, estado). Publicación mediante MQTT o REST. Integración con Dashboard. Pruebas de transmisión. Manejo de errores en simulación. Validación del sistema virtual completo.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "09/11/2026",
-        "tema": "Dispositivos IoT físicos",
-        "objetivo": "Analizar la estructura, funcionamiento e integración de dispositivos IoT físicos dentro de una arquitectura IoT, mediante el estudio de componentes electrónicos y su interacción con plataformas de comunicación, fortaleciendo el trabajo en equipo y el pensamiento crítico en la selección tecnológica.",
-        "contenido": "Concepto de dispositivo IoT físico. Componentes principales: Microcontroladores (ej. ESP32, Arduino, etc.), Sensores, Actuadores. Arquitectura interna básica de un dispositivo IoT. Flujo de datos desde sensor hasta plataforma. Diferencias entre simulación y hardware real. Requisitos eléctricos básicos. Limitaciones físicas (energía, conectividad, entorno). Criterios de selección de hardware en proyectos IoT. Riesgos comunes en implementación física.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "11/11/2026",
-        "tema": "Dispositivos IoT físicos",
-        "objetivo": "Implementar un dispositivo IoT físico integrado a una arquitectura funcional mediante la conexión de sensores y transmisión de datos hacia Node-RED, validando su funcionamiento en tiempo real y fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de problemas de hardware y comunicación.",
-        "contenido": "Conexión física de sensores a microcontrolador. Configuración básica del microcontrolador (ej. ESP32 o similar). Lectura de datos del sensor. Envío de datos mediante: MQTT o REST. Integración con Node-RED. Pruebas de transmisión en tiempo real. Diagnóstico de fallos: Conectividad, Cableado, Lectura inestable. Validación del sistema físico completo.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "16/11/2026",
-        "tema": "Sensores y actuadores",
-        "objetivo": "Evaluar diferentes dispositivos IoT disponibles en el mercado mediante el análisis comparativo de sus características técnicas y aplicaciones, fortaleciendo el trabajo en equipo y el pensamiento crítico en la selección tecnológica.",
-        "contenido": "Tipos de dispositivos IoT: Microcontroladores (ESP32, Arduino, etc.), Dispositivos industriales, Dispositivos de bajo consumo (IoT LPWAN), Dispositivos comerciales preconfigurados. Criterios de comparación: Conectividad (WiFi, Bluetooth, LoRa, etc.), Consumo energético, Capacidad de procesamiento, Costos, Escalabilidad. Casos de uso reales. Ventajas y limitaciones según sector: Industrial, Domótica, Agricultura, Smart cities.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "18/11/2026",
-        "tema": "Sensores y actuadores",
-        "objetivo": "Evaluar diferentes dispositivos IoT disponibles en el mercado mediante el análisis comparativo de sus características técnicas y aplicaciones, fortaleciendo el trabajo en equipo y el pensamiento crítico en la selección tecnológica.",
-        "contenido": "Tipos de dispositivos IoT: Microcontroladores (ESP32, Arduino, etc.), Dispositivos industriales, Dispositivos de bajo consumo (IoT LPWAN), Dispositivos comerciales preconfigurados. Criterios de comparación: Conectividad (WiFi, Bluetooth, LoRa, etc.), Consumo energético, Capacidad de procesamiento, Costos, Escalabilidad. Casos de uso reales. Ventajas y limitaciones según sector: Industrial, Domótica, Agricultura, Smart cities.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "23/11/2026",
-        "tema": "WSN",
-        "objetivo": "Analizar la arquitectura y funcionamiento de las Wireless Sensor Networks (WSN) dentro de sistemas IoT, identificando sus componentes, topologías y desafíos técnicos, fortaleciendo el trabajo en equipo y el pensamiento crítico en el diseño de redes distribuidas.",
-        "contenido": "Concepto de WSN (Wireless Sensor Network). Relación entre WSN e IoT. Componentes de una WSN: Nodos sensores, Nodo coordinador, Gateway. Arquitectura básica de una WSN. Topologías: Estrella, Malla, Árbol. Ventajas y limitaciones. Consumo energético en WSN. Desafíos: Escalabilidad, Interferencia, Seguridad, Latencia. Casos de uso: Agricultura inteligente, Industria, Monitoreo ambiental.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "25/11/2026",
-        "tema": "WSN",
-        "objetivo": "Implementar una red básica de sensores inalámbricos (WSN) simulada o configurada en entorno de laboratorio, integrándola a una arquitectura IoT funcional, fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de problemas de conectividad y eficiencia energética.",
-        "contenido": "Configuración práctica de nodos sensores. Simulación o implementación de topologías: Estrella, Malla (conceptual o parcial). Configuración de nodo coordinador o gateway. Transmisión de datos hacia Node-RED. Validación de conectividad. Identificación de fallos en red. Optimización básica de comunicación. Análisis de latencia y estabilidad.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "30/11/2026",
-        "tema": "Plataformas locales",
-        "objetivo": "Analizar el funcionamiento de plataformas de automatización como Home Assistant dentro de una arquitectura IoT, identificando su integración con dispositivos, protocolos y servicios, fortaleciendo el trabajo en equipo y el pensamiento crítico en la selección de soluciones de automatización.",
-        "contenido": "Concepto de plataforma de automatización IoT. Introducción a Home Assistant (o plataforma similar). Arquitectura general: Integraciones, Entidades, Automatizaciones, Paneles de control. Conexión con: MQTT, REST, Dispositivos físicos. Casos de uso: Domótica, Monitoreo energético, Seguridad residencial. Ventajas y limitaciones. Comparación con Node-RED. Seguridad y control de acceso.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "02/12/2026",
-        "tema": "Plataformas locales",
-        "objetivo": "Analizar el funcionamiento de plataformas de automatización como Home Assistant dentro de una arquitectura IoT, identificando su integración con dispositivos, protocolos y servicios, fortaleciendo el trabajo en equipo y el pensamiento crítico en la selección de soluciones de automatización.",
-        "contenido": "Concepto de plataforma de automatización IoT. Introducción a Home Assistant (o plataforma similar). 2da parte. Arquitectura general: Integraciones, Entidades, Automatizaciones, Paneles de control. Conexión con: MQTT, REST, Dispositivos físicos. Casos de uso: Domótica, Monitoreo energético, Seguridad residencial. Ventajas y limitaciones. Comparación con Node-RED. Seguridad y control de acceso.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "07/12/2026",
-        "tema": "Plataformas Cloud",
-        "objetivo": "Analizar las principales plataformas cloud utilizadas en soluciones IoT (AWS, Azure, IBM y Google Cloud), identificando sus servicios, modelos de integración y criterios de selección, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones sobre infraestructura en la nube.",
-        "contenido": "Concepto de computación en la nube aplicada a IoT. Modelos de servicio: IaaS, PaaS, SaaS. Arquitectura general de plataformas IoT en la nube. Introducción comparativa a: AWS IoT Core, Azure IoT Hub, IBM Watson IoT, Google Cloud IoT. Componentes comunes: Device management, Broker MQTT, Almacenamiento, Procesamiento, Analítica. Escalabilidad. Seguridad en cloud IoT. Costos y modelos de pago. Ventajas y riesgos de migrar a la nube.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "09/12/2026",
-        "tema": "Plataformas Cloud",
-        "objetivo": "Implementar la integración de un dispositivo o flujo IoT con una plataforma cloud (AWS, Azure, IBM o Google Cloud), validando la transmisión y visualización de datos en la nube, fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de problemas de conectividad y configuración remota.",
-        "contenido": "Creación de cuenta en plataforma cloud seleccionada. Configuración de servicio IoT (IoT Core / IoT Hub / equivalente). Registro de dispositivo. Configuración de credenciales. Configuración de broker cloud. Envío de datos desde: Node-RED o Dispositivo físico. Visualización de datos en consola cloud. Diagnóstico de errores de autenticación. Seguridad básica en cloud IoT.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "14/12/2026",
-        "tema": "Integraciones de bases de datos y dashboard",
-        "objetivo": "Analizar la arquitectura y funcionamiento de InfluxDB y Grafana en sistemas IoT, diseñando conceptualmente una solución de almacenamiento y visualización de datos temporales, fortaleciendo el trabajo en equipo y el pensamiento crítico en la estructuración de sistemas de analítica.",
-        "contenido": "Concepto de base de datos de series temporales. Diferencia entre base de datos relacional y temporal. Arquitectura de InfluxDB: Measurement, Field, Tag, Timestamp. Flujo de datos IoT hacia base de datos. Introducción a Grafana. Concepto de dashboard analítico. Tipos de visualización: Series temporales, Estadísticas, Comparativas. Integración conceptual: Node-RED, InfluxDB, Grafana. Importancia del análisis histórico en IoT. Casos de uso industriales y energéticos.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "16/12/2026",
-        "tema": "Integraciones de bases de datos y dashboard",
-        "objetivo": "Implementar un sistema de almacenamiento y visualización de datos IoT utilizando InfluxDB y Grafana, integrándolo a una arquitectura previamente desarrollada y validando el análisis histórico en tiempo real, fortaleciendo el trabajo en equipo y el pensamiento crítico en la estructuración y optimización de datos temporales.",
-        "contenido": "Configuración de InfluxDB. Creación de base de datos. Conceptos prácticos: Measurement, Field, Tag, Timestamp. Envío de datos desde Node-RED o dispositivo IoT. Validación de almacenamiento. Configuration de fuente de datos en Grafana. Creación de dashboards: Gráficos de series temporales, Indicadores estadísticos, Análisis de tendencias. Diagnóstico de errores de conexión. Optimización de visualización.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "04/01/2027",
-        "tema": "Proyecto integrador nivel-2",
-        "objetivo": "Evaluar el estado de avance del proyecto final del curso mediante el análisis estructurado de su arquitectura, integración tecnológica y viabilidad técnica, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones para su culminación exitosa.",
-        "contenido": "Revisión del problema planteado. Coherencia entre problema y solución IoT. Arquitectura implementada: Dispositivos (virtuales o físicos), Protocolos (MQTT/REST), WSN (si aplica), Plataforma cloud (si aplica), Base de datos (InfluxDB), Visualización (Grafana/Home Assistant). Nivel de integración alcanzado. Identificación de brechas técnicas. Análisis de escalabilidad. Riesgos pendientes. Plan de acción para culminación. Preparación para presentación final.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "06/01/2027",
-        "tema": "Proyecto integrador nivel-2",
-        "objetivo": "Integrar los conocimientos, habilidades técnicas y criterios de diseño desarrollados durante el curso, mediante el análisis y resolución estructurada de casos complejos de IoT, fortaleciendo el trabajo en equipo y el pensamiento crítico en la argumentación y toma de decisiones arquitectónicas.",
-        "contenido": "Errores frecuentes en diseño IoT. Arquitectura IoT completa. Preparación para preguntas de análisis y casos integradores. Caso integrador completo.",
-        "estado": "pendiente"
-    }
-]
+{
+    "clases": [
+        {
+            "fecha": "07/09/2026",
+            "tema": "Fundamentos IoT",
+            "objetivo": "Identificar los temas de la asignatura a través del sílabo, plan analítico para asociarlos al perfil de egreso de la carrera",
+            "contenido": "Estructura, reglas y temas de la asignatura, encuadre de la asignatura mediante revisión del syllabus y revisión del aula virtual en el EVA.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "09/09/2026",
+            "tema": "Fundamentos IoT",
+            "objetivo": "Analizar los fundamentos conceptuales del Internet de las Cosas (IoT), identificando su arquitectura, componentes y campos de aplicación, mediante discusión técnica y análisis de casos reales, fortaleciendo el pensamiento crítico y el trabajo en equipo en la interpretación de escenarios tecnológicos.",
+            "contenido": "Definición y evolución del Internet de las Cosas. Arquitectura básica del IoT (capa de dispositivos, red, plataforma y aplicación). Componentes fundamentales: sensores, actuadores, gateways y servicios. Ámbitos de aplicación del IoT (industria, salud, agricultura, ciudades inteligentes). Retos actuales del IoT: interoperabilidad, seguridad y escalabilidad.",
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "Clase#2 Arquitecturas IoT.pdf"
+            ],
+            "subtemas_adicionales": [
+                "SOA-Based Architecture",
+                "API-Oriented Architecture",
+                "oneM2M IoT Standardized Architecture",
+                "IoT World Forum (IoTWF) Standardized Architecture",
+                "WSO2 Reference Architecture",
+                "Fog Computing y Edge Computing en Arquitecturas IoT"
+            ]
+        },
+        {
+            "fecha": "14/09/2026",
+            "tema": "Node- red",
+            "objetivo": "Analizar la plataforma Node-RED como herramienta de integración en arquitecturas IoT, identificando su estructura, componentes principales y flujo de trabajo, mediante análisis de casos y modelado conceptual, fortaleciendo el trabajo en equipo y el pensamiento crítico en la interpretación de entornos de desarrollo IoT.",
+            "contenido": "Introducción a Node-RED. Arquitectura de Node-RED. Interfaz gráfica: Paleta de nodos, Workspace, Panel de configuración. Tipos de nodos: Input, Processing, Output. Concepto de flujo (Flow). Ventajas y limitaciones de Node-RED en sistemas IoT.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "16/09/2026",
+            "tema": "Node- red",
+            "objetivo": "Implementar flujos básicos en Node-RED mediante la integración de nodos de entrada, procesamiento y salida, desarrollando un prototipo funcional simple, fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de problemas técnicos.",
+            "contenido": "Creación de flujos en Node-RED. Nodos básicos: Inject, Debug, Function, Change. Conexión y configuración de nodos. Flujo de datos en tiempo real. Validación y prueba de flujos. Errores comunes en configuración.",
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "Clase #4 Node-red basico.pdf"
+            ],
+            "subtemas_adicionales": [
+                "Uso del nodo Random para simulación",
+                "Estructura del objeto msg (Id, Topic, Payload)",
+                "Operaciones matemáticas avanzadas con nodos Function usando JavaScript",
+                "Uso del método .toFixed(2) para ajuste de decimales",
+                "Extracción de variables de un objeto JSON mediante el nodo Change"
+            ]
+        },
+        {
+            "fecha": "21/09/2026",
+            "tema": "Dashboard en Node-red",
+            "objetivo": "Analizar el funcionamiento del módulo Dashboard en Node-RED, identificando sus componentes, estructura visual y posibilidades de integración en arquitecturas IoT, mediante análisis de casos y diseño conceptual de interfaces, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones sobre visualización de datos.",
+            "contenido": "Introducción al módulo Dashboard en Node-RED. Concepto de visualización en sistemas IoT. Componentes principales: ui_tab, ui_group, ui_chart, ui_gauge, ui_text, ui_switch. Estructura lógica de un dashboard. Buenas prácticas de diseño de interfaces IoT. Errores comunes en diseño de dashboards. Relación entre flujo y visualización.",
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "Node-red Markdown.pdf"
+            ],
+            "subtemas_adicionales": [
+                "Uso de nodo Markdown en Node-RED Dashboard",
+                "Configuración de layouts y temas visuales (Notebook)",
+                "Integración de navegación por páginas (/page1, /page2, /page3)",
+                "Uso de iconos de Material Design en interfaces IoT"
+            ]
+        },
+        {
+            "fecha": "23/09/2026",
+            "tema": "Dashboard en Node-red",
+            "objetivo": "Implementar un dashboard funcional en Node-RED integrando datos en tiempo real desde flujos previamente desarrollados, aplicando criterios de diseño visual y usabilidad, fortaleciendo el trabajo en equipo y el pensamiento crítico en la optimización de interfaces IoT.",
+            "contenido": "Instalación y activación del módulo Node-RED Dashboard. Integración de nodos: ui_tab, ui_group, ui_chart, ui_gauge, ui_text. Conexión entre flujo y dashboard. Configuración de propiedades visuales. Buenas prácticas de visualización en sistemas IoT. Validación y prueba del dashboard.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "28/09/2026",
+            "tema": "DevOps para Node-red",
+            "objetivo": "Analizar la estructura, planificación y organización de proyectos en Node-RED dentro de una arquitectura IoT, identificando buenas prácticas de diseño, modularidad y escalabilidad, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones técnicas.",
+            "contenido": "Concepto de proyecto en Node-RED. Organización de flujos por módulos. Separación lógica de procesos. Buenas prácticas en diseño de proyectos IoT: Modularidad, Reutilización de flujos, Organización por pestañas (tabs). Documentación interna del proyecto. Errores comunes en diseño de proyectos IoT. Escalabilidad y mantenimiento.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "30/09/2026",
+            "tema": "DevOps para Node-red",
+            "objetivo": "Aplicar conceptos de control de versiones utilizando Git para gestionar proyectos IoT desarrollados en Node-RED, implementando repositorios, commits y control de cambios, fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de conflictos de versionamiento.",
+            "contenido": "Concepto de control de versiones. Importancia del versionamiento en proyectos IoT. Instalación y configuración básica de Git. Comandos fundamentales: git init, git add, git commit, git status, git log. Concepto de repositorio local. Concepto de ramas (branch). Conflictos de versiones. Buenas prácticas en versionamiento colaborativo.",
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "GIT y proyectos Node-red wn Windows.pdf"
+            ],
+            "subtemas_adicionales": [
+                "Habilitación de proyectos en Node-RED (settings.js)",
+                "Configuración de Git y metadatos del committer en Node-RED",
+                "Generación y gestión de claves SSH en Node-RED",
+                "Vinculación bidireccional entre Node-RED y repositorios remotos de GitHub"
+            ]
+        },
+        {
+            "fecha": "05/10/2026",
+            "tema": "Protocolos IoT",
+            "objetivo": "Analizar los principales protocolos de comunicación utilizados en arquitecturas IoT, identificando sus características, ventajas y limitaciones, mediante el estudio comparativo de escenarios reales, fortaleciendo el trabajo en equipo y el pensamiento crítico en la selección adecuada de tecnologías de comunicación.",
+            "contenido": "Concepto de protocolo de comunicación en IoT. Arquitectura cliente-servidor vs. publicación-suscripción. Protocolos principales: MQTT, HTTP, REST, CoAP (visión general). Parámetros comparativos: Consumo de ancho de banda, Latencia, Seguridad, Escalabilidad. Casos de uso según aplicación. Criterios técnicos de selección de protocolo.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "07/10/2026",
+            "tema": "Protocolos IoT",
+            "objetivo": "Analizar el funcionamiento de brokers y clientes MQTT en entornos locales y en la nube, identificando sus diferencias arquitectónicas, ventajas y limitaciones, mediante el estudio comparativo de escenarios IoT reales, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones sobre infraestructura de comunicación.",
+            "contenido": "Arquitectura MQTT (publicación–suscripción). Rol del broker MQTT. Rol de los clientes (publisher / subscriber). Brokers locales: Concepto, Ventajas, Limitaciones. Brokers en la cloud: Concepto, Escalabilidad, Seguridad. Comparación: Latencia, Dependencia de internet, Costos, Escalabilidad. Criterios técnicos para elegir broker local o cloud.",
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "Mqtt1.pdf"
+            ],
+            "subtemas_adicionales": [
+                "Historia y requerimientos originales del protocolo MQTT",
+                "Estructura avanzada de tópicos MQTT con comodines (+ y #)",
+                "Tópicos de sistema ($SYS/)",
+                "Niveles detallados de Quality of Service (QoS 0, QoS 1, QoS 2 y el flujo de handshake)",
+                "Flag de mensajes retenidos (Retained messages)",
+                "Ecosistema de brokers y clientes (Mosquitto, HiveMQ, MQTT-fx, MQTT DASH)"
+            ]
+        },
+        {
+            "fecha": "12/10/2026",
+            "tema": "MQTT",
+            "objetivo": "Analizar la integración del protocolo MQTT en Node-RED, identificando la configuración conceptual de nodos publisher y subscriber, así como su interacción con brokers locales y en la nube, mediante el estudio de casos técnicos, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones sobre comunicación IoT.",
+            "contenido": "Arquitectura MQTT aplicada en Node-RED. Nodos MQTT en Node-RED: mqtt in, mqtt out. Configuración conceptual de broker. Parámetros de conexión: Host, Puerto, Topic, QoS. Publicación y suscripción de mensajes. Flujo de datos con MQTT en Node-RED. Errores comunes en configuración. Buenas prácticas en diseño de tópicos.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "14/10/2026",
+            "tema": "MQTT",
+            "objetivo": "Implementar la comunicación bidireccional mediante MQTT en Node-RED, integrando múltiples publishers y subscribers en un entorno experimental, resolviendo problemas reales de configuración, fortaleciendo el trabajo en equipo y el pensamiento crítico en la optimización de sistemas de comunicación IoT.",
+            "contenido": "Configuración avanzada de nodos MQTT en Node-RED. Conexión a broker local y/o cloud. Publicación de múltiples tópicos. Suscripción a múltiples tópicos. Jerarquía estructurada de topics. Configuración de QoS. Manejo de errores de conexión. Diagnóstico de fallos en comunicación MQTT. Pruebas de latencia y validación de mensajes.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "19/10/2026",
+            "tema": "REST API",
+            "objetivo": "Analizar la arquitectura REST aplicada en Node-RED, identificando el funcionamiento de servicios cliente-servidor, métodos HTTP y rutas (endpoints), mediante el diseño conceptual de soluciones IoT, fortaleciendo el trabajo en equipo y el pensamiento crítico en la estructuración de servicios web.",
+            "contenido": "Concepto de API. Arquitectura REST. Modelo cliente-servidor. Métodos HTTP: GET, POST, PUT, DELETE. Concepto de endpoint. JSON como formato de intercambio. Nodos REST en Node-RED: http in, http response. Flujo básico REST en Node-RED. Comparación MQTT vs REST en IoT. Casos de uso típicos en IoT.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "21/10/2026",
+            "tema": "REST API",
+            "objetivo": "Implementar un servicio REST funcional en Node-RED mediante la configuración de endpoints y métodos HTTP, integrando procesamiento de datos en formato JSON, fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de problemas de integración IoT.",
+            "contenido": "Configuración práctica de nodos: http in, http response. Creación de endpoints. Uso de métodos HTTP (GET y POST). Manipulación de mensajes JSON. Validación de solicitudes desde navegador o cliente REST. Manejo de errores básicos (respuesta 404, datos inválidos). Pruebas de funcionamiento y depuración. Buenas prácticas en diseño de servicios REST en IoT.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "26/10/2026",
+            "tema": "Proyecto integrador nivel-1",
+            "objetivo": "Evaluar los avances del proyecto integrador IoT mediante la revisión estructurada de arquitectura, protocolos y diseño de solución, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones técnicas y planificación del desarrollo.",
+            "contenido": "Revisión del planteamiento del problema del proyecto. Validación de arquitectura IoT propuesta. Revisión de: Selección de protocolo (MQTT o REST), Tipo de broker (local o cloud), Diseño de flujo en Node-RED, Estructura de dashboard. Análisis de escalabilidad. Identificación de riesgos técnicos. Planificación de siguientes fases. Coherencia entre problema, solución y arquitectura.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "28/10/2026",
+            "tema": "Proyecto integrador nivel-1",
+            "objetivo": "Integrar los fundamentos conceptuales y técnicos desarrollados en la asignatura hasta la fecha, mediante el análisis y resolución colaborativa de casos tipo examen, fortaleciendo el trabajo en equipo y el pensamiento crítico en la argumentación de soluciones IoT.",
+            "contenido": "Fundamentos de IoT. Arquitectura por capas. Node-RED (flujos y dashboard). Gestión de proyectos en Node-RED. Control de versiones con Git. Protocolos IoT (MQTT vs REST). Brokers locales y cloud. Integración MQTT en Node-RED. REST API en Node-RED. Criterios de selección tecnológica. Errores comunes en arquitectura IoT.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "02/11/2026",
+            "tema": "Dispositivos IoT virtuales",
+            "objetivo": "IAnalizar el funcionamiento y la integración de dispositivos IoT virtuales dentro de una arquitectura IoT, mediante el diseño conceptual de soluciones basadas en simulación de sensores, fortaleciendo el trabajo en equipo y el pensamiento crítico en la estructuración de sistemas distribuidos.",
+            "contenido": "Concepto de dispositivo IoT. Diferencia entre dispositivo físico y dispositivo virtual. Simulación de sensores en entornos IoT. Generación de datos virtuales. Integración de dispositivos virtuales con: MQTT, REST, Node-RED. Ventajas del uso de dispositivos virtuales: Pruebas, Desarrollo, Escalabilidad. Limitaciones de la simulación. Casos de uso académicos e industriales.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "04/11/2026",
+            "tema": "Dispositivos IoT virtuales",
+            "objetivo": "Implementar dispositivos IoT virtuales integrados en una arquitectura funcional mediante Node-RED y protocolos de comunicación, validando la transmisión y transmisión de datos en tiempo real, fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de problemas de simulación y comunicación.",
+            "contenido": "Creación de dispositivos virtuales mediante: Nodo Inject (simulación periódica), Nodo Function (generación de datos dinámicos). Generación de datos simulados (temperatura, humedad, estado). Publicación mediante MQTT o REST. Integración con Dashboard. Pruebas de transmisión. Manejo de errores en simulación. Validación del sistema virtual completo.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "09/11/2026",
+            "tema": "Dispositivos IoT físicos",
+            "objetivo": "Analizar la estructura, funcionamiento e integración de dispositivos IoT físicos dentro de una arquitectura IoT, mediante el estudio de componentes electrónicos y su interacción con plataformas de comunicación, fortaleciendo el trabajo en equipo y el pensamiento crítico en la selección tecnológica.",
+            "contenido": "Concepto de dispositivo IoT físico. Componentes principales: Microcontroladores (ej. ESP32, Arduino, etc.), Sensores, Actuadores. Arquitectura interna básica de un dispositivo IoT. Flujo de datos desde sensor hasta plataforma. Diferencias entre simulación y hardware real. Requisitos eléctricos básicos. Limitaciones físicas (energía, conectividad, entorno). Criterios de selección de hardware en proyectos IoT. Riesgos comunes en implementación física.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "11/11/2026",
+            "tema": "Dispositivos IoT físicos",
+            "objetivo": "Implementar un dispositivo IoT físico integrado a una arquitectura funcional mediante la conexión de sensores y transmisión de datos hacia Node-RED, validando su funcionamiento en tiempo real y fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de problemas de hardware y comunicación.",
+            "contenido": "Conexión física de sensores a microcontrolador. Configuración básica del microcontrolador (ej. ESP32 o similar). Lectura de datos del sensor. Envío de datos mediante: MQTT o REST. Integración con Node-RED. Pruebas de transmisión en tiempo real. Diagnóstico de fallos: Conectividad, Cableado, Lectura inestable. Validación del sistema físico completo.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "16/11/2026",
+            "tema": "Sensores y actuadores",
+            "objetivo": "Evaluar diferentes dispositivos IoT disponibles en el mercado mediante el análisis comparativo de sus características técnicas y aplicaciones, fortaleciendo el trabajo en equipo y el pensamiento crítico en la selección tecnológica.",
+            "contenido": "Tipos de dispositivos IoT: Microcontroladores (ESP32, Arduino, etc.), Dispositivos industriales, Dispositivos de bajo consumo (IoT LPWAN), Dispositivos comerciales preconfigurados. Criterios de comparación: Conectividad (WiFi, Bluetooth, LoRa, etc.), Consumo energético, Capacidad de procesamiento, Costos, Escalabilidad. Casos de uso reales. Ventajas y limitaciones según sector: Industrial, Domótica, Agricultura, Smart cities.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "18/11/2026",
+            "tema": "Sensores y actuadores",
+            "objetivo": "Evaluar diferentes dispositivos IoT disponibles en el mercado mediante el análisis comparativo de sus características técnicas y aplicaciones, fortaleciendo el trabajo en equipo y el pensamiento crítico en la selección tecnológica.",
+            "contenido": "Tipos de dispositivos IoT: Microcontroladores (ESP32, Arduino, etc.), Dispositivos industriales, Dispositivos de bajo consumo (IoT LPWAN), Dispositivos comerciales preconfigurados. Criterios de comparación: Conectividad (WiFi, Bluetooth, LoRa, etc.), Consumo energético, Capacidad de procesamiento, Costos, Escalabilidad. Casos de uso reales. Ventajas y limitaciones según sector: Industrial, Domótica, Agricultura, Smart cities.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "23/11/2026",
+            "tema": "WSN",
+            "objetivo": "Analizar la arquitectura y funcionamiento de las Wireless Sensor Networks (WSN) dentro de sistemas IoT, identificando sus componentes, topologías y desafíos técnicos, fortaleciendo el trabajo en equipo y el pensamiento crítico en el diseño de redes distribuidas.",
+            "contenido": "Concepto de WSN (Wireless Sensor Network). Relación entre WSN e IoT. Componentes de una WSN: Nodos sensores, Nodo coordinador, Gateway. Arquitectura básica de una WSN. Topologías: Estrella, Malla, Árbol. Ventajas y limitaciones. Consumo energético en WSN. Desafíos: Escalabilidad, Interferencia, Seguridad, Latencia. Casos de uso: Agricultura inteligente, Industria, Monitoreo ambiental.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "25/11/2026",
+            "tema": "WSN",
+            "objetivo": "Implementar una red básica de sensores inalámbricos (WSN) simulada o configurada en entorno de laboratorio, integrándola a una arquitectura IoT funcional, fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de problemas de conectividad y eficiencia energética.",
+            "contenido": "Configuración práctica de nodos sensores. Simulación o implementación de topologías: Estrella, Malla (conceptual o parcial). Configuración de nodo coordinador o gateway. Transmisión de datos hacia Node-RED. Validación de conectividad. Identificación de fallos en red. Optimización básica de comunicación. Análisis de latencia y estabilidad.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "30/11/2026",
+            "tema": "Plataformas locales",
+            "objetivo": "Analizar el funcionamiento de plataformas de automatización como Home Assistant dentro de una arquitectura IoT, identificando su integración con dispositivos, protocolos y servicios, fortaleciendo el trabajo en equipo y el pensamiento crítico en la selección de soluciones de automatización.",
+            "contenido": "Concepto de plataforma de automatización IoT. Introducción a Home Assistant (o plataforma similar). Arquitectura general: Integraciones, Entidades, Automatizaciones, Paneles de control. Conexión con: MQTT, REST, Dispositivos físicos. Casos de uso: Domótica, Monitoreo energético, Seguridad residencial. Ventajas y limitaciones. Comparación con Node-RED. Seguridad y control de acceso.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "02/12/2026",
+            "tema": "Plataformas locales",
+            "objetivo": "Analizar el funcionamiento de plataformas de automatización como Home Assistant dentro de una arquitectura IoT, identificando su integración con dispositivos, protocolos y servicios, fortaleciendo el trabajo en equipo y el pensamiento crítico en la selección de soluciones de automatización.",
+            "contenido": "Concepto de plataforma de automatización IoT. Introducción a Home Assistant (o plataforma similar). 2da parte. Arquitectura general: Integraciones, Entidades, Automatizaciones, Paneles de control. Conexión con: MQTT, REST, Dispositivos físicos. Casos de uso: Domótica, Monitoreo energético, Seguridad residencial. Ventajas y limitaciones. Comparación con Node-RED. Seguridad y control de acceso.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "07/12/2026",
+            "tema": "Plataformas Cloud",
+            "objetivo": "Analizar las principales plataformas cloud utilizadas en soluciones IoT (AWS, Azure, IBM y Google Cloud), identificando sus servicios, modelos de integración y criterios de selección, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones sobre infraestructura en la nube.",
+            "contenido": "Concepto de computación en la nube aplicada a IoT. Modelos de servicio: IaaS, PaaS, SaaS. Arquitectura general de plataformas IoT en la nube. Introducción comparativa a: AWS IoT Core, Azure IoT Hub, IBM Watson IoT, Google Cloud IoT. Componentes comunes: Device management, Broker MQTT, Almacenamiento, Procesamiento, Analítica. Escalabilidad. Seguridad en cloud IoT. Costos y modelos de pago. Ventajas y riesgos de migrar a la nube.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "09/12/2026",
+            "tema": "Plataformas Cloud",
+            "objetivo": "Implementar la integración de un dispositivo o flujo IoT con una plataforma cloud (AWS, Azure, IBM o Google Cloud), validando la transmisión y visualización de datos en la nube, fortaleciendo el trabajo en equipo y el pensamiento crítico en la resolución de problemas de conectividad y configuración remota.",
+            "contenido": "Creación de cuenta en plataforma cloud seleccionada. Configuración de servicio IoT (IoT Core / IoT Hub / equivalente). Registro de dispositivo. Configuración de credenciales. Configuración de broker cloud. Envío de datos desde: Node-RED o Dispositivo físico. Visualización de datos en consola cloud. Diagnóstico de errores de autenticación. Seguridad básica en cloud IoT.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "14/12/2026",
+            "tema": "Integraciones de bases de datos y dashboard",
+            "objetivo": "Analizar la arquitectura y funcionamiento de InfluxDB y Grafana en sistemas IoT, diseñando conceptualmente una solución de almacenamiento y visualización de datos temporales, fortaleciendo el trabajo en equipo y el pensamiento crítico en la estructuración de sistemas de analítica.",
+            "contenido": "Concepto de base de datos de series temporales. Diferencia entre base de datos relacional y temporal. Arquitectura de InfluxDB: Measurement, Field, Tag, Timestamp. Flujo de datos IoT hacia base de datos. Introducción a Grafana. Concepto de dashboard analítico. Tipos de visualización: Series temporales, Estadísticas, Comparativas. Integración conceptual: Node-RED, InfluxDB, Grafana. Importancia del análisis histórico en IoT. Casos de uso industriales y energéticos.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "16/12/2026",
+            "tema": "Integraciones de bases de datos y dashboard",
+            "objetivo": "Implementar un sistema de almacenamiento y visualización de datos IoT utilizando InfluxDB y Grafana, integrándolo a una arquitectura previamente desarrollada y validando el análisis histórico en tiempo real, fortaleciendo el trabajo en equipo y el pensamiento crítico en la estructuración y optimización de datos temporales.",
+            "contenido": "Configuración de InfluxDB. Creación de base de datos. Conceptos prácticos: Measurement, Field, Tag, Timestamp. Envío de datos desde Node-RED o dispositivo IoT. Validación de almacenamiento. Configuration de fuente de datos en Grafana. Creación de dashboards: Gráficos de series temporales, Indicadores estadísticos, Análisis de tendencias. Diagnóstico de errores de conexión. Optimización de visualización.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "04/01/2027",
+            "tema": "Proyecto integrador nivel-2",
+            "objetivo": "Evaluar el estado de avance del proyecto final del curso mediante el análisis estructurado de su arquitectura, integración tecnológica y viabilidad técnica, fortaleciendo el trabajo en equipo y el pensamiento crítico en la toma de decisiones para su culminación exitosa.",
+            "contenido": "Revisión del problema planteado. Coherencia entre problema y solución IoT. Arquitectura implementada: Dispositivos (virtuales o físicos), Protocolos (MQTT/REST), WSN (si aplica), Plataforma cloud (si aplica), Base de datos (InfluxDB), Visualización (Grafana/Home Assistant). Nivel de integración alcanzado. Identificación de brechas técnicas. Análisis de escalabilidad. Riesgos pendientes. Plan de acción para culminación. Preparación para presentación final.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "06/01/2027",
+            "tema": "Proyecto integrador nivel-2",
+            "objetivo": "Integrar los conocimientos, habilidades técnicas y criterios de diseño desarrollados durante el curso, mediante el análisis y resolución estructurada de casos complejos de IoT, fortaleciendo el trabajo en equipo y el pensamiento crítico en la argumentación y toma de decisiones arquitectónicas.",
+            "contenido": "Errores frecuentes en diseño IoT. Arquitectura IoT completa. Preparación para preguntas de análisis y casos integradores. Caso integrador completo.",
+            "estado": "pendiente"
+        }
+    ],
+    "material_transversal": []
+}

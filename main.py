@@ -4,9 +4,9 @@ import warnings
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 
-from modules.core import gestor_llm, gestor_archivos
+from modules.core.services import gestor_llm, gestor_archivos
 from modules.ui import interaccion
-from modules.plugins import gestor_plugins
+from modules.plugins.services import gestor_plugins
 
 # Suprimir advertencias de deprecación
 warnings.filterwarnings("ignore", category=FutureWarning)

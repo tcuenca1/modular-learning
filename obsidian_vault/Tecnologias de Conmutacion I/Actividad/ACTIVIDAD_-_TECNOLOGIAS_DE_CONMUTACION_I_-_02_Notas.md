@@ -1,39 +1,39 @@
 ---
 materia: Tecnologias de Conmutacion I
 tipo: actividad
-fecha_procesamiento: 2026-09-28
+fecha_procesamiento: 2026-09-30
 tags: [tecnologias_de_conmutacion_i, actividad, ingesta_ia]
 ---
 
 [[Tecnologias de Conmutacion I]]
 
-# Taller Intraclase: Configuración Inicial de un Switch Cisco 2960 en [[Cisco Packet Tracer]]
+# Taller Intraclase: Configuración Inicial de un Switch [[Cisco]] 2960 en [[Cisco Packet Tracer]]
 
-**Estudiantes:** [ESTUDIANTE 1], [ESTUDIANTE 2]
+**Estudiantes:** [ESTUDIANTE], [ESTUDIANTE]
 
 ## Objetivos
-* Acceder a la [[CLI]] del switch [[Cisco Catalyst 2960]].
-* Configurar nombre de host y contraseñas para el acceso seguro.
-* Explorar los modos de operación del [[CLI]]: usuario, privilegiado y configuración global.
-* Guardar configuraciones y verificar archivos de configuración `running-config` y `startup-config`.
+- Acceder a la [[CLI]] del switch [[Cisco Catalyst]] 2960.
+- Configurar nombre de host y contraseñas para el acceso seguro.
+- Explorar los modos de operación del [[CLI]]: usuario, privilegiado y configuración global.
+- Guardar configuraciones y verificar archivos de configuración `running-config` y `startup-config`.
 
 ## Materiales
-* [[Cisco Packet Tracer]]
-* 1 Switch Cisco 2960
-* 1 PC (con cable de consola)
+- [[Cisco Packet Tracer]]
+- 1 Switch [[Cisco]] 2960
+- 1 PC (con cable de consola)
 
 ---
 
-## Parte 1: Acceso a la CLI del Switch
+## Parte 1: Acceso a la [[CLI]] del Switch
 
 1. Abrir [[Cisco Packet Tracer]].
 2. Arrastrar un Switch 2960 al área de trabajo.
 3. Arrastrar una PC y conéctala al switch por puerto consola:
-   * Usar un cable consola azul: conecta desde RS-232 de la PC al puerto consola del switch.
+   - Usar un cable consola azul: conecta desde RS-232 de la PC al puerto consola del switch.
 4. Dar clic en la PC → pestaña Desktop → abre Terminal.
 5. Aceptar los valores por defecto y aparecerá el prompt [[CLI]].
 
-> **Captura de pantalla detectada (Página 1):** Muestra el entorno de [[Cisco Packet Tracer]] con una PC conectada a un switch mediante un enlace de consola azul (`RS-232` al puerto `Console`). Debajo se observa la ventana de la terminal interactiva mostrando la secuencia de arranque (*boot*) del [[Cisco Catalyst 2960]] con la línea final "Press RETURN to get started!".
+> **Captura de pantalla detectada:** Ventana de configuración del Terminal en la [[CLI]] de [[Cisco Packet Tracer]] mostrando el texto inicial de arranque del sistema operativo [[Cisco IOS]] (Version 15.0) y la petición `Press RETURN to get started!`.
 
 ---
 
@@ -66,7 +66,7 @@ tags: [tecnologias_de_conmutacion_i, actividad, ingesta_ia]
    login
    exit
    ```
-7. Configurar una contraseña para [[Telnet]] (vty lines):
+7. Configurar una contraseña para [[Telnet]] ([[VLAN|vty lines]]):
    ```text
    line vty 0 4
    password telnet123
@@ -74,7 +74,7 @@ tags: [tecnologias_de_conmutacion_i, actividad, ingesta_ia]
    exit
    ```
 
-> **Captura de pantalla detectada (Página 2):** Se visualiza la terminal de comandos ejecutando exitosamente la configuración básica: asignación del nombre de host (`hostname SW1`), habilitación de la contraseña secreta (`enable secret`), y configuración de las líneas de acceso por consola (`line console 0`) y [[Telnet]] (`line vty 0 4`) con sus respectivas contraseñas y comandos `login`.
+> **Captura de pantalla detectada:** Consola interactiva del switch `SW1` mostrando la ejecución secuencial de los comandos de configuración básica para habilitar contraseñas secretas, de consola y de [[Telnet]].
 
 ---
 
@@ -85,12 +85,21 @@ tags: [tecnologias_de_conmutacion_i, actividad, ingesta_ia]
    SW1# ?
    ```
 2. Observar el cambio de modo con los distintos niveles:
-   * `SW1>` → modo usuario
-   * `SW1#` → modo privilegiado
+   - `SW1>` → modo usuario
 
-> **Captura de pantalla detectada (Página 3):** Despliegue de la ayuda de comandos utilizando el signo de interrogación (`?`) tanto en el modo usuario (`SW1>`) como en el modo privilegiado (`SW1#`), listando los comandos ejecutables disponibles para cada nivel de privilegios.
+> **Captura de pantalla detectada:** Salida del comando `SW1?>` en la consola mostrando la lista completa de comandos ejecutables disponibles en el modo de usuario (EXEC commands) como `connect`, `disable`, `enable`, `exit`, `ping`, `show`, `telnet`, etc.
 
-> **Captura de pantalla detectada (Página 4):** Continuación de la ayuda interactiva en el [[CLI]], mostrando el menú de comandos para el modo de configuración global (`SW1(config)#`) y para la configuración específica de línea (`SW1(config-line)#`).
+   - `SW1#` → modo privilegiado
+
+> **Captura de pantalla detectada:** Salida del comando `SW1#?` en la consola mostrando la lista extendida de comandos privilegiados disponibles como `clear`, `clock`, `configure`, `copy`, `debug`, `reload`, `write`, entre otros.
+
+   - `SW1(config)#` → modo configuración global
+
+> **Captura de pantalla detectada:** Salida del comando `SW1(config)#?` detallando las opciones de configuración global tales como `aaa`, `banner`, `hostname`, `interface`, `ip`, `line`, `vlan`, etc.
+
+   - `SW1(config-line)#` → configuración específica de línea
+
+> **Captura de pantalla detectada:** Salida del comando `SW1(config-line)#?` mostrando los comandos de configuración de línea de terminal ([[CLI]]) como `exec-timeout`, `logging`, `password`, `transport`.
 
 ---
 
@@ -106,4 +115,4 @@ tags: [tecnologias_de_conmutacion_i, actividad, ingesta_ia]
    show startup-config
    ```
 
-> **Captura de pantalla detectada (Página 5):** Salida de comandos en la terminal donde se ejecuta la copia de seguridad de la configuración actual hacia la memoria no volátil (`copy running-config startup-config`), seguida de las verificaciones mediante `show running-config` y `show startup-config`, donde se aprecia la contraseña cifrada (`enable secret 5 ...`), el nombre del equipo (`hostname SW1`) y las interfaces configuradas.
+> **Captura de pantalla detectada:** Consola mostrando la ejecución del comando `copy running-config startup-config` con el mensaje resultante `[OK]` y fragmentos de las salidas de los comandos `show startup-config` y `show running-config` detallando la versión de [[Cisco IOS]] 15.0, el hostname `SW1`, la encriptación del `enable secret` y las interfaces `FastEthernet0/1` y `FastEthernet0/2`.

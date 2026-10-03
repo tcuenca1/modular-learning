@@ -4,28 +4,33 @@ El sistema es una plataforma de tutoría y gestión de conocimiento académica b
 
 ---
 
-## 🧩 Estructura de Capas y Módulos
+## 🧩 Estructura de Capas y Módulos (Arquitectura Hexagonal)
 
 - **`cli.py` & `main.py`**:
-  - `cli.py`: Enrutador nativo multiplataforma basado en `entry_points` (`console_scripts`: `ml = "cli:app"`).
-  - `main.py`: Orquestador principal del ciclo de vida de la tutoría CLI.
-- **`modules/core/` (Capa Lógica de Negocio y Persistencia)**:
-  - `gestor_llm.py`: Fábrica y enrutador de adaptadores LLM (Hexagonal).
-  - `llm_gemini_adapter.py`: Adaptador concreto para Google Gemini (`gemini-3.5-flash-lite`).
-  - `alineador_curricular.py`: Motor de mapeo curricular con pesos y afinidad (Segundo Cerebro), asignando material nuevo a clases oficiales (`subtemas_adicionales` y `materiales_asociados`) o transversalmente.
-  - `gestor_archivos.py`: Operaciones de disco, gestión de asignaturas (`data/config/materias.txt`), cronogramas enriquecidos en `data/schedules/`, tracking en `data/config/registro_materiales.json`, y exportación a Obsidian.
+  - `cli.py`: Enrutador nativo multiplataforma basado en `entry_points` con manejo limpio de interrupciones (`Ctrl + C`).
+  - `main.py`: Orquestador principal del ciclo de vida de la tutoría CLI y consumidor del Segundo Cerebro.
+
+- **`modules/core/` (Núcleo del Sistema y Dominio Académico)**:
+  - **`domain/`**: Lógica de negocio pura y reglas de dominio. Contiene `alineador_curricular.py` (motor de mapeo curricular con pesos y afinidad para el Segundo Cerebro) y `sincronizador.py`.
+  - **`ports/`**: Interfaces abstractas (Contratos). Contiene `llm_base.py` (`LLMAdapterBase`), que define el puerto para la comunicación con modelos de lenguaje.
+  - **`adapters/`**: Implementaciones concretas de infraestructura para los puertos. Contiene `llm_gemini_adapter.py` para Google Gemini (`gemini-3.5-flash-lite`).
+  - **`services/`**: Casos de uso y orquestación de servicios transversales. Contiene `gestor_llm.py` (fábrica/enrutador de proveedores LLM) y `gestor_archivos.py` (persistencia, gestión de asignaturas, cronogramas y exportación a Obsidian).
+
 - **`modules/ui/` (Capa de Interfaz de Usuario)**:
-  - `formateador.py`: Renderizado y estilización universal de sintaxis Markdown con colores ANSI en consola.
+  - `formateador.py`: Renderizado universal de Markdown con colores ANSI y limpieza estricta de artefactos LaTeX (como `$\rightarrow$`).
   - `interaccion.py`: Menús interactivos multiplataforma con `questionary.select()`.
-- **`modules/plugins/` (Arquitectura Hexagonal / Memoria Técnica)**:
-  - `base_plugin.py`: Puerto base (`PluginPracticoBase`).
-  - `plugin_cisco.py`, `plugin_nodered.py`, `plugin_web.py`: Adaptadores prácticos para Redes/Cisco, IoT/Node-RED y Desarrollo Web, dotados de memoria persistente en `data/plugins/` y sincronización con el Vault.
-  - `gestor_plugins.py`: Enrutador dinámico de adaptadores.
-- **`tools/` (Herramientas Auxiliares)**:
+
+- **`modules/plugins/` (Sistema de Adaptadores Prácticos / Memoria Técnica)**:
+  - **`ports/`**: Interfaces base para extensiones prácticas. Contiene `base_plugin.py` (`PluginPracticoBase`).
+  - **`adapters/`**: Adaptadores específicos por dominio tecnológico. Contiene `plugin_cisco.py`, `plugin_nodered.py` y `plugin_web.py`.
+  - **`services/`**: Enrutador y gestor de adaptadores prácticos. Contiene `gestor_plugins.py`.
+
+- **`tools/` (Herramientas Auxiliares de Ingesta y Procesamiento)**:
   - `extraer_silabo.py`: Extracción masiva de sílabos a cronogramas JSON.
-  - `ingestar_material.py`: Ingesta masiva (Batch) desde `RUTA_BASE_UNIVERSIDAD`, conversión automática a PDF, anonimización y retroalimentación de plugins.
-  - `actualizar_plugins.py`: Generador de Code Snapshots para proyectos locales de desarrollo.
-- **`prompts/`**: Directivas externas en Markdown (`01_`, `02_`, `03_`, `04_`, `05_`).
+  - `ingestar_material.py`: Ingesta masiva (individual o global por lotes) desde `RUTA_BASE_UNIVERSIDAD`, conversión a PDF, anonimización y alineación curricular.
+  - `actualizar_plugins.py`: Generador de Code Snapshots para proyectos locales.
+
+- **`prompts/`**: Directivas externas en Markdown (`01_` a `05_`).
 
 ---
 

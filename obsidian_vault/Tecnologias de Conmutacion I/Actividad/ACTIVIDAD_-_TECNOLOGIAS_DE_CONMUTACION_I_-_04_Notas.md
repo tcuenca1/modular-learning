@@ -1,40 +1,44 @@
 ---
 materia: Tecnologias de Conmutacion I
 tipo: actividad
-fecha_procesamiento: 2026-09-28
+fecha_procesamiento: 2026-09-30
 tags: [tecnologias_de_conmutacion_i, actividad, ingesta_ia]
 ---
 
-# Taller 2 S3
-
 [[Tecnologias de Conmutacion I]]
 
-* **Nombres:** [ESTUDIANTE], [ESTUDIANTE].
-* **Fecha:** 22/09/2026
+# Taller 2 S3
 
-De la topología planteada por el [DOCENTE] configurar lo siguiente:
-* Dos [[VLAN]]s 10 y 20
-* Cinco host (2 host a la vlan 10; 2 host a la vlan 20 y 1 host a consola)
-* Todos los host deben pertenecer a la misma red.
-* Comprobar las conexiones entre los hosts que estan en las vlan 10 y vlan 20.
+**Nombres:** [ESTUDIANTE], [ESTUDIANTE].  
+**Fecha:** 22/09/2026  
+
+---
+
+De la [[topologia de red]] planteada por el docente configurar lo siguiente:
+
+> **Diagrama detectado:** Topología de red en Cisco Packet Tracer que muestra un switch central (`Switch0`) de modelo `2960-24TT` conectado a múltiples computadoras (`PC0`, `PC1`, `PC2`, `PC3`, `PC4`). Se aprecian dos agrupaciones lógicas enmarcadas en óvalos:
+> - **VLAN 10 (DIRECCIÓN ADMINISTRATIVA):** Enmarca a `PC0` y `PC1` conectados al switch.
+> - **VLAN 20 (DIRECCIÓN COMPRAS PÚBLICas):** Enmarca a `PC2` y `PC3` conectados al switch, junto con una conexión hacia `PC4` (consola u otro equipo).
+
+- Dos [[VLAN]]s: 10 y 20.
+- Cinco host (2 host a la [[VLAN]] 10; 2 host a la [[VLAN]] 20 y 1 host a consola).
+- Todos los host deben pertenecer a la misma red.
+- Comprobar las conexiones entre los hosts que estan en las [[VLAN]] 10 y [[VLAN]] 20.
 
 ---
 
 ## TOPOLOGIA LOGICA (GENERAL)
 
-> **Diagrama detectado:** Captura de Cisco Packet Tracer que muestra una topología de red lógica con un switch central modelo 2960-24TT ([[Switch0]]) conectado a varios dispositivos finales ([[PC-PT]]): 
-> - En la parte superior izquierda, la **VLAN 10 (DIRECCIÓN ADMINISTRATIVA)** con los hosts `PC0` y `PC1`.
-> - En la parte superior derecha, la **VLAN 20 (DIRECCIÓN COMPRAS PÚBLICAS)** con los hosts `PC2`, `PC3` y un host adicional (`PC4`) conectado al sistema mediante consola.
-> - Se observa el enlace entre los equipos y el switch central.
+> **Captura de pantalla detectada:** Interfaz general del simulador [[Cisco Packet Tracer]] mostrando el diseño lógico completo del taller con los dispositivos interconectados.
 
 ---
 
 ## PING DENTRO DE LA RED DE DIRECCION ADMINISTRATIVA (PC0 A PC1)
 
-> **Captura de código detectada:** Consola de comandos de Packet Tracer (`C:\>`) realizando una prueba de conectividad mediante [[Ping]] hacia la dirección IP `192.168.1.21`. Se observan los tiempos de respuesta (Time <1ms, TTL=128) y las estadísticas finales con 0% de pérdida de paquetes (`Packets: Sent = 4, Received = 4, Lost = 0`).
+> **Captura de pantalla detectada:** Consola de línea de comandos de una PC ejecutando el comando `ping 192.168.1.21` (o similar), mostrando respuestas exitosas (`Reply from... bytes=32 time<1ms TTL=128`) y una tasa de pérdida de paquetes del 0%.
 
 ---
 
 ## PING DENTRO DE LA RED DE DIRECCION DE COMPRAS PUBLICAS (PC2 A PC3)
 
-> **Captura de código detectada:** Consola de comandos de Packet Tracer (`C:\>`) ejecutando el comando `ping 192.168.1.21`. La respuesta muestra una comunicación exitosa entre los dispositivos de la VLAN 20, con tiempos de respuesta menores a 1 ms y 0% de pérdida de paquetes.
+> **Captura de pantalla detectada:** Consola de línea de comandos ejecutando una prueba de conectividad mediante `ping` entre `PC2` y `PC3`, evidenciando conectividad exitosa sin pérdida de paquetes (`0% loss`).

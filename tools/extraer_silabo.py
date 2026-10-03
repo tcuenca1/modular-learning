@@ -22,7 +22,7 @@ ruta_script = os.path.dirname(os.path.abspath(__file__))
 ruta_raiz = os.path.dirname(ruta_script)
 sys.path.append(ruta_raiz)
 
-from modules.core import gestor_llm
+from modules.core.services import gestor_llm
 
 
 def extraer_texto_local(ruta_archivo: str) -> str:

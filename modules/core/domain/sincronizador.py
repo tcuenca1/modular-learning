@@ -2,7 +2,7 @@ import os
 import json
 from typing import List, Dict, Any
 from halo import Halo
-from modules.core import gestor_llm
+from modules.core.services import gestor_llm
 
 
 def _encontrar_ruta_cronograma(materia: str) -> str:

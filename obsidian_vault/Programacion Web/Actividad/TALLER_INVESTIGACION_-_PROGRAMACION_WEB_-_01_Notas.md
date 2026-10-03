@@ -1,39 +1,71 @@
 ---
 materia: Programacion Web
 tipo: actividad
-fecha_procesamiento: 2026-09-29
+fecha_procesamiento: 2026-09-30
 tags: [programacion_web, actividad, ingesta_ia]
 ---
 
 [[Programacion Web]]
 
 # TALLER INVESTIGACIÓN N°: 01
+**Fecha:** 25/09/2026
 
-* **Fecha:** 25/09/2026
-* **Unidad N°1:** Desarrollo de aplicaciones Web bajo arquitecturas N-capas
-* **Tema:** Transferencia de datos entre capas mediante [[DTOs]] y mapeo
-* **Objetivo:** Implementar mecanismos de intercambio de datos mediante el mapeo de objetos de dominio a formatos [[JSON]] y formatos binarios de [[serialización]] para asegurar la interoperabilidad y eficiencia en la comunicación entre sistemas.
+* **Unidad N°1:** Desarrollo de aplicaciones Web bajo arquitecturas [[Arquitectura N-capas|N-capas]]
+* **Tema:** Transferencia de datos entre capas mediante [[DTO]]s y mapeo
+* **Objetivo:** Implementar mecanismos de intercambio de datos mediante el mapeo de objetos de dominio a formatos [[JSON]] y formatos binarios de [[Serialización]] para asegurar la interoperabilidad y eficiencia en la comunicación entre sistemas.
 
----
-
-## 1. MOTOR V8 DE [[Node.js]] Y SU MÓDULO v8
-
-[[Node.js]] está construido sobre v8, el motor open source de Google para JavaScript y Web Assembly. [[Node.js]] expone un módulo nativo llamado `v8` que permite interactuar con funciones internas del motor.
-
-* **Serialización (`v8.serialize(value)`):** Convierte cualquier objeto de JavaScript en una secuencia de bytes estructurados, operando a nivel binario internamente en el motor, lo cual lo hace una opción ideal para preservar los tipos de datos y estructuras.
-* **Deserialización (`v8.deserialize(buffer)`):** Toma la secuencia binaria almacenada en un buffer y la reconstruye en memoria de forma exacta, devolviendo el objeto JavaScript original.
-
-Un **buffer** representa una región de memoria reservada fuera del motor V8 de JavaScript. Esto permite convertir los datos binarios a otros formatos (como hexadecimal) o medir su tamaño en bytes de manera más fácil y eficiente.
+## TIPO DE ACTIVIDAD
+* **Lugar:** Extraclase
+* **Alcance:** Grupal
+* **Forma:** Taller, Investigativa
 
 ---
 
-## 2. PROCESO DE IMPLEMENTACIÓN DE SERIALIZACIÓN Y DESERIALIZACIÓN BINARIA
+## ROLES Y RESPONSABILIDADES DE LOS PARTICIPANTES EN LA TAREA:
+| Nombre Estudiante | Rol | Descripción |
+| :--- | :--- | :--- |
+| [ESTUDIANTE] | Investigador | Actividad |
 
-Se creó un adaptador de salida que recibe los datos de un usuario / dto.
+---
 
-> **Captura detectada:** Estructura de directorios del proyecto en el editor de código. Se muestra una arquitectura en capas (`ProgramacionWeb`), dentro de `src` se ubican las carpetas `aplicacion`, `dominio` y `infraestructura\adaptadores` (con subcarpetas `entrada` y `salida`). Dentro de `salida` figuran los archivos `AdapSalida_SerializacionBinaria.js` y `AdapSalida_UsuarioWeb.js`, además de archivos de configuración como `app.js`, `Dockerfile`, `package.json`, `docker-compose.yml`, entre otros.
+## MOTOR V8 DE NODE.JS Y SU MÓDULO v8
 
-Se usó el método `v8.serialize()` para convertir el objeto de JavaScript en un flujo de bytes estructurado dentro de un buffer binario.
+[[Node.js]] está construido sobre v8, el motor open source de Google para [[JavaScript]] y Web Assembly. [[Node.js]] expone un módulo nativo llamado `v8` que permite interactuar con funciones internas del motor.
+
+* **[[Serialización]] (`v8.serialize(value)`):** Convierte cualquier objeto de [[JavaScript]] en una secuencia de bytes estructurados, operando a nivel binario internamente en el motor, lo cual lo hace una opción ideal para preservar los tipos de datos y estructuras.
+* **[[Deserialización]] (`v8.deserialize(buffer)`):** Toma la secuencia binaria almacenada en un [[Buffer]] y la reconstruye en memoria de forma exacta, devolviendo el objeto [[JavaScript]] original.
+
+Un [[Buffer]] representa una región de memoria reservada fuera del motor V8 de [[JavaScript]]. Esto permite convertir los datos binarios a otros formatos (como hexadecimal) o medir su tamaño en bytes de manera más fácil y eficiente.
+
+---
+
+## PROCESO DE IMPLEMENTACION DE SERIALIZACION Y DESERIALIZACION BINARIA
+
+Se creó un adaptador de salida que recibe los datos de un usuario / [[DTO]].
+
+> **Captura de código / Estructura de archivos detectada:** 
+> Estructura de directorios del proyecto en el editor que muestra la jerarquía de carpetas bajo `src`:
+> * `ProgramacionWeb`
+>   * `cliente`
+>   * `servidor`
+>   * `node_modules`
+>   * `src`
+>     * `aplicacion`
+>     * `dominio`
+>     * `infraestructura \ adaptadores`
+>       * `entrada`
+>       * `salida`
+>         * `AdapSalida_SerializacionBinaria.js`
+>         * `AdapSalida_UsuarioWeb.js`
+>     * `app.js`
+>   * `.gitignore`
+>   * `Dockerfile`
+>   * `package-lock.json`
+>   * `package.json`
+>   * `docker-compose.yml`
+>   * `ProgramacionWeb.code-workspace`
+
+Se usó el método `v8.serialize()` para convertir el objeto de [[JavaScript]] en un flujo de bytes estructurado dentro de un buffer binario.
 
 ```javascript
 serializarYDeserializar(dto) {
@@ -55,23 +87,16 @@ Se simuló el almacenamiento o transporte convirtiendo el buffer a hexadecimal y
     bytesTotales: bufferBinario.length,
     objetoRestaurado
   };
-};
+}
 ```
 
-Se usó el método `v8.deserialize()` para reconstruir el buffer binario de vuelta a un objeto de JavaScript funcional.
+Se usó el método `v8.deserialize()` para reconstruir el buffer binario de vuelta a un objeto de [[JavaScript]] funcional.
 
 ```javascript
 const objetoRestaurado = v8.deserialize(bufferBinario);
 ```
 
-Se expuso en un endpoint HTTP `http://localhost:3000/6A/usuario-binario` para verificar la respuesta en formato [[JSON]].
+Se expuso en un endpoint [[HTTP]] `http://localhost:3000/6A/usuario-binario` para verificar la respuesta en formato [[JSON]].
 
-> **Captura detectada:** Navegador web mostrando la respuesta en formato [[JSON]] proveniente del endpoint `http://localhost:3000/6A/usuario-binario`. Se visualiza una estructura [[JSON]] con el mensaje "Serialización y Deserialización Binaria con v8 exitosa", conteniendo las propiedades `bufferBinario` (con su tipo `Buffer` y array de bytes numéricos), `bufferBinarioHex` (representación hexadecimal), `bytesTotales` y el objeto restaurado con sus respectivos atributos de usuario (nombre, contraseña, valor booleano, ciudad y teléfono).
-
----
-
-## ROLES Y RESPONSABILIDADES DE LOS PARTICIPANTES EN LA TAREA:
-
-| NOMBRE ESTUDIANTE | ROL | DESCRIPCIÓN |
-| :--- | :--- | :--- |
-| [ESTUDIANTE] | Investigador | Actividad |
+> **Captura de pantalla detectada:** 
+> Vista del navegador web mostrando la respuesta [[JSON]] devuelta por el endpoint HTTP. Se observa un objeto con las propiedades `"mensaje": "Serialización y Deserialización Binaria con V8 exitosa"`, la estructura del buffer binario (`"type": "Buffer"` con un arreglo numérico en `"data"`), la representación en hexadecimal (`"bufferBinarioHex"`), el tamaño total en bytes (`"bytesTotales"`) y el objeto restaurado con sus respectivas propiedades y valores.

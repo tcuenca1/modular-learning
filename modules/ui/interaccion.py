@@ -1,7 +1,7 @@
 import os
 from typing import Dict, List
 import questionary
-from modules.core import gestor_archivos
+from modules.core.services import gestor_archivos
 from modules.ui.formateador import imprimir_markdown_bonito
 
 

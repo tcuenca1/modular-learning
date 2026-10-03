@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 from halo import Halo
 
-from modules.core.llm_base import LLMAdapterBase
+from modules.core.ports.llm_base import LLMAdapterBase
 
 load_dotenv()
 

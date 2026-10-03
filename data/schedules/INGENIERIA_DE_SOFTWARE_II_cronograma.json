@@ -1,219 +1,324 @@
-[
-    {
-        "fecha": "10/09/2026",
-        "tema": "Fundamentos y modelos de calidad del software",
-        "objetivo": "Analizar los fundamentos de la calidad del software mediante sus conceptos, perspectivas y relación con el proceso y producto software.",
-        "contenido": "Concepto de calidad del software. Calidad desde diferentes perspectivas. Calidad del proceso y calidad del producto. Relación entre requisitos y calidad.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "11/09/2026",
-        "tema": "Fundamentos y modelos de calidad del software",
-        "objetivo": "Comparar modelos de calidad del software mediante sus dimensiones, factores y características aplicables a la evaluación de productos software.",
-        "contenido": "Dimensiones de calidad de Garvin. Factores de calidad de McCall. Modelo ISO/IEC 9126. Evolución de los modelos de calidad. Relación entre dimensiones, factores y características.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "17/09/2026",
-        "tema": "Evaluación de la calidad del producto software",
-        "objetivo": "Analizar las características de calidad del producto software mediante criterios asociados con requisitos y atributos de calidad.",
-        "contenido": "Calidad del producto software. Características y atributos de calidad. Requisitos funcionales y de calidad. Criterios de evaluación. Relación entre requisitos, atributos y evidencias de calidad.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "18/09/2026",
-        "tema": "Evaluación de la calidad del producto software",
-        "objetivo": "Evaluar la calidad de un producto software mediante criterios cualitativos y cuantitativos sustentados en evidencias.",
-        "contenido": "Evaluación cualitativa y cuantitativa de la calidad. Criterios, escalas y evidencias. Selección de características evaluables. Interpretación de resultados. Perfil de calidad del producto.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "24/09/2026",
-        "tema": "Defectos y métricas de revisión del software",
-        "objetivo": "Analizar los defectos del software mediante su clasificación, origen e impacto en los artefactos del proceso de desarrollo.",
-        "contenido": "Concepto de error, defecto y fallo. Clasificación de defectos. Defectos en requisitos, diseño y código. Origen y propagación de defectos. Impacto sobre la calidad del producto.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "25/09/2026",
-        "tema": "Defectos y métricas de revisión del software",
-        "objetivo": "Aplicar métricas de revisión mediante datos de defectos y esfuerzo para la valoración de la eficacia del proceso de revisión.",
-        "contenido": "Medidas y métricas de revisión. Número y distribución de defectos. Densidad de defectos. Tasa de detección. Eficacia de eliminación de defectos. Esfuerzo de revisión. Interpretación de métricas.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "01/10/2026",
-        "tema": "Revisiones informales y técnicas formales del software",
-        "objetivo": "Analizar las técnicas de revisión del software mediante sus características, procedimientos y niveles de formalidad",
-        "contenido": "Revisión de software. Objetivos de la revisión. Revisiones informales. Revisión por pares. Walkthrough. Inspección. Revisiones técnicas formales. Diferencias entre técnicas de revisión.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "02/10/2026",
-        "tema": "Revisiones informales y técnicas formales del software",
-        "objetivo": "Ejecutar una revisión técnica formal mediante roles, criterios y evidencias aplicados a un artefacto de software.",
-        "contenido": "Proceso de revisión técnica formal. Planificación. Roles y responsabilidades. Criterios de entrada. Listas de comprobación. Identificación y registro de defectos. Reunión de revisión. Resultados y seguimiento.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "08/10/2026",
-        "tema": "Aseguramiento de la Calidad del Software: elementos, tareas, metas y métricas",
-        "objetivo": "Analizar el aseguramiento de la calidad del software mediante sus elementos, responsabilidades y relación con el proceso de desarrollo.",
-        "contenido": "Concepto de Aseguramiento de la Calidad del Software (ACS/SQA). Calidad del proceso y del producto. Objetivos del ACS. Elementos del aseguramiento de calidad. Roles y responsabilidades. Actividades de aseguramiento durante el desarrollo.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "09/10/2026",
-        "tema": "Aseguramiento de la Calidad del Software: elementos, tareas, metas y métricas",
-        "objetivo": "Evaluar el aseguramiento de la calidad del software mediante tareas, metas, métricas e indicadores aplicados a un proyecto",
-        "contenido": "Tareas del ACS. Metas de calidad. Planificación del aseguramiento. Estándares y procedimientos. Auditorías y revisiones. No conformidades. Medidas, métricas e indicadores del ACS. Evidencias y seguimiento de calidad.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "15/10/2026",
-        "tema": "Estrategias y diseño de pruebas de software",
-        "objetivo": "Analizar las estrategias de pruebas de software mediante niveles, objetivos y criterios aplicables al proceso de desarrollo.",
-        "contenido": "Fundamentos de pruebas de software. Error, defecto y fallo en el contexto de pruebas. Verificación y validación. Objetivos y principios de las pruebas. Estrategia de pruebas. Niveles de prueba: unidad, integración, sistema y aceptación. Criterios de entrada y salida.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "16/10/2026",
-        "tema": "Estrategias y diseño de pruebas de software",
-        "objetivo": "Diseñar casos de prueba mediante técnicas, datos, resultados esperados y criterios de aceptación vinculados con los requisitos del software.",
-        "contenido": "Caso de prueba. Condiciones y escenarios de prueba. Datos de entrada. Precondiciones. Resultados esperados. Criterios de aceptación. Técnicas de diseño de pruebas. Partición de equivalencia. Valores límite. Tablas de decisión. Trazabilidad requisito–prueba.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "22/10/2026",
-        "tema": "Pruebas de software convencional, orientado a objetos y aplicaciones web",
-        "objetivo": "Aplicar estrategias de prueba en software convencional y orientado a objetos mediante técnicas acordes con su estructura y comportamiento",
-        "contenido": "Pruebas en software convencional. Pruebas de caja blanca y caja negra. Pruebas de unidad e integración. Particularidades de las pruebas orientadas a objetos. Pruebas de clases, métodos, estados y colaboraciones. Integración en sistemas OO.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "23/10/2026",
-        "tema": "Pruebas de software convencional, orientado a objetos y aplicaciones web",
-        "objetivo": "Diseñar pruebas para aplicaciones web mediante criterios funcionales, de interfaz, navegación, compatibilidad y rendimiento.",
-        "contenido": "Características de las WebApps. Pruebas funcionales. Pruebas de interfaz. Pruebas de navegación. Compatibilidad entre navegadores y dispositivos. Rendimiento. Manejo de errores. Sesiones y formularios. Evidencias y registro de resultados.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "29/10/2026",
-        "tema": "Pruebas de validación y pruebas de sistema",
-        "objetivo": "Aplicar pruebas de validación mediante requisitos, criterios de aceptación y evidencias del comportamiento del software.",
-        "contenido": "Concepto de validación. Relación entre requisitos y validación. Criterios de aceptación. Pruebas funcionales de validación. Configuración de prueba. Resultados esperados y obtenidos. Trazabilidad requisito–prueba–evidencia. No conformidades. Pruebas de sistema. Objetivos y alcance. Pruebas de recuperación. Pruebas de estrés. Pruebas de rendimiento. Pruebas de seguridad en el contexto del sistema. Condiciones operativas. Registro de incidencias. Evidencias y reporte de resultados.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "05/11/2026",
-        "tema": "Seguridad en la Ingeniería de Software y en el ciclo de desarrollo",
-        "objetivo": "Analizar la seguridad del software mediante amenazas, vulnerabilidades, riesgos y controles asociados con los requerimientos del sistema.",
-        "contenido": "Seguridad en Ingeniería de Software. Activos de software. Amenaza, vulnerabilidad, riesgo y control. Principios de confidencialidad, integridad y disponibilidad. Requisitos de seguridad. Relación entre seguridad y calidad del software.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "06/11/2026",
-        "tema": "Seguridad en la Ingeniería de Software y en el ciclo de desarrollo",
-        "objetivo": "Integrar prácticas de seguridad en el ciclo de desarrollo mediante criterios aplicables a requisitos, diseño, implementación, pruebas y despliegue.",
-        "contenido": "Seguridad en el ciclo de desarrollo del software. Requisitos de seguridad. Principios de diseño seguro. Prácticas de implementación segura. Verificación y pruebas de seguridad. Seguridad en despliegue y mantenimiento. Evidencias de seguridad.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "12/11/2026",
-        "tema": "Confiabilidad del software y estrategia de Cuarto Limpio (Cleanroom)",
-        "objetivo": "Evaluar la confiabilidad del software mediante fallos, disponibilidad y comportamiento operacional del producto.",
-        "contenido": "Confiabilidad del software. Diferencias entre error, defecto y fallo. Probabilidad de fallo. Tiempo medio entre fallos (MTBF). Tiempo medio hasta el fallo (MTTF). Tiempo medio de reparación (MTTR). Disponibilidad. Tolerancia a fallos. Relación entre confiabilidad y calidad.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "13/11/2026",
-        "tema": "Confiabilidad del software y estrategia de Cuarto Limpio (Cleanroom)",
-        "objetivo": "Aplicar la estrategia de Cuarto Limpio mediante especificación, desarrollo incremental y prevención de defectos en un escenario de software.",
-        "contenido": "Ingeniería de Software de Cuarto Limpio (Cleanroom). Principios y objetivos. Prevención frente a corrección de defectos. Desarrollo incremental. Especificación formal. Diseño y verificación. Certificación estadística de calidad. Relación entre Cleanroom y confiabilidad.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "19/11/2026",
-        "tema": "Especificación funcional y métodos formales",
-        "objetivo": "Analizar la especificación funcional mediante propiedades, restricciones y condiciones asociadas con el comportamiento del software.",
-        "contenido": "Especificación funcional del software. Propósito y características. Estados y operaciones. Propiedades y restricciones. Precondiciones y postcondiciones. Invariantes. Consistencia de la especificación. Relación entre requerimientos y especificación funcional.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "20/11/2026",
-        "tema": "Especificación funcional y métodos formales",
-        "objetivo": "Representar especificaciones de software mediante fundamentos y notaciones de métodos formales aplicados a requerimientos definidos.",
-        "contenido": "Introducción a los métodos formales. Especificación informal, semiformal y formal. Fundamentos de lógica proposicional y de predicados aplicados a especificaciones. Conjuntos, relaciones y funciones. Variables de estado. Operaciones y restricciones. Lenguajes y notaciones de especificación formal.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "26/11/2026",
-        "tema": "Modelado formal y verificación del software",
-        "objetivo": "Construir modelos formales del software mediante estados, transiciones, propiedades y restricciones derivadas de los requerimientos.",
-        "contenido": "Modelado formal del software. Estados y transiciones. Variables de estado. Estado inicial. Operaciones y condiciones. Propiedades del sistema. Invariantes y restricciones. Modelos de transición. Trazabilidad entre requerimientos y modelo formal.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "27/11/2026",
-        "tema": "Modelado formal y verificación del software",
-        "objetivo": "Verificar propiedades del software mediante el análisis sistemático de modelos formales y requerimientos establecidos.",
-        "contenido": "Verificación del software. Verificación estática y formal. Propiedades de seguridad y comportamiento. Consistencia. Completitud. Invariantes. Condiciones de verificación. Introducción conceptual a comprobación de modelos (model checking). Contraejemplos. Evidencias de verificación.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "03/12/2026",
-        "tema": "Gestión de Configuración del Software",
-        "objetivo": "Analizar la gestión de configuración del software mediante sus elementos, actividades y relación con la evolución del producto.",
-        "contenido": "Gestión de Configuración del Software (GCS). Propósito y alcance. Elementos de configuración del software. Identificación de la configuración. Versiones y variantes. Líneas base. Estado de configuración. Relación entre configuración, mantenimiento y evolución del software.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "04/12/2026",
-        "tema": "Gestión de Configuración del Software",
-        "objetivo": "Diseñar un esquema de gestión de configuración mediante elementos, líneas base, responsabilidades y mecanismos de control aplicables a un proyecto software.",
-        "contenido": "Planificación de la GCS. Plan de Gestión de Configuración. Identificación de elementos. Establecimiento de líneas base. Roles y responsabilidades. Control de configuración. Registro del estado. Auditoría de configuración. Evidencias y trazabilidad.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "10/12/2026",
-        "tema": "Repositorios, control de versiones y gestión de cambios",
-        "objetivo": "Aplicar mecanismos de control de versiones mediante repositorios, ramas e integración de cambios en un proyecto software.",
-        "contenido": "Repositorios de software. Control de versiones. Repositorios locales y remotos. Commit. Historial de cambios. Ramas. Fusión de cambios. Conflictos. Etiquetas y versiones. Estrategias básicas de ramificación. Trazabilidad entre cambios y artefactos.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "11/12/2026",
-        "tema": "Repositorios, control de versiones y gestión de cambios",
-        "objetivo": "Gestionar cambios del software mediante procedimientos de solicitud, análisis, aprobación, implementación y seguimiento.",
-        "contenido": "Gestión de cambios. Solicitud de cambio. Registro y clasificación. Análisis de impacto. Priorización. Aprobación o rechazo. Implementación. Seguimiento. Estado del cambio. Trazabilidad. Comité de Control de Cambios (CCB). Relación entre cambio, versión y línea base.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "17/12/2026",
-        "tema": "Medidas, métricas e indicadores del producto software",
-        "objetivo": "Analizar las medidas, métricas e indicadores del producto software mediante su propósito, características y relación con los atributos de calidad.",
-        "contenido": "Medición del software. Concepto de medida, métrica e indicador. Diferencias y relaciones. Medidas directas e indirectas. Métricas internas y externas del producto. Atributos medibles. Escalas y unidades de medición. Relación entre métricas y calidad del producto.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "18/12/2026",
-        "tema": "Medidas, métricas e indicadores del producto software",
-        "objetivo": "Calcular métricas del producto software mediante datos relacionados con tamaño, complejidad, defectos y mantenibilidad.",
-        "contenido": "Métricas de tamaño. Líneas de código (LOC). Complejidad ciclomática. Densidad de defectos. Métricas relacionadas con mantenibilidad. Interpretación de valores. Umbrales y contexto. Limitaciones de las métricas. Uso combinado de métricas.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "07/01/2027",
-        "tema": "Evaluación de la calidad mediante métricas del producto software",
-        "objetivo": "Aplicar métricas del producto software mediante criterios, umbrales y evidencias asociados con atributos de calidad.",
-        "contenido": "Selección de métricas según atributos de calidad. Criterios y umbrales de evaluación. Normalización e interpretación de resultados. Integración de múltiples métricas. Perfil cuantitativo de calidad. Evidencias de medición. Relación entre métrica, atributo y criterio de evaluación.",
-        "estado": "pendiente"
-    },
-    {
-        "fecha": "08/01/2027",
-        "tema": "Evaluación de la calidad mediante métricas del producto software",
-        "objetivo": "Evaluar la calidad del producto software mediante la integración de métricas, indicadores y evidencias obtenidas durante el proceso de medición.",
-        "contenido": "Evaluación integral del producto software. Integración de medidas, métricas e indicadores. Interpretación multidimensional. Identificación de fortalezas y debilidades. Priorización de aspectos críticos. Informe de evaluación de calidad. Evidencias y conclusiones técnicas.",
-        "estado": "pendiente"
-    }
-]
+{
+    "clases": [
+        {
+            "fecha": "10/09/2026",
+            "tema": "Fundamentos y modelos de calidad del software",
+            "objetivo": "Analizar los fundamentos de la calidad del software mediante sus conceptos, perspectivas y relación con el proceso y producto software.",
+            "contenido": "Concepto de calidad del software. Calidad desde diferentes perspectivas. Calidad del proceso y calidad del producto. Relación entre requisitos y calidad.",
+            "estado": "completado",
+            "materiales_asociados": [
+                "Semana1-Clase1.pptx"
+            ],
+            "subtemas_adicionales": [
+                "Encuadre de la asignatura",
+                "Caso práctico: Sistema de matrículas universitarias ('Funciona, pero...')",
+                "Perspectivas de calidad (Usuario, Cliente, Desarrollo, Operación)",
+                "Flujo de evaluación: Necesidad -> Requisito -> Criterio -> Evidencia"
+            ]
+        },
+        {
+            "fecha": "11/09/2026",
+            "tema": "Fundamentos y modelos de calidad del software",
+            "objetivo": "Comparar modelos de calidad del software mediante sus dimensiones, factores y características aplicables a la evaluación de productos software.",
+            "contenido": "Dimensiones de calidad de Garvin. Factores de calidad de McCall. Modelo ISO/IEC 9126. Evolución de los modelos de calidad. Relación entre dimensiones, factores y características.",
+            "estado": "completado",
+            "materiales_asociados": [
+                "CAA - 1.pdf",
+                "T1.pdf",
+                "1 A systematic literature review of open.pdf",
+                "Semana1-Clase2.pptx"
+            ],
+            "subtemas_adicionales": [
+                "Matriz comparativa Garvin–McCall–ISO/IEC 9126",
+                "Evaluación práctica de la calidad en productos software reales (Telegram)",
+                "QSOS",
+                "Modelo de Mathieu y Wray",
+                "Modelo OS-UMM",
+                "Modelo Sudhaman y Thangavel",
+                "ISO/IEC 25010",
+                "Modelos de calidad para Software Libre y de Código Abierto (OSS)",
+                "Modelos de calidad para Open Source Software (OSS)",
+                "Evolución histórica y transición de ISO/IEC 9126 a ISO/IEC 25010",
+                "Clasificación de modelos OSS (single-attribute, rounded category, community-only, non-community, non-quality in use)",
+                "Atributos de calidad de la comunidad en software de código abierto",
+                "Perspectivas de Garvin (Trascendente, Producto, Usuario, Producción, Valor)",
+                "Factores de McCall (Operación, Revisión, Transición)",
+                "Modelo ISO/IEC 9126 (Funcionalidad, Fiabilidad, Usabilidad, Eficiencia, Mantenibilidad, Portabilidad)",
+                "Comparación estructurada de enfoques de calidad"
+            ]
+        },
+        {
+            "fecha": "17/09/2026",
+            "tema": "Evaluación de la calidad del producto software",
+            "objetivo": "Analizar las características de calidad del producto software mediante criterios asociados con requisitos y atributos de calidad.",
+            "contenido": "Calidad del producto software. Características y atributos de calidad. Requisitos funcionales y de calidad. Criterios de evaluación. Relación entre requisitos, atributos y evidencias de calidad.",
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "Semana2-Clase1.pptx"
+            ],
+            "subtemas_adicionales": [
+                "Estudio de casos comparativos de calidad (Producto A vs Producto B)",
+                "Cadena de evaluación de la calidad (Requisito -> Atributo -> Criterio -> Evidencia)",
+                "Diferenciación práctica entre requisitos funcionales y requisitos de calidad"
+            ]
+        },
+        {
+            "fecha": "18/09/2026",
+            "tema": "Evaluación de la calidad del producto software",
+            "objetivo": "Evaluar la calidad de un producto software mediante criterios cualitativos y cuantitativos sustentados en evidencias.",
+            "contenido": "Evaluación cualitativa y cuantitativa de la calidad. Criterios, escalas y evidencias. Selección de características evaluables. Interpretación de resultados. Perfil de calidad del producto.",
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "CAA - 2.pdf",
+                "Semana2-Clase2.pptx"
+            ],
+            "subtemas_adicionales": [
+                "Matriz requisito-atributo-criterio-evidencia",
+                "Lighthouse (FCP)",
+                "System Usability Scale (SUS)",
+                "Downdetector",
+                "Certificados TLS/SSL (Google Trust Services)",
+                "Evaluación cualitativa y cuantitativa de la calidad",
+                "Criterios de evaluación y umbrales",
+                "Escalas cualitativas para conversión de observaciones",
+                "Evidencias como fundamento del juicio de calidad",
+                "Resolución de casos contradictorios de calidad"
+            ]
+        },
+        {
+            "fecha": "24/09/2026",
+            "tema": "Defectos y métricas de revisión del software",
+            "objetivo": "Analizar los defectos del software mediante su clasificación, origen e impacto en los artefactos del proceso de desarrollo.",
+            "contenido": "Concepto de error, defecto y fallo. Clasificación de defectos. Defectos en requisitos, diseño y código. Origen y propagación de defectos. Impacto sobre la calidad del producto.",
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "Semana3-Clase1.pptx"
+            ],
+            "subtemas_adicionales": [
+                "Cadena causal de error, defecto y fallo",
+                "Propagación de defectos entre artefactos del desarrollo",
+                "Clasificación de defectos por naturaleza (Funcional, Interfaz, Datos, Rendimiento)",
+                "Análisis de casos detonantes sobre el impacto de los defectos"
+            ]
+        },
+        {
+            "fecha": "25/09/2026",
+            "tema": "Defectos y métricas de revisión del software",
+            "objetivo": "Aplicar métricas de revisión mediante datos de defectos y esfuerzo para la valoración de la eficacia del proceso de revisión.",
+            "contenido": "Medidas y métricas de revisión. Número y distribución de defectos. Densidad de defectos. Tasa de detección. Eficacia de eliminación de defectos. Esfuerzo de revisión. Interpretación de métricas.",
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "CAA - 3.pdf",
+                "Semana3-Clase2.pptx"
+            ],
+            "subtemas_adicionales": [
+                "Análisis forense de defectos en casos reales (Caso Ariane 5)",
+                "Matriz defecto-origen-propagación-impacto",
+                "Cálculo de métricas de revisión (cantidad y densidad de defectos, tasa de detección, eficacia de eliminación, esfuerzo de revisión)",
+                "Densidad de defectos normalizada por tamaño (páginas/KLOC)",
+                "Cálculo de la eficacia de detección (defectos encontrados vs. escapados)",
+                "Análisis de distribución porcentual de defectos por categoría",
+                "Interpretación de métricas de revisión con casos prácticos comparativos"
+            ]
+        },
+        {
+            "fecha": "01/10/2026",
+            "tema": "Revisiones informales y técnicas formales del software",
+            "objetivo": "Analizar las técnicas de revisión del software mediante sus características, procedimientos y niveles de formalidad",
+            "contenido": "Revisión de software. Objetivos de la revisión. Revisiones informales. Revisión por pares. Walkthrough. Inspección. Revisiones técnicas formales. Diferencias entre técnicas de revisión.",
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "1.1 An empirical investigation of relevant changes.pdf",
+                "Semana4-Clase1.pptx"
+            ],
+            "subtemas_adicionales": [
+                "Revisión de Código Moderna (MCR)",
+                "Modelo CRAM (Code Review chAnges Model)",
+                "Automatización en la revisión de código",
+                "Herramientas de soporte a la revisión (Gerrit, CheckStyle, PMD)",
+                "Procesamiento de Lenguaje Natural (NLP) aplicado a resúmenes de revisión",
+                "Continuo de formalidad en revisiones",
+                "Escenario de decisión bajo restricciones de tiempo y riesgo",
+                "Walkthrough aplicado a escenarios de autenticación"
+            ]
+        },
+        {
+            "fecha": "02/10/2026",
+            "tema": "Revisiones informales y técnicas formales del software",
+            "objetivo": "Ejecutar una revisión técnica formal mediante roles, criterios y evidencias aplicados a un artefacto de software.",
+            "contenido": "Proceso de revisión técnica formal. Planificación. Roles y responsabilidades. Criterios de entrada. Listas de comprobación. Identificación y registro de defectos. Reunión de revisión. Resultados y seguimiento.",
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "Semana4-Clase2.pptx"
+            ],
+            "subtemas_adicionales": [
+                "Diferenciación entre opinión subjetiva y hallazgo técnico verificable",
+                "Formato estructurado de registro de hallazgos (ID, ubicación, criterio, descripción, evidencia/impacto, estado)",
+                "Listas de comprobación aplicadas a especificaciones de requisitos",
+                "Dinámica de la preparación individual previa a la reunión de revisión"
+            ]
+        },
+        {
+            "fecha": "08/10/2026",
+            "tema": "Aseguramiento de la Calidad del Software: elementos, tareas, metas y métricas",
+            "objetivo": "Analizar el aseguramiento de la calidad del software mediante sus elementos, responsabilidades y relación con el proceso de desarrollo.",
+            "contenido": "Concepto de Aseguramiento de la Calidad del Software (ACS/SQA). Calidad del proceso y del producto. Objetivos del ACS. Elementos del aseguramiento de calidad. Roles y responsabilidades. Actividades de aseguramiento durante el desarrollo.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "09/10/2026",
+            "tema": "Aseguramiento de la Calidad del Software: elementos, tareas, metas y métricas",
+            "objetivo": "Evaluar el aseguramiento de la calidad del software mediante tareas, metas, métricas e indicadores aplicados a un proyecto",
+            "contenido": "Tareas del ACS. Metas de calidad. Planificación del aseguramiento. Estándares y procedimientos. Auditorías y revisiones. No conformidades. Medidas, métricas e indicadores del ACS. Evidencias y seguimiento de calidad.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "15/10/2026",
+            "tema": "Estrategias y diseño de pruebas de software",
+            "objetivo": "Analizar las estrategias de pruebas de software mediante niveles, objetivos y criterios aplicables al proceso de desarrollo.",
+            "contenido": "Fundamentos de pruebas de software. Error, defecto y fallo en el contexto de pruebas. Verificación y validación. Objetivos y principios de las pruebas. Estrategia de pruebas. Niveles de prueba: unidad, integración, sistema y aceptación. Criterios de entrada y salida.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "16/10/2026",
+            "tema": "Estrategias y diseño de pruebas de software",
+            "objetivo": "Diseñar casos de prueba mediante técnicas, datos, resultados esperados y criterios de aceptación vinculados con los requisitos del software.",
+            "contenido": "Caso de prueba. Condiciones y escenarios de prueba. Datos de entrada. Precondiciones. Resultados esperados. Criterios de aceptación. Técnicas de diseño de pruebas. Partición de equivalencia. Valores límite. Tablas de decisión. Trazabilidad requisito–prueba.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "22/10/2026",
+            "tema": "Pruebas de software convencional, orientado a objetos y aplicaciones web",
+            "objetivo": "Aplicar estrategias de prueba en software convencional y orientado a objetos mediante técnicas acordes con su estructura y comportamiento",
+            "contenido": "Pruebas en software convencional. Pruebas de caja blanca y caja negra. Pruebas de unidad e integración. Particularidades de las pruebas orientadas a objetos. Pruebas de clases, métodos, estados y colaboraciones. Integración en sistemas OO.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "23/10/2026",
+            "tema": "Pruebas de software convencional, orientado a objetos y aplicaciones web",
+            "objetivo": "Diseñar pruebas para aplicaciones web mediante criterios funcionales, de interfaz, navegación, compatibilidad y rendimiento.",
+            "contenido": "Características de las WebApps. Pruebas funcionales. Pruebas de interfaz. Pruebas de navegación. Compatibilidad entre navegadores y dispositivos. Rendimiento. Manejo de errores. Sesiones y formularios. Evidencias y registro de resultados.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "29/10/2026",
+            "tema": "Pruebas de validación y pruebas de sistema",
+            "objetivo": "Aplicar pruebas de validación mediante requisitos, criterios de aceptación y evidencias del comportamiento del software.",
+            "contenido": "Concepto de validación. Relación entre requisitos y validación. Criterios de aceptación. Pruebas funcionales de validación. Configuración de prueba. Resultados esperados y obtenidos. Trazabilidad requisito–prueba–evidencia. No conformidades. Pruebas de sistema. Objetivos y alcance. Pruebas de recuperación. Pruebas de estrés. Pruebas de rendimiento. Pruebas de seguridad en el contexto del sistema. Condiciones operativas. Registro de incidencias. Evidencias y reporte de resultados.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "05/11/2026",
+            "tema": "Seguridad en la Ingeniería de Software y en el ciclo de desarrollo",
+            "objetivo": "Analizar la seguridad del software mediante amenazas, vulnerabilidades, riesgos y controles asociados con los requerimientos del sistema.",
+            "contenido": "Seguridad en Ingeniería de Software. Activos de software. Amenaza, vulnerabilidad, riesgo y control. Principios de confidencialidad, integridad y disponibilidad. Requisitos de seguridad. Relación entre seguridad y calidad del software.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "06/11/2026",
+            "tema": "Seguridad en la Ingeniería de Software y en el ciclo de desarrollo",
+            "objetivo": "Integrar prácticas de seguridad en el ciclo de desarrollo mediante criterios aplicables a requisitos, diseño, implementación, pruebas y despliegue.",
+            "contenido": "Seguridad en el ciclo de desarrollo del software. Requisitos de seguridad. Principios de diseño seguro. Prácticas de implementación segura. Verificación y pruebas de seguridad. Seguridad en despliegue y mantenimiento. Evidencias de seguridad.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "12/11/2026",
+            "tema": "Confiabilidad del software y estrategia de Cuarto Limpio (Cleanroom)",
+            "objetivo": "Evaluar la confiabilidad del software mediante fallos, disponibilidad y comportamiento operacional del producto.",
+            "contenido": "Confiabilidad del software. Diferencias entre error, defecto y fallo. Probabilidad de fallo. Tiempo medio entre fallos (MTBF). Tiempo medio hasta el fallo (MTTF). Tiempo medio de reparación (MTTR). Disponibilidad. Tolerancia a fallos. Relación entre confiabilidad y calidad.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "13/11/2026",
+            "tema": "Confiabilidad del software y estrategia de Cuarto Limpio (Cleanroom)",
+            "objetivo": "Aplicar la estrategia de Cuarto Limpio mediante especificación, desarrollo incremental y prevención de defectos en un escenario de software.",
+            "contenido": "Ingeniería de Software de Cuarto Limpio (Cleanroom). Principios y objetivos. Prevención frente a corrección de defectos. Desarrollo incremental. Especificación formal. Diseño y verificación. Certificación estadística de calidad. Relación entre Cleanroom y confiabilidad.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "19/11/2026",
+            "tema": "Especificación funcional y métodos formales",
+            "objetivo": "Analizar la especificación funcional mediante propiedades, restricciones y condiciones asociadas con el comportamiento del software.",
+            "contenido": "Especificación funcional del software. Propósito y características. Estados y operaciones. Propiedades y restricciones. Precondiciones y postcondiciones. Invariantes. Consistencia de la especificación. Relación entre requerimientos y especificación funcional.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "20/11/2026",
+            "tema": "Especificación funcional y métodos formales",
+            "objetivo": "Representar especificaciones de software mediante fundamentos y notaciones de métodos formales aplicados a requerimientos definidos.",
+            "contenido": "Introducción a los métodos formales. Especificación informal, semiformal y formal. Fundamentos de lógica proposicional y de predicados aplicados a especificaciones. Conjuntos, relaciones y funciones. Variables de estado. Operaciones y restricciones. Lenguajes y notaciones de especificación formal.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "26/11/2026",
+            "tema": "Modelado formal y verificación del software",
+            "objetivo": "Construir modelos formales del software mediante estados, transiciones, propiedades y restricciones derivadas de los requerimientos.",
+            "contenido": "Modelado formal del software. Estados y transiciones. Variables de estado. Estado inicial. Operaciones y condiciones. Propiedades del sistema. Invariantes y restricciones. Modelos de transición. Trazabilidad entre requerimientos y modelo formal.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "27/11/2026",
+            "tema": "Modelado formal y verificación del software",
+            "objetivo": "Verificar propiedades del software mediante el análisis sistemático de modelos formales y requerimientos establecidos.",
+            "contenido": "Verificación del software. Verificación estática y formal. Propiedades de seguridad y comportamiento. Consistencia. Completitud. Invariantes. Condiciones de verificación. Introducción conceptual a comprobación de modelos (model checking). Contraejemplos. Evidencias de verificación.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "03/12/2026",
+            "tema": "Gestión de Configuración del Software",
+            "objetivo": "Analizar la gestión de configuración del software mediante sus elementos, actividades y relación con la evolución del producto.",
+            "contenido": "Gestión de Configuración del Software (GCS). Propósito y alcance. Elementos de configuración del software. Identificación de la configuración. Versiones y variantes. Líneas base. Estado de configuración. Relación entre configuración, mantenimiento y evolución del software.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "04/12/2026",
+            "tema": "Gestión de Configuración del Software",
+            "objetivo": "Diseñar un esquema de gestión de configuración mediante elementos, líneas base, responsabilidades y mecanismos de control aplicables a un proyecto software.",
+            "contenido": "Planificación de la GCS. Plan de Gestión de Configuración. Identificación de elementos. Establecimiento de líneas base. Roles y responsabilidades. Control de configuración. Registro del estado. Auditoría de configuración. Evidencias y trazabilidad.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "10/12/2026",
+            "tema": "Repositorios, control de versiones y gestión de cambios",
+            "objetivo": "Aplicar mecanismos de control de versiones mediante repositorios, ramas e integración de cambios en un proyecto software.",
+            "contenido": "Repositorios de software. Control de versiones. Repositorios locales y remotos. Commit. Historial de cambios. Ramas. Fusión de cambios. Conflictos. Etiquetas y versiones. Estrategias básicas de ramificación. Trazabilidad entre cambios y artefactos.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "11/12/2026",
+            "tema": "Repositorios, control de versiones y gestión de cambios",
+            "objetivo": "Gestionar cambios del software mediante procedimientos de solicitud, análisis, aprobación, implementación y seguimiento.",
+            "contenido": "Gestión de cambios. Solicitud de cambio. Registro y clasificación. Análisis de impacto. Priorización. Aprobación o rechazo. Implementación. Seguimiento. Estado del cambio. Trazabilidad. Comité de Control de Cambios (CCB). Relación entre cambio, versión y línea base.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "17/12/2026",
+            "tema": "Medidas, métricas e indicadores del producto software",
+            "objetivo": "Analizar las medidas, métricas e indicadores del producto software mediante su propósito, características y relación con los atributos de calidad.",
+            "contenido": "Medición del software. Concepto de medida, métrica e indicador. Diferencias y relaciones. Medidas directas e indirectas. Métricas internas y externas del producto. Atributos medibles. Escalas y unidades de medición. Relación entre métricas y calidad del producto.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "18/12/2026",
+            "tema": "Medidas, métricas e indicadores del producto software",
+            "objetivo": "Calcular métricas del producto software mediante datos relacionados con tamaño, complejidad, defectos y mantenibilidad.",
+            "contenido": "Métricas de tamaño. Líneas de código (LOC). Complejidad ciclomática. Densidad de defectos. Métricas relacionadas con mantenibilidad. Interpretación de valores. Umbrales y contexto. Limitaciones de las métricas. Uso combinado de métricas.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "07/01/2027",
+            "tema": "Evaluación de la calidad mediante métricas del producto software",
+            "objetivo": "Aplicar métricas del producto software mediante criterios, umbrales y evidencias asociados con atributos de calidad.",
+            "contenido": "Selección de métricas según atributos de calidad. Criterios y umbrales de evaluación. Normalización e interpretación de resultados. Integración de múltiples métricas. Perfil cuantitativo de calidad. Evidencias de medición. Relación entre métrica, atributo y criterio de evaluación.",
+            "estado": "pendiente"
+        },
+        {
+            "fecha": "08/01/2027",
+            "tema": "Evaluación de la calidad mediante métricas del producto software",
+            "objetivo": "Evaluar la calidad del producto software mediante la integración de métricas, indicadores y evidencias obtenidas durante el proceso de medición.",
+            "contenido": "Evaluación integral del producto software. Integración de medidas, métricas e indicadores. Interpretación multidimensional. Identificación de fortalezas y debilidades. Priorización de aspectos críticos. Informe de evaluación de calidad. Evidencias y conclusiones técnicas.",
+            "estado": "pendiente"
+        }
+    ],
+    "material_transversal": []
+}

@@ -1,96 +1,68 @@
 ---
-materia: [[Programacion Web]]
+materia: Programacion Web
 tipo: actividad
-fecha_procesamiento: 2026-09-29
+fecha_procesamiento: 2026-09-30
 tags: [programacion_web, actividad, ingesta_ia]
 ---
 
-# TALLER AUTÓNOMO N°: 01
+# [[Programacion Web]] - Taller Autónomo N°: 01
 
-**Fecha:** 18/09/2026  
-**Unidad N°1:** [[Desarrollo de aplicaciones Web bajo arquitecturas N-capas]]  
-**Tema:** Modularidad, cohesión y desacoplamiento en soluciones multicapa  
-
-## Objetivo
-Estructurar aplicaciones de software escalables mediante el modelado de reglas de negocio con [[diseño guiado por el dominio táctico (DDD)]] y la organización de componentes bajo [[Clean Architecture|arquitectura limpia (Clean Architecture)]].
-
----
-
-## Tipo de Actividad
-
-| Lugar | Alcance | Forma |
-| :--- | :--- | :--- |
-| ☐ Intraclase<br>☒ Extraclase | ☒ Individual<br>☐ Grupal | ☒ Taller<br>☐ Síntesis, esquemas<br>☐ Caso de estudio<br>☐ Investigativa |
-| | | ☐ Práctica de laboratorio<br>☐ Práctica de clase<br>☐ Resolución de problemas, ejercicios<br>☐ Ensayo, artículo<br>☐ Informe e exposición |
-
-**Calificación:** [Pendiente]
+| Campo | Detalle |
+| :--- | :--- |
+| **TALLER AUTÓNOMO N°:** | 01 |
+| **FECHA:** | 18/09/2026 |
+| **UNIDAD N°:** | 01 - [[Desarrollo de aplicaciones Web bajo arquitecturas N-capas]] |
+| **TEMA:** | Modularidad, cohesión y desacoplamiento en soluciones multicapa |
+| **OBJETIVO:** | Estructurar aplicaciones de software escalables mediante el modelado de reglas de negocio con diseño guiado por el dominio táctico ([[DDD]]) y la organización de componentes bajo arquitectura limpia ([[Clean Architecture]]). |
 
 ---
 
-## Roles y Responsabilidades de los Participantes en la Tarea
+## TIPO DE ACTIVIDAD
 
-| Nombre Estudiante | Rol | Descripción |
+* **LUGAR:** Extraclase
+* **ALCANCE:** Individual
+* **FORMA:** Taller
+
+---
+
+## ROLES Y RESPONSABILIDADES DE LOS PARTICIPANTES EN LA TAREA
+
+| NOMBRE ESTUDIANTE | ROL | DESCRIPCIÓN |
 | :--- | :--- | :--- |
 | [ESTUDIANTE] | Investigador | Actividad |
 
 ---
 
-## Pruebas de Funcionamiento y Endpoints
+## Pruebas de Funcionamiento y Autenticación de Endpoints
 
-### 1. Prueba de funcionamiento básico
-* **Endpoint:** `http://localhost:3000/6A/usuario`
+> **Captura de pantalla detectada:** Muestra una ventana de navegador web mostrando la respuesta en formato JSON `{"message":false}` al acceder al endpoint `http://localhost:3000/6A/usuario`.
 
-> **Captura de pantalla detectada:** Muestra una ventana de navegador web ejecutando el endpoint anterior sobre [[Node.js]] / [[Express]], con una respuesta en formato [[JSON]] que devuelve el objeto `{"message":false}`.
+* **Prueba de funcionamiento del endpoint:** `http://localhost:3000/6A/usuario`
 
----
+> **Captura de pantalla detectada:** Muestra el resultado de la solicitud GET en el navegador indicando éxito con `{"message":true}` tras autenticarse con el usuario "juan" y contraseña "perez".
 
-### 2. Prueba de autenticación exitosa
-* **Endpoint:** `http://localhost:3000/6A/usuario?usu=juan&cont=perez`
-* **Descripción:** El usuario “juan” con contraseña “perez” existe.
+* **Prueba de autenticación (Éxito):** `http://localhost:3000/6A/usuario?usu=juan&cont=perez`
+  * *Descripción:* El usuario “juan” con contraseña “perez” existe.
 
-> **Captura de pantalla detectada:** Muestra la ejecución en el navegador del endpoint con parámetros de consulta de usuario y contraseña correctos, arrojando como respuesta [[JSON]] el valor `{"message":true}`.
+> **Captura de pantalla detectada:** Muestra el resultado de la solicitud GET en el navegador indicando fallo con `{"message":false}` al enviar una contraseña incorrecta para el usuario "juan".
 
----
-
-### 3. Prueba de autenticación fallida (Contraseña incorrecta)
-* **Endpoint:** `http://localhost:3000/6A/usuario?usu=juan&cont=perez1`
-* **Descripción:** El usuario “juan” existe, pero no con la contraseña “perez1”.
-
-> **Captura de pantalla detectada:** Muestra una solicitud HTTP con credenciales inválidas donde el servidor responde con la estructura [[JSON]] `{"message":false}`.
+* **Prueba de autenticación (Fallo):** `http://localhost:3000/6A/usuario?usu=juan&cont=perez1`
+  * *Descripción:* El usuario “juan” existe, pero no con contraseña “perez1”.
 
 ---
 
 ## Estructura Actual del Proyecto
 
-> **Captura de pantalla detectada:** Muestra el árbol de directorios del proyecto en un entorno de desarrollo ([[IDE]] como [[Visual Studio Code]]):
-> ```text
-> 📁 servidor
->   📁 node_modules
->   📁 src
->     📁 aplicacion
->       📁 caso_uso
->         📄 CasoUso_Mensaje.js
->         📄 CasoUso_Usuario.js
->       📁 puerto
->         📁 entrada
->           📄 PuertoEntradaMensaje.js
->           📄 PuertoEntradaUsuarioWeb.js
->         📁 salida
->           📄 PuertoSalidaUsuarioWeb.js
->     📁 dominio
->       📄 Mensaje.js
->       📄 MensajeBuenosDias.js
->       📄 Usuario.js
->     📁 infraestructura
->       📁 adaptadores
->         📁 entrada
->           📄 AdapEntrada_PeticionWeb.js
->           📄 AdapEntrada_UsuarioWeb.js
->         📁 salida
->           📄 AdapSalida_UsuarioWeb.js
->     📄 app.js
->   📄 .gitignore
->   📄 Dockerfile
->   📄 package-lock.json
->   📄 package.json
-> ```
+> **Captura de pantalla detectada:** Árbol de directorios de un proyecto de [[Node.js]] estructurado bajo principios de [[Clean Architecture]]:
+> * Carpeta `src/`
+>   * `aplicacion/`
+>     * `caso_uso/` (`CasoUso_Mensaje.js`, `CasoUso_Usuario.js`)
+>     * `puerto/`
+>       * `entrada/` (`PuertoEntradaMensaje.js`, `PuertoEntradaUsuarioWeb.js`)
+>       * `salida/` (`PuertoSalidaUsuarioWeb.js`)
+>   * `dominio/` (`Mensaje.js`, `MensajeBuenosDias.js`, `Usuario.js`)
+>   * `infraestructura/`
+>     * `adaptadores/`
+>       * `entrada/` (`AdaptEntrada_PeticionWeb.js`, `AdaptEntrada_UsuarioWeb.js`)
+>       * `salida/` (`AdaptSalida_UsuarioWeb.js`)
+>   * Archivos raíz: `app.js`, `.gitignore`, `Dockerfile`, `package-lock.json`, `package.json`

@@ -1,163 +1,139 @@
 ---
 materia: Programacion Web
 tipo: diapositiva
-fecha_procesamiento: 2026-09-29
+fecha_procesamiento: 2026-09-30
 tags: [programacion_web, diapositiva, ingesta_ia]
 ---
 
-# [[Programacion Web]] — El Viaje Oculto de un Clic
-
----
-
-## Página 1
-
-> **Diagrama detectado:** Ilustración conceptual abstracta con líneas de colores púrpura y azul conectadas a través de un círculo central.
+[[Programacion Web]]
 
 # El Viaje Oculto de un Clic
 Cómo sobreviven y se rastrean las aplicaciones modernas.
 
+> **Diagrama detectado:** Ilustración conceptual con una línea púrpura y azul que serpentea pasando por un círculo central blanco con un borde grueso púrpura, simbolizando el trayecto de una petición.
+
 ---
 
-## Página 2
-
-> **Diagrama detectado:** Comparación visual entre "El Monolito" (representado como un cubo oscuro, simple pero rígido) y "Microservicios" (una red compleja de cubos, pirámides y prismas interconectados por líneas de colores, caóticos pero escalables).
-
-# La Evolución del Caos
+## La Evolución del Caos
 Hoy, un solo clic desencadena una avalancha de peticiones invisibles a través de docenas de servicios.
 
 - **El Monolito:** Simple pero rígido
-- **[[Microservicios]]:** Escalables pero caóticos
+- **Microservicios:** Escalables pero caóticos
+
+> **Diagrama detectado:** Comparación visual entre una arquitectura monolítica (representada por un cubo negro gigante, sólido y cerrado por el que atraviesa una línea recta) y una arquitectura de microservicios (representada por múltiples cubos, pirámides y prismas hexagonales de colores conectados en una malla compleja).
 
 ---
 
-## Página 3
-
-# El Doble Reto de la Escala
+## El Doble Reto de la Escala
 
 1. **¿Cómo manejan los servidores miles de clics a la vez sin colapsar?**
-   *(El modelo de Concurrencia)*
+   *(El modelo de [[Concurrencia]])*
 2. **¿Cómo evitamos que un clic se pierda en este laberinto?**
-   *(El modelo de Rastreo)*
+   *(El modelo de [[Rastreo]])*
 
 ---
 
-## Página 4
+## Modelo Bloqueante: Un Trabajador por Tarea
 
-> **Diagrama detectado:** Patrón visual repetitivo que muestra a múltiples personas jugando partidas de ajedrez en mesas separadas de manera individual (un trabajador por tarea).
+> **Diagrama detectado:** Cuadrícula con múltiples tableros de ajedrez donde cada mesa está ocupada por dos jugadores sentados, ilustrando el modelo de un trabajador por tarea (ej. [[Java]] Thread-per-request).
 
-# Modelo Bloqueante: Un Trabajador por Task
+*Imagina 100 jugadores de ajedrez jugando 1 partida cada uno.*
 
-> Imagina 100 jugadores de ajedrez jugando 1 partida cada uno.
-
-- ✅ **Excelente para tareas pesadas** (cálculos complejos).
-- ❌ **Pésimo para esperar.** Si el oponente tarda en jugar, el trabajador se queda bloqueado sin hacer nada.
-- `</>` **Ejemplo clásico:** [[Java]] (`Thread-per-request`).
+- **✓** Excelente para tareas pesadas (cálculos complejos).
+- **✕** Pésimo para esperar. Si el oponente tarda en jugar, el trabajador se queda bloqueado sin hacer nada.
+- **`</>`** Ejemplo clásico: [[Java]] (Thread-per-request).
 
 ---
 
-## Página 5
+## Bucle de Eventos: El Maestro de Ajedrez
 
-> **Diagrama detectado:** Ilustración de un Gran Maestro de ajedrez caminando en círculo atendiendo múltiples tableros simultáneamente (bucle de eventos).
+> **Diagrama detectado:** Un maestro de ajedrez en el centro camina en bucle alrededor de múltiples tableros de ajedrez simultáneos (representando el patrón de asincronía y [[Node.js]] / [[NGINX]]).
 
-# Bucle de Eventos: El Maestro de Ajedrez
+*Imagina 1 Gran Maestro jugando 100 partidas simultáneas.*
 
-> Imagina 1 Gran Maestro jugando 100 partidas simultáneas.
-
-- ✅ **Increíblemente eficiente.** Mientras un oponente piensa (espera de red/datos), el Maestro avanza al siguiente tablero. Nunca se detiene.
-- `</>` **Ejemplos clásicos:** [[NGINX]], [[Node.js]], [[Python]] ([[FastAPI]]).
+- **✓** Increíblemente eficiente. Mientras un oponente piensa (espera de red/datos), el Maestro avanza al siguiente tablero. Nunca se detiene.
+- **`</>`** Ejemplos clásicos: [[NGINX]], [[Node.js]], [[Python]] ([[FastAPI]]).
 
 ---
 
-## Página 6
+## El Límite de Peso: El Estudio RSIS
 
-> **Diagrama detectado:** Gráfico de rendimiento frente a latencia que muestra el punto de quiebre donde el modelo de Bucle de Eventos pierde eficiencia frente al modelo Bloqueante al aumentar el tamaño del mensaje.
-
-# El Límite de Peso: El Estudio RSIS
-
-> El Gran Maestro es rápido, pero falla si le das un tablero demasiado pesado.
+*El Gran Maestro es rápido, pero falla si le das un tablero demasiado pesado.*
 
 - **Punto de quiebre:** Leer mensajes gigantes bloquea al Maestro. El modelo Bloqueante ([[Java]]) es 2.8 veces más rápido aquí.
-- **El Bucle de Eventos gana.** Ideal para tareas rápidas y ligeras.
+- El **Bucle de Eventos** gana. Ideal para tareas rápidas y ligeras.
+
+> **Gráfico detectado:** Gráfica cartesiana que contrasta el rendimiento/latencia frente al tamaño del mensaje. Muestra cómo el modelo de bucle de eventos (curva azul) decae a partir de los 120KB, cruzándose con el rendimiento constante del modelo bloqueante de [[Java]].
 
 ---
 
-## Página 7
-
-# La Tríada de la Observabilidad
+## La Tríada de la Observabilidad
 
 - **Logs (El Diario)**
   - ¿Qué pasó? Registros de texto individuales.
-  - *Ej.* `"Error de pago"`
+  - Ej. `"Error de pago"`
 - **Métricas (El Panel de Control)**
   - ¿Es normal? Números y tendencias.
-  - *Ej.* `"Uso de CPU al 90%"`
+  - Ej. `"Uso de CPU al 90%"`
 - **Trazas (El GPS)**
   - ¿Dónde y por qué ocurrió? El viaje completo de una petición a través del sistema.
 
----
-
-## Página 8
-
-> **Diagrama detectado:** Línea de tiempo horizontal tipo diagrama de Gantt que muestra una traza principal dividida en Spans anidados (Autenticación, Inventario, Pago).
-
-# Trazas y Spans: La Anatomía del Tiempo
-
-Una [[Traza (Trace)]] es la historia completa. Un [[Span]] es un capítulo individual de esa historia (una operación específica). Al anidarlos, vemos exactamente dónde se pierde el tiempo.
+> **Diagrama detectado:** Tres tarjetas informativas que representan Logs (icono de documento), Métricas (icono de velocímetro) y Trazas (icono de mapa GPS con una ruta trazada).
 
 ---
 
-## Página 9
+## Trazas y Spans: La Anatomía del Tiempo
 
-> **Diagrama detectado:** Icono de lupa sobre dos paneles que representan los Atributos (contexto) y Eventos (hitos) dentro de un [[Span]].
+Una [[Traza]] es la historia completa. Un [[Span]] es un capítulo individual de esa historia (una operación específica). Al anidarlos, vemos exactamente dónde se pierde el tiempo.
 
-# ¿Qué hay dentro de un Span?
-
-- **Atributos (El Contexto):** Datos fijos de la operación.
-  - *Ej.* `http.route = /checkout`
-  - *Ej.* `usuario_id = 492`
-- **Eventos (Los Hitos):** Diario de momentos específicos.
-  - *Ej.* `T+15ms: Conectando a BD`
-  - *Ej.* `T+150ms: Error de lectura`
+> **Diagrama detectado:** Cronograma (timeline) de una traza denominada "Traza (Trace): La Compra Completa (200ms)", que contiene tres Spans anidados y secuenciales: Span A: Autenticación (50ms), Span B: Inventario (100ms) y Span C: Pago (50ms).
 
 ---
 
-## Página 10
+## ¿Qué hay dentro de un Span?
 
-> **Diagrama detectado:** Ilustración de una carrera de relevos (pass the baton), mostrando la transferencia de contexto entre diferentes actores/servicios.
+> **Diagrama detectado:** Esquema ilustrativo con una lupa que desglosa el contenido de un Span en dos componentes principales: Atributos y Eventos.
 
-# Propagación de Contexto: El Pase de Testigo
-
-Sin propagación, cada servicio registra su trabajo de forma aislada. La propagación inyecta un testigo (cabeceras HTTP) en cada salto. Si un servicio deja caer el testigo, la traza se rompe y el rastro desaparece.
-
----
-
-## Página 11
-
-> **Diagrama detectado:** Esquema cilíndrico tipo tubo (representando el formato [[W3C Trace Context]]) dividida en dos componentes: el Trace ID (exterior) y el Parent ID (interior).
-
-# El ADN del Testigo ([[W3C Trace Context]])
-
-- **Trace ID:** Es el mismo para todos. Mantiene unido todo el viaje del usuario.
-- **Parent ID:** Cambia en cada salto. Construye el árbol genealógico para saber exactamente quién llamó a quién.
+- **Atributos (El Contexto)**
+  - Datos fijos de la operación.
+  - Ej. `http.route = /checkout`
+  - Ej. `usuario_id = 492`
+- **Eventos (Los Hitos)**
+  - Diario de momentos específicos.
+  - Ej. `T+15ms: Conectando a BD`
+  - Ej. `T+150ms: Error de lectura`
 
 ---
 
-## Página 12
+## Propagación de Contexto: El Pase de Testigo
 
-> **Diagrama detectado:** Ilustración de un ecosistema complejo donde confluyen múltiples solicitudes hacia un sistema central analizado mediante observabilidad y trazabilidad.
+Sin propagación, cada servicio registra su trabajo de forma aislada. La propagación inyecta un testigo (cabeceras [[HTTP]]) en cada salto. Si un servicio deja caer el testigo, la traza se rompe y el rastro desaparece.
 
-# El Ecosistema Perfecto
-
-> La escalabilidad sin visibilidad es un desastre esperando a ocurrir.
-
-Utilizamos **Bucles de Eventos** para sobrevivir al tráfico masivo, y **Trazabilidad Distribuida** para iluminar el caos. Juntos, crean aplicaciones altamente escalables y completamente transparentes.
+> **Diagrama detectado:** Ilustración de una carrera de relevos (postes de conexión) donde atletas de colores pasan un testigo (bastón naranja) de un servicio a otro a lo largo de una línea de ruta discontinua.
 
 ---
 
-## Página 13
+## El ADN del Testigo ([[W3C Trace Context]])
 
-> **Diagrama detectado:** Logotipo abstracto corporativo con círculos concéntricos en tonos púrpuras y azules.
+> **Diagrama detectado:** Corte esquemático cilíndrico de un token o cabecera que ilustra cómo se compone internamente de un [[Trace ID]] (canal central continuo) y un [[Parent ID]] (segmentos encadenados que forman el árbol genealógico).
 
-# Haciendo lo Invisible, Visible.
+- **Trace ID**
+  - Es el mismo para todos. Mantiene unido todo el viaje del usuario.
+- **Parent ID**
+  - Cambia en cada salto. Construye el árbol genealógico para saber exactamente quién llamó a quién.
+
+---
+
+## El Ecosistema Perfecto
+
+*La escalabilidad sin visibilidad es un desastre esperando a ocurrir.*
+
+> **Diagrama detectado:** Ilustración de un sistema complejo donde una figura central recibe múltiples peticiones externas de colores y las canaliza hacia un laberinto estructurado con flujos de trazas limpios y controlados al salir.
+
+Utilizamos [[Bucle de Eventos|Bucles de Eventos]] para sobrevivir al tráfico masivo, y [[Trazabilidad Distribuida]] para iluminar el caos. Juntos, crean aplicaciones altamente escalables y completamente transparentes.
+
+---
+
+## Haciendo lo Invisible, Visible.
 
 El código moderno es complejo, distribuido y asíncrono. Ya no podemos depurar mirando un solo servidor. Tenemos que rastrear el viaje completo.

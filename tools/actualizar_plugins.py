@@ -6,8 +6,8 @@ ruta_script = os.path.dirname(os.path.abspath(__file__))
 ruta_raiz = os.path.dirname(ruta_script)
 sys.path.append(ruta_raiz)
 
-from modules.core import gestor_archivos
-from modules.plugins import gestor_plugins
+from modules.core.services import gestor_archivos
+from modules.plugins.services import gestor_plugins
 from modules.ui import formateador
 
 
