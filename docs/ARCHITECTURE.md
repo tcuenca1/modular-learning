@@ -30,7 +30,9 @@ El sistema es una plataforma de tutoría y gestión de conocimiento académica b
   - `ingestar_material.py`: Ingesta masiva (individual o global por lotes) desde `RUTA_BASE_UNIVERSIDAD`, conversión a PDF, anonimización y alineación curricular.
   - `actualizar_plugins.py`: Generador de Code Snapshots para proyectos locales.
 
-- **`prompts/`**: Directivas externas en Markdown (`01_` a `05_`).
+- **`modules/agents/` (Orquestación de Agentes con CrewAI y Flujo QA/DevOps)**:
+  - `orquestador_crew.py`: Orquestador basado en CrewAI con modelo `gemini/gemini-3.5-flash-lite` y flujo secuencial estricto: QA -> Dev -> Docs -> DevOps.
+  - `herramientas_agentes.py`: Herramientas especializadas con validación automática de Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`) y actualización automática de `docs/CHANGELOG.md`.
 
 ---
 
