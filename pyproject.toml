@@ -40,7 +40,7 @@ ignore = ["E402"]
 quote-style = "double"
 
 [project.scripts]
-ml = "cli:main"
+ml = "cli:app"
 
 [tool.setuptools]
 py-modules = ["cli", "main"]
