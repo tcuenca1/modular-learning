@@ -13,3 +13,6 @@
 - chore: purga de dependencias en `pyproject.toml` conservando exclusivamente dependencias de CLI y QA.
 - refactor: validación estricta de Conventional Commits en la herramienta `ejecutar_git`.
 - test: ejecución exitosa de pruebas unitarias (Pytest: 3 pasadas, 0 fallidas) y verificación con Ruff.
+
+## [2026-10-03]
+- Actualización de documentación y registro de cambios histórico para reflejar la integración del adaptador LLM de Gemini y la preservación de la arquitectura hexagonal.
