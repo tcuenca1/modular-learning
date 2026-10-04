@@ -1,47 +1,74 @@
-# Markdown-Learn CLI & Agents System
+# 🎓 Modular Learning CLI (`ml`)
 
-Sistema modular y portable de gestión de apuntes en Markdown potenciado por Inteligencia Artificial y agentes autónomos (CrewAI).
+Plataforma de tutoría académica y gestión de conocimiento basada en consola (CLI) conectada a Google Gemini (`gemini-3.5-flash-lite`), diseñada bajo Arquitectura Hexagonal y Principio de Responsabilidad Única (SoC), con exportación automática a Obsidian y orquestación autónoma mediante agentes de IA.
 
 ---
 
-## 📦 Sistema de Instalación y Dependencias Opcionales
+## 📦 Sistema de Empaquetado Portátil y Dependencias
 
-Markdown-Learn ofrece un empaquetado modular y portátil que separa el núcleo ligero de gestión de apuntes del entorno completo de agentes autónomos.
+Para garantizar una portabilidad total y un inicio ligero, las dependencias pesadas de desarrollo y agentes están aisladas en grupos opcionales:
 
-### 1. Usuarios Finales (Versión Ligera)
-Para la gestión estándar de notas, comandos de la CLI, tests y exportación sin dependencias pesadas de IA:
+### 1. Usuario Final (Versión Ligera)
+Ideal para estudiantes que solo requieren la CLI de tutoría, ingesta y quizzes:
 ```bash
 pip install .
 ```
 
-### 2. Desarrolladores y Entorno de Agentes
-Para habilitar el orquestador inteligente, agentes autónomos (CrewAI) y el ecosistema completo de desarrollo:
+### 2. Desarrolladores y Entorno de Agentes (CrewAI & QA)
+Para contribuidores y agentes autónomos que ejecutan pruebas, linter y auditorías de agentes:
 ```bash
 pip install -e ".[dev]"
 ```
 
 ---
 
-## 🖥️ CLI Reference
+## 🚀 Guía de Instalación Rápida
 
-La interfaz de línea de comandos (`ml`) proporciona los siguientes comandos principales:
-
-- `ml init`: Inicializa la estructura de directorios y configuración por defecto para Markdown-Learn en el directorio actual.
-- `ml es`: Exporta los apuntes a diferentes formatos (HTML, PDF, etc.).
-- `ml im`: Importa notas y recursos externos al repositorio de Markdown.
-- `ml up`: Actualiza el índice y los metadatos de los documentos locales.
-- `ml quiz`: Genera cuestionarios interactivos basados en los apuntes utilizando modelos de lenguaje.
-- `ml stats`: Muestra estadísticas detalladas sobre el progreso de estudio, cantidad de apuntes y etiquetas.
-- `ml dev`: Ejecuta el orquestador de agentes y utilidades de desarrollo (requiere `.[dev]`).
+1. Clona el repositorio y sitúate en la raíz.
+2. Configura tu archivo `.env` basándote en `.env.example`:
+   ```env
+   GEMINI_API_KEY=tu_clave_api_de_google_gemini
+   RUTA_OBSIDIAN="C:\Users\TuUsuario\Documents\Obsidian Vault"
+   RUTA_BASE_UNIVERSIDAD="C:\Universidad"
+   ```
+3. Instala el paquete en modo editable:
+   ```bash
+   pip install -e .
+   ```
 
 ---
 
-## 🚀 Uso Rápido
+## 🛠️ CLI Reference (Comandos Disponibles)
 
-```bash
-# Inicializar entorno
-ml init
+El comando global `ml` ofrece los siguientes subcomandos:
 
-# Ver estadísticas
-ml stats
-```
+- **`ml init`**
+  - **Descripción**: Inicia la sesión de tutoría interactiva personalizada guiada por el tutor IA.
+  - **Uso**: `ml init`
+- **`ml es`**
+  - **Descripción**: Extrae cronogramas de sílabos (PDFs o archivos locales) y genera cronogramas estructurados en JSON.
+  - **Uso**: `ml es "ruta/al/silabo.pdf"`
+- **`ml im`**
+  - **Descripción**: Ingesta masiva y automatizada de material de estudio multimodal (PDFs, PPTx, DOCx) hacia Obsidian con anonimización estricta.
+  - **Uso**: `ml im`
+- **`ml up`**
+  - **Descripción**: Actualiza el contexto técnico y code snapshots de proyectos de desarrollo local en los plugins prácticos.
+  - **Uso**: `ml up`
+- **`ml quiz`**
+  - **Descripción**: Ejecuta el Motor de Recuerdo Activo (quiz interactivo de temas completados).
+  - **Uso**: `ml quiz`
+- **`ml stats`**
+  - **Descripción**: Muestra un Dashboard visual interactivo con telemetría, progreso global y desglose por asignatura.
+  - **Uso**: `ml stats`
+- **`ml dev`**
+  - **Descripción**: Inicia el entorno de desarrollo y auditoría con agentes autónomos (CrewAI con Lazy Loading). Requiere `[dev]`.
+  - **Uso**: `ml dev`
+- **`ml --help`**
+  - **Descripción**: Muestra el panel de ayuda y comandos disponibles.
+  - **Uso**: `ml --help`
+
+---
+
+## 🏛️ Arquitectura del Sistema
+
+Consulta [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para más detalles sobre la Arquitectura Hexagonal, puertos, adaptadores y el funcionamiento del orquestador de agentes.

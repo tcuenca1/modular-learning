@@ -13,6 +13,3 @@
 - chore: purga de dependencias en `pyproject.toml` conservando exclusivamente dependencias de CLI y QA.
 - refactor: validación estricta de Conventional Commits en la herramienta `ejecutar_git`.
 - test: ejecución exitosa de pruebas unitarias (Pytest: 3 pasadas, 0 fallidas) y verificación con Ruff.
-
-## [2026-10-03]
-- Actualización exhaustiva de documentación: README.md, docs/installation_guide.md, docs/ARCHITECTURE.md y registro en docs/CHANGELOG.md reflejando empaquetado portable, dependencias opcionales, comandos CLI completos, Lazy Loading y nuevos roles de agentes.
