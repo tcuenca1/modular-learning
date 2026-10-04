@@ -21,6 +21,18 @@ def ejecutar_pruebas(query: str = ""):
 
 
 @tool
+def leer_archivo(ruta_archivo: str):
+    """Lee y retorna el contenido completo de un archivo (OBLIGATORIO antes de modificar cualquier archivo de documentación para preservar su contexto histórico)."""
+    try:
+        if not os.path.exists(ruta_archivo):
+            return f"Error: El archivo {ruta_archivo} no existe."
+        with open(ruta_archivo, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        return f"Error leyendo archivo: {e!s}"
+
+
+@tool
 def modificar_codigo(ruta_archivo: str, nuevo_codigo: str):
     """Sobrescribe un archivo con nuevo código."""
     try:

@@ -4,6 +4,7 @@ from modules.agents.herramientas_agentes import (
     actualizar_documentacion,
     ejecutar_git,
     ejecutar_pruebas,
+    leer_archivo,
     modificar_codigo,
 )
 
@@ -40,8 +41,15 @@ dev_agent = Agent(
 docs_agent = Agent(
     role="Agente Técnico de Documentación",
     goal="Ser el responsable absoluto de la precisión, actualización y exhaustividad de toda la carpeta `docs/` y del archivo `README.md` en la raíz del proyecto.",
-    backstory="Especialista en documentación técnica y Technical Writer experto. Tienes permisos y capacidad total para leer, iterar y actualizar múltiples archivos `.md` (`README.md`, `docs/installation_guide.md`, `docs/ARCHITECTURE.md`, `docs/CHANGELOG.md`) para reflejar con precisión absoluta la arquitectura, los comandos de la CLI, el empaquetado portátil y el flujo de los agentes.",
-    tools=[actualizar_documentacion, modificar_codigo],
+    backstory=(
+        "Especialista en documentación técnica y Technical Writer experto. "
+        "REGLA CRÍTICA DE PRESERVACIÓN: NUNCA sobrescribas un archivo de documentación completo. "
+        "Tu obligación estricta es PRIMERO LEER el contenido completo del archivo (usando la herramienta correspondiente). "
+        "Debes PRESERVAR intacto el 100% del contexto histórico del proyecto (ej. Arquitectura Hexagonal, puertos, adaptadores, propósito académico) "
+        "y limitarte a INSERTAR o ACTUALIZAR únicamente las secciones relevantes con las nuevas características. "
+        "Si borras el contexto general del proyecto, serás penalizado."
+    ),
+    tools=[leer_archivo, actualizar_documentacion, modificar_codigo],
     llm="gemini/gemini-3.5-flash-lite",
 )
 
@@ -82,15 +90,13 @@ task_fix = Task(
 
 task_docs = Task(
     description=(
-        "Actualizar exhaustivamente toda la documentación técnica del proyecto. "
-        "Debes modificar los siguientes archivos:\n"
-        "1. README.md y docs/installation_guide.md: Documentar el empaquetado portátil y el sistema de dependencias opcionales. Explicar claramente que los usuarios finales instalan con 'pip install .' (versión ligera) y los desarrolladores con 'pip install -e \".[dev]\"' (entorno de agentes con CrewAI).\n"
-        "2. CLI Reference (en README.md): Añadir la documentación completa de todos los comandos de la CLI ('ml init', 'ml es', 'ml im', 'ml up', 'ml quiz', 'ml stats', 'ml dev').\n"
-        "3. docs/ARCHITECTURE.md: Documentar la integración del orquestador dentro de cli.py mediante dependencias opcionales (Lazy Loading) y actualizar el flujo de los agentes añadiendo los roles de Arquitecto y Seguridad.\n"
-        "4. docs/CHANGELOG.md: Registrar todos los cambios recientes bajo el estándar de Conventional Commits."
+        "Paso 1: Lee el archivo actual utilizando la herramienta de lectura. "
+        "Paso 2: Analiza dónde encajan los nuevos cambios (ej. Lazy Loading, nuevos comandos). "
+        "Paso 3: Redacta la adición manteniendo todo el texto anterior intacto y preservando la Arquitectura Hexagonal y el propósito académico. "
+        "Paso 4: Guarda el archivo con la documentación actualizada."
     ),
     agent=docs_agent,
-    expected_output="Documentación completa y actualizada en README.md y en toda la carpeta docs/",
+    expected_output="Documentación actualizada preservando el contexto histórico y la arquitectura",
     context=[task_fix],
 )
 
