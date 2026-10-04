@@ -139,6 +139,27 @@ def app():
             from rich.console import Console
 
             console = Console()
+            target_path = "."
+            i = 0
+            while i < len(args_restantes):
+                arg = args_restantes[i]
+                if arg in ["--path", "-p"] and i + 1 < len(args_restantes):
+                    target_path = args_restantes[i + 1]
+                    i += 2
+                elif not arg.startswith("-"):
+                    target_path = arg
+                    i += 1
+                else:
+                    i += 1
+
+            ruta_absoluta = os.path.abspath(target_path)
+            if not os.path.exists(ruta_absoluta):
+                console.print(f"[bold red]❌ La ruta especificada no existe: {ruta_absoluta}[/]")
+                sys.exit(1)
+
+            os.environ["TARGET_PROJECT_PATH"] = ruta_absoluta
+            console.print(f"[bold cyan]📁 Proyecto objetivo para agentes:[/] {ruta_absoluta}")
+
             try:
                 from modules.agents.orquestador_crew import crew
 
