@@ -27,3 +27,6 @@
 
 ## [2026-10-03]
 - Ejecución exitosa de la suite de pruebas unitarias (5/5 pasadas) y verificación de calidad de código con ruff, manteniendo la conformidad con la arquitectura modular y la política de separación de prompts.
+
+## [2026-10-03]
+- Se implementó la clase LLMGeminiAdapter con soporte para autenticación mediante API Key (parámetro o variable de entorno) y ejecución segura de comandos externos mediante subprocess con manejo de errores controlado.
