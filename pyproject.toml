@@ -18,16 +18,8 @@ dependencies = [
     "comtypes>=1.1.14"
 ]
 
-[project.optional-dependencies]
-dev = [
-    "ruff>=0.3.0",
-    "pre-commit>=3.0.0",
-    "pytest>=7.0.0",
-    "pytest-mock>=3.10.0",
-    "crewai>=0.11.0",
-    "langchain>=0.1.0",
-    "langchain-google-genai>=1.0.0"
-]
+[project.scripts]
+ml = "cli:app"
 
 [tool.ruff]
 line-length = 100
@@ -38,9 +30,6 @@ ignore = ["E402"]
 
 [tool.ruff.format]
 quote-style = "double"
-
-[project.scripts]
-ml = "cli:app"
 
 [tool.setuptools]
 py-modules = ["cli", "main"]

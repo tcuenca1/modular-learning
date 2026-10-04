@@ -1,10 +1,15 @@
 {
-    "files.exclude": {
-        "**/__pycache__": true,
-        "**/.pytest_cache": true,
-        "**/.ruff_cache": true,
-        "**/build": true,
-        "**/*.egg-info": true,
-        "**/venv": true
-    }
+  "files.exclude": {
+      "**/__pycache__": true,
+      "**/.pytest_cache": true,
+      "**/.ruff_cache": true,
+      "**/build": true,
+      "**/*.egg-info": true,
+      "**/venv": true
+  },
+  "material-icon-theme.folders.associations": {
+    "domain": "core",
+    "ports": "api",
+    "adapters": "plugin",
+  }
 }
