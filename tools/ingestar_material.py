@@ -16,6 +16,7 @@ warnings.simplefilter("ignore")
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 from google import genai
+from google.genai import types
 import questionary
 from dotenv import load_dotenv
 from halo import Halo
@@ -180,7 +181,14 @@ def _procesar_materia(
             with open(ruta_para_procesar, "rb") as f:
                 datos_binarios = f.read()
 
-            documento_inline = {"mime_type": mime_type, "data": datos_binarios}
+            if len(datos_binarios) > 4_000_000:
+                with Halo(
+                    text="Subiendo archivo pesado (>4MB) a Gemini (Files API)...", spinner="line"
+                ) as spinner_up:
+                    uploaded_file = client.files.upload(file=ruta_para_procesar)
+                    spinner_up.succeed("Archivo pesado subido exitosamente a Gemini.")
+            else:
+                parte_archivo = types.Part.from_bytes(data=datos_binarios, mime_type=mime_type)
         except Exception as e:
             print(f"❌ Error al leer archivo localmente: {e}")
             contador_fallidos += 1
@@ -213,8 +221,11 @@ def _procesar_materia(
                 with Halo(
                     text="Extrayendo conocimiento con Gemini (Privacidad Activa)...", spinner="line"
                 ) as spinner_gen:
+                    payload_archivo = (
+                        uploaded_file if len(datos_binarios) > 4_000_000 else parte_archivo
+                    )
                     respuesta = client.models.generate_content(
-                        model=modelo_nombre, contents=[documento_inline, prompt]
+                        model=modelo_nombre, contents=[payload_archivo, prompt]
                     )
                     spinner_gen.succeed("Contenido procesado y anonimizado correctamente.")
 
@@ -266,7 +277,7 @@ def _procesar_materia(
                                 "exactas que aparecen en este documento. Devuelve solo la lista, sin introducciones."
                             )
                             res_tecnica = client.models.generate_content(
-                                model=modelo_nombre, contents=[documento_inline, prompt_tecnico]
+                                model=modelo_nombre, contents=[payload_archivo, prompt_tecnico]
                             )
                             texto_tecnico = res_tecnica.text.strip()
                             if texto_tecnico:

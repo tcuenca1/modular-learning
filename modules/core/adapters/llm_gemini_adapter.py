@@ -91,8 +91,19 @@ class LLM_GeminiAdapter(LLMAdapterBase):
             while intento < max_reintentos:
                 try:
                     with Halo(text="Analizando documento con Gemini...", spinner="line"):
+                        mime = archivo_inline.get("mime_type", "application/pdf")
+                        file_bytes = archivo_inline.get("data", b"")
+                        ruta = archivo_inline.get("path")
+
+                        if ruta and os.path.exists(ruta) and len(file_bytes) > 4_000_000:
+                            uploaded_file = client.files.upload(file=ruta)
+                            contents = [uploaded_file, prompt]
+                        else:
+                            parte_archivo = types.Part.from_bytes(data=file_bytes, mime_type=mime)
+                            contents = [parte_archivo, prompt]
+
                         response = client.models.generate_content(
-                            model=self.modelo_nombre, contents=[archivo_inline, prompt]
+                            model=self.modelo_nombre, contents=contents
                         )
                         return response.text
                 except Exception as e:
