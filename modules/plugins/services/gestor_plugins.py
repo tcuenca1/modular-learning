@@ -29,3 +29,18 @@ def obtener_plugin(materia: str) -> PluginPracticoBase | None:
         return WebPlugin()
 
     return None
+
+
+def procesar_archivo_plugin(ruta: str, tipo_plugin: str) -> str:
+    """
+    Procesa un archivo de plugin según su tipo (ej. 'iot', 'nodered').
+    Instancia el adaptador correspondiente, analiza el flujo JSON y retorna el texto procesado.
+    """
+    tipo_lower = tipo_plugin.lower().strip()
+    if tipo_lower in ["iot", "nodered"]:
+        plugin = NodeRedPlugin()
+        if hasattr(plugin, "analizar_flujo"):
+            return plugin.analizar_flujo(ruta)
+        return "⚠️ Error: El adaptador NodeRedPlugin no soporta el análisis de flujos."
+    else:
+        return f"⚠️ Error: Tipo de plugin no soportado para procesamiento de flujos: {tipo_plugin}"

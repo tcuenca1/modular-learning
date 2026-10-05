@@ -71,3 +71,90 @@ class NodeRedPlugin(PluginPracticoBase):
             f'{{\n  "device_id": "sensor_iot_01",\n  "temperature": 25.4,\n  "status": "active"\n}}\n'
             f"```\n"
         )
+
+    def analizar_flujo(self, ruta_archivo: str) -> str:
+        """
+        Recibe la ruta del archivo JSON de un flujo IoT (Node-RED), lo parsea,
+        extrae la información útil (nodos, sensores, endpoints) y retorna el texto
+        procesado para que el sistema lo maneje como cualquier otro material de estudio.
+        """
+        if not os.path.exists(ruta_archivo):
+            return f"⚠️ Error: El archivo de flujo no existe: {ruta_archivo}"
+
+        try:
+            with open(ruta_archivo, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except json.JSONDecodeError as e:
+            return f"⚠️ Error: El archivo JSON no es un flujo válido de Node-RED: {e}"
+        except Exception as e:
+            return f"⚠️ Error al leer el archivo de flujo: {e}"
+
+        nodos = []
+        if isinstance(data, list):
+            nodos = data
+        elif isinstance(data, dict):
+            if "flows" in data and isinstance(data["flows"], list):
+                nodos = data["flows"]
+            elif "nodes" in data and isinstance(data["nodes"], list):
+                nodos = data["nodes"]
+            else:
+                nodos = [data]
+
+        total_nodos = len(nodos)
+        tipos_nodos = {}
+        endpoints_http = []
+        sensores_detectados = []
+
+        for nodo in nodos:
+            if not isinstance(nodo, dict):
+                continue
+            tipo = nodo.get("type", "desconocido")
+            tipos_nodos[tipo] = tipos_nodos.get(tipo, 0) + 1
+
+            if tipo in ["http in", "http out"]:
+                url = nodo.get("url")
+                method = nodo.get("method")
+                if url:
+                    endpoints_http.append(f"- HTTP {method or 'GET'} {url} ({tipo})")
+
+            nombre = nodo.get("name", "")
+            topic = nodo.get("topic", "")
+            if any(
+                kw in tipo.lower() or kw in nombre.lower() or kw in topic.lower()
+                for kw in [
+                    "sensor",
+                    "mqtt",
+                    "temperature",
+                    "humidity",
+                    "esp32",
+                    "arduino",
+                    "raspberry",
+                    "dht",
+                    "inject",
+                    "function",
+                ]
+            ):
+                sensores_detectados.append(
+                    f"- Nodo [{tipo}] '{nombre or 'Sin nombre'}' (Tópico MQTT: {topic or 'N/A'})"
+                )
+
+        lineas = [
+            "### 🔌 Análisis de Flujo IoT / Node-RED",
+            f"- **Archivo fuente:** {ruta_archivo}",
+            f"- **Total de nodos:** {total_nodos}",
+            "\n#### Tipos de Nodos:",
+        ]
+        for t, cant in tipos_nodos.items():
+            lineas.append(f"- {t}: {cant}")
+
+        if endpoints_http:
+            lineas.append("\n#### Endpoints HTTP Configurados:")
+            lineas.extend(endpoints_http)
+
+        if sensores_detectados:
+            lineas.append("\n#### Sensores y Dispositivos Detectados:")
+            lineas.extend(sensores_detectados)
+
+        texto_procesado = "\n".join(lineas)
+        self.guardar_contexto_extraido(texto_procesado)
+        return texto_procesado

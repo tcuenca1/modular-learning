@@ -29,3 +29,46 @@ def test_plugin_external_network_or_hardware_mocked(mocker):
 
     assert b"cisco_router_virtual" in data
     mock_urlopen.assert_called_once_with(url)
+
+
+def test_nodered_plugin_analizar_flujo_valido(mocker):
+    from modules.plugins.adapters.plugin_nodered import NodeRedPlugin
+
+    plugin = NodeRedPlugin()
+
+    mock_flow_data = '[{"id": "node_1", "type": "inject", "name": "Sensor Inject", "topic": "sensors/temp"}, {"id": "node_2", "type": "debug", "name": "Debug Node"}]'
+
+    mocker.patch("os.path.exists", return_value=True)
+    mocker.patch("builtins.open", mocker.mock_open(read_data=mock_flow_data))
+
+    resultado = plugin.analizar_flujo("dummy_flow.json")
+    assert isinstance(resultado, str)
+    assert "Análisis de Flujo IoT" in resultado
+    assert "inject" in resultado
+    assert "debug" in resultado
+
+
+def test_nodered_plugin_analizar_flujo_invalido(mocker):
+    from modules.plugins.adapters.plugin_nodered import NodeRedPlugin
+    import json
+
+    plugin = NodeRedPlugin()
+
+    mocker.patch("os.path.exists", return_value=True)
+    mocker.patch("builtins.open", side_effect=json.JSONDecodeError("Expecting value", "doc", 0))
+
+    resultado = plugin.analizar_flujo("invalid_flow.json")
+    assert isinstance(resultado, str)
+    assert "Error" in resultado
+
+
+def test_gestor_plugins_procesar_archivo_iot(mocker):
+    from modules.plugins.services import gestor_plugins
+
+    mock_flow_data = '[{"id": "1", "type": "mqtt in", "topic": "home/living/temp"}]'
+    mocker.patch("os.path.exists", return_value=True)
+    mocker.patch("builtins.open", mocker.mock_open(read_data=mock_flow_data))
+
+    resultado = gestor_plugins.procesar_archivo_plugin("dummy.json", "iot")
+    assert isinstance(resultado, str)
+    assert "Análisis de Flujo IoT" in resultado

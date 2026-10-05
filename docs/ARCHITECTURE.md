@@ -13,7 +13,7 @@ El sistema es una aplicación de consola (CLI) desarrollada en Python, diseñada
 - **`modules/core/` (Núcleo del Sistema y Dominio Académico)**:
   - **`domain/`**: Lógica de negocio pura y reglas de dominio (`alineador_curricular.py`, `sincronizador.py`). Independiente de infraestructura externa o adaptadores.
   - **`ports/`**: Interfaces abstractas (Contratos).
-  - **`adapters/`**: Implementaciones concretas de infraestructura y persistencia.
+  - **`adapters/`**: Implementaciones concretas de infraestructura y persistencia (incluyendo `llm_gemini_adapter.py` actualizado al moderno SDK `google.genai`).
   - **`services/`**: Casos de uso y orquestación (`gestor_archivos.py`).
 
 - **`modules/ui/` (Capa de Interfaz de Usuario)**:

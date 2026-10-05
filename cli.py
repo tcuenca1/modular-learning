@@ -3,7 +3,7 @@ import sys
 import typer
 from rich.console import Console
 
-app = typer.Typer(help="Modular Learning CLI (ml)")
+app = typer.Typer(add_completion=False, help="Modular Learning CLI (ml)")
 console = Console()
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -114,6 +114,32 @@ def cmd_stats():
     console.print(tabla)
     console.print(
         f"\n[bold green]🔌 Módulos / Plugins Activos en Memoria:[/bold green] {stats['plugins_activos']}\n"
+    )
+
+
+@app.command("up")
+def cmd_up(
+    ruta: str = typer.Argument(..., help="Ruta al archivo JSON del flujo IoT / Node-RED"),
+    tipo: str = typer.Option("nodered", "--tipo", "-t", help="Tipo de plugin (ej. nodered, iot)"),
+):
+    """Inspecciona y procesa un flujo IoT / Node-RED (JSON) para integrarlo como material de estudio."""
+    from rich.panel import Panel
+    from modules.plugins.services import gestor_plugins
+
+    console.print("\n[bold cyan]🔌 [Carga de Flujo IoT / Plugin Node-RED][/bold cyan]")
+    console.print(f"[italic]Procesando archivo:[/italic] {ruta} (Tipo: {tipo})\n")
+
+    resultado_texto = gestor_plugins.procesar_archivo_plugin(ruta, tipo)
+
+    if "⚠️" in resultado_texto or "Error" in resultado_texto:
+        console.print(Panel(resultado_texto, title="Error de Procesamiento", border_style="red"))
+        sys.exit(1)
+
+    console.print(
+        Panel(resultado_texto, title="Resultado del Análisis de Flujo", border_style="green")
+    )
+    console.print(
+        "[bold green]✔ Flujo procesado y guardado exitosamente en la memoria del plugin.[/bold green]\n"
     )
 
 
