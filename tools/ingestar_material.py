@@ -15,7 +15,7 @@ if hasattr(sys.stdout, "reconfigure"):
 warnings.simplefilter("ignore")
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-import google.generativeai as genai
+from google import genai
 import questionary
 from dotenv import load_dotenv
 from halo import Halo
@@ -108,7 +108,12 @@ def clasificar_tipo_material(ruta_archivo: str, ruta_raiz_lote: str) -> str:
 
 
 def _procesar_materia(
-    materia_input: str, modelo, prompt_template: str, vault_path: str, ruta_base_uni: str
+    materia_input: str,
+    client,
+    modelo_nombre: str,
+    prompt_template: str,
+    vault_path: str,
+    ruta_base_uni: str,
 ) -> None:
     print(f"\n📚 Procesando asignatura: \033[1;92m{materia_input}\033[0m")
     ruta_objetivo = os.path.join(ruta_base_uni, materia_input)
@@ -208,7 +213,9 @@ def _procesar_materia(
                 with Halo(
                     text="Extrayendo conocimiento con Gemini (Privacidad Activa)...", spinner="line"
                 ) as spinner_gen:
-                    respuesta = modelo.generate_content([documento_inline, prompt])
+                    respuesta = client.models.generate_content(
+                        model=modelo_nombre, contents=[documento_inline, prompt]
+                    )
                     spinner_gen.succeed("Contenido procesado y anonimizado correctamente.")
 
                 contenido_md = respuesta.text
@@ -258,8 +265,8 @@ def _procesar_materia(
                                 "Extrae únicamente un listado técnico de los comandos, nodos, topologías o configuraciones "
                                 "exactas que aparecen en este documento. Devuelve solo la lista, sin introducciones."
                             )
-                            res_tecnica = modelo.generate_content(
-                                [documento_inline, prompt_tecnico]
+                            res_tecnica = client.models.generate_content(
+                                model=modelo_nombre, contents=[documento_inline, prompt_tecnico]
                             )
                             texto_tecnico = res_tecnica.text.strip()
                             if texto_tecnico:
@@ -312,8 +319,8 @@ def ingestar_material(ruta_entrada: str = None) -> None:
         print("❌ Error crítico: No se encontró GEMINI_API_KEY en el archivo .env.")
         return
 
-    genai.configure(api_key=api_key)
-    modelo = genai.GenerativeModel("gemini-3.5-flash-lite")
+    client = genai.Client(api_key=api_key)
+    modelo_nombre = "gemini-2.5-flash"
 
     materias = gestor_archivos.cargar_materias()
     vault_path = os.path.join(ruta_raiz, "obsidian_vault")
@@ -352,7 +359,9 @@ def ingestar_material(ruta_entrada: str = None) -> None:
         print("\n🚀 Iniciando actualización global de todas las asignaturas...")
         for mat in materias:
             try:
-                _procesar_materia(mat, modelo, prompt_template, vault_path, ruta_base_uni)
+                _procesar_materia(
+                    mat, client, modelo_nombre, prompt_template, vault_path, ruta_base_uni
+                )
             except Exception as e:
                 print(
                     f"\n❌ Error al procesar la materia '{mat}': {e}. Continuando con la siguiente..."
@@ -367,13 +376,17 @@ def ingestar_material(ruta_entrada: str = None) -> None:
         materia_input = nueva_mat
         os.makedirs(os.path.join(vault_path, materia_input), exist_ok=True)
         try:
-            _procesar_materia(materia_input, modelo, prompt_template, vault_path, ruta_base_uni)
+            _procesar_materia(
+                materia_input, client, modelo_nombre, prompt_template, vault_path, ruta_base_uni
+            )
         except Exception as e:
             print(f"\n❌ Error al procesar la nueva materia: {e}")
     else:
         materia_input = seleccion
         try:
-            _procesar_materia(materia_input, modelo, prompt_template, vault_path, ruta_base_uni)
+            _procesar_materia(
+                materia_input, client, modelo_nombre, prompt_template, vault_path, ruta_base_uni
+            )
         except Exception as e:
             print(f"\n❌ Error al procesar la materia: {e}")
 

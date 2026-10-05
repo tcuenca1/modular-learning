@@ -118,29 +118,36 @@ def cmd_stats():
 
 
 @app.command("up")
-def cmd_up(
-    ruta: str = typer.Argument(..., help="Ruta al archivo JSON del flujo IoT / Node-RED"),
-    tipo: str = typer.Option("nodered", "--tipo", "-t", help="Tipo de plugin (ej. nodered, iot)"),
-):
-    """Inspecciona y procesa un flujo IoT / Node-RED (JSON) para integrarlo como material de estudio."""
+def cmd_up():
+    """Actualiza e inspecciona los plugins prácticos y flujos (Cisco, Web, Node-RED, Todos)."""
+    import questionary
     from rich.panel import Panel
     from modules.plugins.services import gestor_plugins
 
-    console.print("\n[bold cyan]🔌 [Carga de Flujo IoT / Plugin Node-RED][/bold cyan]")
-    console.print(f"[italic]Procesando archivo:[/italic] {ruta} (Tipo: {tipo})\n")
+    console.print("\n[bold cyan]🔌 [Gestor de Plugins Prácticos y Flujos][/bold cyan]\n")
+    seleccion = questionary.select(
+        "¿Qué plugin de materia deseas actualizar?",
+        choices=["Cisco (Actividades)", "Web (Proyectos)", "Node-RED (Flujos JSON)", "Todos"],
+        style=questionary.Style(
+            [
+                ("pointer", "fg:cyan bold"),
+                ("highlighted", "fg:cyan bold"),
+                ("answer", "fg:green bold"),
+            ]
+        ),
+    ).ask()
 
-    resultado_texto = gestor_plugins.procesar_archivo_plugin(ruta, tipo)
+    if seleccion is None:
+        console.print("\n⚠️ Operación cancelada por el usuario.")
+        sys.exit(0)
 
-    if "⚠️" in resultado_texto or "Error" in resultado_texto:
-        console.print(Panel(resultado_texto, title="Error de Procesamiento", border_style="red"))
-        sys.exit(1)
+    console.print(f"\n[italic]Ejecutando actualización para:[/italic] {seleccion}...\n")
+    resultado_texto = gestor_plugins.actualizar_plugin(seleccion)
 
     console.print(
-        Panel(resultado_texto, title="Resultado del Análisis de Flujo", border_style="green")
+        Panel(resultado_texto, title=f"Actualización de Plugin: {seleccion}", border_style="green")
     )
-    console.print(
-        "[bold green]✔ Flujo procesado y guardado exitosamente en la memoria del plugin.[/bold green]\n"
-    )
+    console.print("[bold green]✔ Operación de actualización de plugin finalizada.[/bold green]\n")
 
 
 @app.callback(invoke_without_command=True)
