@@ -1,85 +1,58 @@
-# 🎓 Modular Learning CLI (`ml`)
+# modular-learning-cli (ml-cli)
 
-Plataforma de tutoría académica y gestión de conocimiento basada en consola (CLI) conectada a Google Gemini (`gemini-3.5-flash-lite`), diseñada bajo Arquitectura Hexagonal y Principio de Responsabilidad Única (SoC), con exportación automática a Obsidian.
+`ml-cli` es una herramienta de terminal (CLI) diseñada para automatizar la ingesta, análisis y organización de material académico multimodal (PDF, DOCX, PPTX). Transforma documentos técnicos desestructurados en notas de conocimiento estructuradas para [Obsidian](https://obsidian.md/), utilizando Google Gemini como motor de razonamiento multimodal.
 
----
+## Arquitectura
+El sistema sigue un diseño de **Arquitectura Hexagonal**:
+- **Core (Dominio):** Lógica central, puertos y servicios.
+- **Adapters (Puertos):** Integración con Google Gemini (SDK `google-genai`), manejo de archivos y almacenamiento.
+- **Plugins:** Módulos extensibles para extraer contextos técnicos de disciplinas específicas (Cisco, Node-RED, Web).
 
-## 📋 Requisitos Previos
+## Stack Tecnológico
+- **Python 3.10+**
+- **Google GenAI SDK:** Inteligencia artificial multimodal.
+- **`python-docx`:** Procesamiento *headless* nativo (sin MS Word) de documentos .docx, incluyendo extracción de texto e imágenes.
+- **Typer & Rich:** Interfaz de consola elegante y logs informativos.
+- **Questionary & Halo:** Interactividad y estados de carga en consola.
 
-- **Python 3.10 o superior** instalado en el sistema.
-- Una clave de API válida de **Google Gemini** (`GEMINI_API_KEY`) obtenida en [Google AI Studio](https://aistudio.google.com/).
+## Instalación
 
----
+1. **Clonar el repositorio:**
+   ```bash
+   git clone <url-del-repo>
+   cd ml-cli
+   ```
 
-## 📁 Estructura del Proyecto
+2. **Entorno virtual:**
+   ```bash
+   python -m venv venv
+   # Windows:
+   .\venv\Scripts\activate
+   # Linux/macOS:
+   source venv/bin/activate
+   ```
 
-```text
-modular-learning-cli/
-├── cli.py                     # Enrutador principal CLI nativo (entry_point: ml)
-├── main.py                    # Orquestador de sesiones de tutoría interactiva
-├── pyproject.toml             # Configuración de empaquetado (PEP 621)
-├── .env                       # Variables de entorno (GEMINI_API_KEY, RUTA_OBSIDIAN, RUTA_BASE_UNIVERSIDAD)
-├── .env.example               # Plantilla de configuración
-├── data/                      # Capa de persistencia estructurada
-├── modules/                   # Módulos lógicos (core, ui, plugins)
-├── tools/                     # Herramientas auxiliares (ingestar_material, extraer_silabo, etc.)
-├── prompts/                   # Directivas en Markdown para la IA
-└── docs/                      # Documentación técnica y diseño de arquitectura
-```
+3. **Configuración:**
+   Copia `.env.example` a `.env` y configura tus variables:
+   ```bash
+   cp .env.example .env
+   ```
 
----
+4. **Instalación:**
+   ```bash
+   pip install -e .
+   ```
 
-## 🚀 Guía de Instalación
+## Comandos
+- `ml init`: Inicializa la estructura del proyecto y carpetas.
+- `ml im`: Ingesta interactiva de material (PDF/DOCX/PPTX). Los documentos .docx se procesan extrayendo texto e imágenes automáticamente.
+- `ml up`: Actualiza la memoria de los plugins (Node-RED, Cisco, Web).
 
-### 1. Configuración de Variables de Entorno (`.env`)
-Duplica el archivo `.env.example` en la raíz del proyecto y configúralo con tus credenciales:
-```env
-GEMINI_API_KEY=tu_clave_api_de_google_gemini
-RUTA_OBSIDIAN="C:\Users\TuUsuario\Documents\Obsidian Vault"
-RUTA_BASE_UNIVERSIDAD="C:\Universidad"
-```
+## Plugins
+El sistema permite extender sus capacidades mediante plugins en `modules/plugins/`. Actualmente, procesa archivos JSON de configuración de redes y topologías para alimentar la "memoria" del asistente.
 
-### 2. Modos de Instalación
-Puedes instalar el paquete como usuario final o en modo desarrollo editable:
-
-- **Instalación estándar (Usuario Final):**
-  ```bash
-  pip install .
-  ```
-- **Instalación en modo editable (Desarrollador):**
-  ```bash
-  pip install -e .
-  ```
-
-Esto compila y registra globalmente el comando `ml` en tu sistema operativo.
-
----
-
-## 🛠️ CLI Reference (Comandos Disponibles)
-
-El comando global `ml` ofrece los siguientes subcomandos:
-
-- **`ml init`**
-  - **Descripción**: Inicia la sesión de tutoría interactiva personalizada guiada por el tutor IA.
-  - **Uso**: `ml init`
-- **`ml es`**
-  - **Descripción**: Extrae cronogramas de sílabos (PDFs o archivos locales) y genera cronogramas estructurados en JSON.
-  - **Uso**: `ml es "ruta/al/silabo.pdf"`
-- **`ml im`**
-  - **Descripción**: Ingesta masiva y automatizada de material de estudio multimodal (PDFs, PPTx, DOCx) hacia Obsidian con anonimización estricta.
-  - **Uso**: `ml im`
-- **`ml quiz`**
-  - **Descripción**: Ejecuta el Motor de Recuerdo Activo (quiz interactivo de temas completados).
-  - **Uso**: `ml quiz`
-- **`ml stats`**
-  - **Descripción**: Muestra un Dashboard visual interactivo con telemetría, progreso global y desglose por asignatura.
-  - **Uso**: `ml stats`
-- **`ml --help`**
-  - **Descripción**: Muestra el panel de ayuda y comandos disponibles.
-  - **Uso**: `ml --help`
-
----
-
-## 🏛️ Arquitectura del Sistema
-
-Consulta [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) para más detalles sobre la Arquitectura Hexagonal, puertos y adaptadores.
+## SQA (Calidad de Software)
+Ejecuta las herramientas integradas para mantener el código limpio:
+- **Linting:** `ruff check .`
+- **Seguridad:** `bandit -r modules/ tools/ -ll`
+- **Tests:** `pytest`
