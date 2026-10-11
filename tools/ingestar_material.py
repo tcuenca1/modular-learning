@@ -47,16 +47,26 @@ def convertir_a_pdf_si_es_necesario(ruta_archivo: str) -> str:
 
     if ext == ".docx":
         try:
-            with Halo(
-                text="Convirtiendo documento Word (.docx) a PDF...", spinner="line"
-            ) as spinner:
-                import docx2pdf
+            with Halo(text="Leyendo documento Word (.docx) y extrayendo imágenes...", spinner="line") as spinner:
+                import docx
+                from google.genai import types
 
-                docx2pdf.convert(ruta_archivo, ruta_pdf)
-                spinner.succeed("Conversión de Word a PDF completada.")
-                return ruta_pdf
+                doc = docx.Document(ruta_archivo)
+                texto = "\n".join([parrafo.text for parrafo in doc.paragraphs])
+                
+                payload = [texto]
+                
+                # Extraer imágenes
+                for rel in doc.part.related_parts.values():
+                    if "image" in rel.content_type:
+                        image_bytes = rel.blob
+                        mime_type = rel.content_type
+                        payload.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
+                
+                spinner.succeed("Documento Word y sus imágenes extraídos correctamente.")
+                return payload
         except Exception as e:
-            print(f"⚠️ Error al convertir .docx a PDF: {e}. Procesando archivo original...")
+            print(f"⚠️ Error al leer .docx: {e}. Procesando archivo original...")
             return ruta_archivo
 
     elif ext == ".pptx":
@@ -172,27 +182,38 @@ def _procesar_materia(
         ruta_para_procesar = convertir_a_pdf_si_es_necesario(archivo_path)
         ext = os.path.splitext(ruta_para_procesar)[1].lower()
 
-        if ext == ".pdf":
-            mime_type = "application/pdf"
+        # ...
+        if ext == ".docx":
+            # Si el conversor devolvió el texto (nuestro cambio en convertir_a_pdf_si_es_necesario)
+            payload_para_gemini = ruta_para_procesar
         else:
-            mime_type = mimetypes.guess_type(ruta_para_procesar)[0] or "text/plain"
-
-        try:
-            with open(ruta_para_procesar, "rb") as f:
-                datos_binarios = f.read()
-
-            if len(datos_binarios) > 4_000_000:
-                with Halo(
-                    text="Subiendo archivo pesado (>4MB) a Gemini (Files API)...", spinner="line"
-                ) as spinner_up:
-                    uploaded_file = client.files.upload(file=ruta_para_procesar)
-                    spinner_up.succeed("Archivo pesado subido exitosamente a Gemini.")
+            if ext == ".pdf":
+                mime_type = "application/pdf"
             else:
-                parte_archivo = types.Part.from_bytes(data=datos_binarios, mime_type=mime_type)
-        except Exception as e:
-            print(f"❌ Error al leer archivo localmente: {e}")
-            contador_fallidos += 1
-            continue
+                mime_type = mimetypes.guess_type(ruta_para_procesar)[0] or "text/plain"
+
+            try:
+                with open(ruta_para_procesar, "rb") as f:
+                    datos_binarios = f.read()
+
+                if len(datos_binarios) > 4_000_000:
+                    with Halo(
+                        text="Subiendo archivo pesado (>4MB) a Gemini (Files API)...",
+                        spinner="line",
+                    ) as spinner_up:
+                        uploaded_file = client.files.upload(file=ruta_para_procesar)
+                        spinner_up.succeed("Archivo pesado subido exitosamente a Gemini.")
+                else:
+                    parte_archivo = types.Part.from_bytes(data=datos_binarios, mime_type=mime_type)
+
+                payload_para_gemini = (
+                    uploaded_file if len(datos_binarios) > 4_000_000 else parte_archivo
+                )
+            except Exception as e:
+                print(f"❌ Error al leer archivo localmente: {e}")
+                contador_fallidos += 1
+                continue
+        # ...
 
         materia_slug = materia_input.lower().replace(" ", "_")
         fecha_actual = time.strftime("%Y-%m-%d")
@@ -221,12 +242,17 @@ def _procesar_materia(
                 with Halo(
                     text="Extrayendo conocimiento con Gemini (Privacidad Activa)...", spinner="line"
                 ) as spinner_gen:
-                    payload_archivo = (
-                        uploaded_file if len(datos_binarios) > 4_000_000 else parte_archivo
-                    )
-                    respuesta = client.models.generate_content(
-                        model=modelo_nombre, contents=[payload_archivo, prompt]
-                    )
+                    if ext == ".docx":
+                        # payload_para_gemini es una lista: [texto, img1, img2...]
+                        contenido = [prompt + "\n\nCONTENIDO DEL DOCUMENTO:\n" + payload_para_gemini[0]]
+                        contenido.extend(payload_para_gemini[1:])
+                        respuesta = client.models.generate_content(
+                            model=modelo_nombre, contents=contenido
+                        )
+                    else:
+                        respuesta = client.models.generate_content(
+                            model=modelo_nombre, contents=[payload_para_gemini, prompt]
+                        )
                     spinner_gen.succeed("Contenido procesado y anonimizado correctamente.")
 
                 contenido_md = respuesta.text
@@ -276,8 +302,14 @@ def _procesar_materia(
                                 "Extrae únicamente un listado técnico de los comandos, nodos, topologías o configuraciones "
                                 "exactas que aparecen en este documento. Devuelve solo la lista, sin introducciones."
                             )
+                            # El payload debe ser manejado adecuadamente si es texto plano o binario
+                            if isinstance(payload_para_gemini, str):
+                                contents = [payload_para_gemini, prompt_tecnico]
+                            else:
+                                contents = [payload_para_gemini, prompt_tecnico]
+
                             res_tecnica = client.models.generate_content(
-                                model=modelo_nombre, contents=[payload_archivo, prompt_tecnico]
+                                model=modelo_nombre, contents=contents
                             )
                             texto_tecnico = res_tecnica.text.strip()
                             if texto_tecnico:
@@ -327,11 +359,10 @@ def ingestar_material(ruta_entrada: str = None) -> None:
 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        print("❌ Error crítico: No se encontró GEMINI_API_KEY en el archivo .env.")
-        return
+        raise ValueError("Falta la variable de entorno GEMINI_API_KEY en el archivo .env.")
 
     client = genai.Client(api_key=api_key)
-    modelo_nombre = "gemini-2.5-flash"
+    modelo_nombre = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
     materias = gestor_archivos.cargar_materias()
     vault_path = os.path.join(ruta_raiz, "obsidian_vault")

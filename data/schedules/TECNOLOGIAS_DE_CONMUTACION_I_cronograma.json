@@ -74,14 +74,20 @@
             "contenido": "Trunking con ISL y 802.1q. Comparación de ISL con IEEE 802.1q. Subredes IP y VLANs. Operación normal de VTP utilizando los modos de servidor y cliente de VTP. Tres requisitos para que VTP funcione entre dos switches. Cómo evitar VTP empleando el modo transparente de VTP. Almacenamiento de la configuración de la VLAN. Versiones de VTP. Pruning VTP. Configuración y verificación de la VLAN y del trunking VLAN.",
             "estado": "pendiente",
             "materiales_asociados": [
-                "Ponencias_Semana_5.pdf"
+                "Ponencias_Semana_5.pdf",
+                "ACTIVIDAD - TECNOLOGIAS DE CONMUTACION I - 05.docx",
+                "ACTIVIDAD - TECNOLOGIAS DE CONMUTACION I - 06.docx"
             ],
             "subtemas_adicionales": [
                 "Cabecera ISL",
                 "Cabecera IEEE 802.1Q y Tag de VLAN",
                 "VLAN nativa",
                 "Enrutamiento entre VLANs",
-                "Modos de VTP (servidor y cliente)"
+                "Modos de VTP (servidor y cliente)",
+                "Tráfico de broadcast en VLANs",
+                "Verificación de aislamiento de tráfico mediante ARP en Cisco Packet Tracer",
+                "Comunicación VLAN en VOIP",
+                "Implementación de VoIP sobre VLAN en Cisco Packet Tracer"
             ]
         },
         {

@@ -8,7 +8,8 @@
             "estado": "pendiente",
             "materiales_asociados": [
                 "TALLER PRACTICO - PROGRAMACION WEB - 01.docx",
-                "Clase 1.pptx"
+                "Clase 1.pptx",
+                "SRS — Sistema Web de Reconocimiento de Gestos de Mano.pdf"
             ],
             "subtemas_adicionales": [
                 "Docker para el despliegue del servidor backend",
@@ -18,7 +19,10 @@
                 "Acoplamiento tecnológico en capas tradicionales",
                 "Modelos hexagonales (Ports and Adapters)",
                 "Lenguaje Ubicuo",
-                "Contextos Delimitados (Bounded Context)"
+                "Contextos Delimitados (Bounded Context)",
+                "Arquitectura hexagonal aplicada a sistemas web reales",
+                "Puertos y adaptadores en el diseño de software",
+                "Aislamiento de componentes externos (cámara, modelos de IA en frontend)"
             ]
         },
         {
@@ -139,7 +143,16 @@
             "tema": "Integración de la capa de persistencia con el sistema web",
             "objetivo": "Diseñar una Capa de Acceso a Datos (DAL) robusta mediante la aplicación de los patrones Repositorio (Repository) y Especificación (Specification), utilizando abstracción y adaptadores para garantizar la independencia tecnológica frente a diversos motores de almacenamiento.",
             "contenido": "Capa de persistencia avanzada (Data Access Layer) y patrones Repository y Specification.",
-            "estado": "pendiente"
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "TALLER PRACTICO - PROGRAMACION WEB - 05.docx"
+            ],
+            "subtemas_adicionales": [
+                "Patrón Repositorio (Repository Pattern)",
+                "Patrón Especificación (Specification Pattern)",
+                "Dockerización de entornos de persistencia (PostgreSQL y MongoDB)",
+                "Administración de bases de datos con Adminer y Mongo Express"
+            ]
         },
         {
             "fecha": "09/10/2026",

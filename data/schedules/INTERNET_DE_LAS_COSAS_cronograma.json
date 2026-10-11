@@ -14,7 +14,8 @@
             "contenido": "Definición y evolución del Internet de las Cosas. Arquitectura básica del IoT (capa de dispositivos, red, plataforma y aplicación). Componentes fundamentales: sensores, actuadores, gateways y servicios. Ámbitos de aplicación del IoT (industria, salud, agricultura, ciudades inteligentes). Retos actuales del IoT: interoperabilidad, seguridad y escalabilidad.",
             "estado": "pendiente",
             "materiales_asociados": [
-                "Clase#2 Arquitecturas IoT.pdf"
+                "Clase#2 Arquitecturas IoT.pdf",
+                "CUESTIONARIO DE IOT.pdf"
             ],
             "subtemas_adicionales": [
                 "SOA-Based Architecture",
@@ -22,7 +23,12 @@
                 "oneM2M IoT Standardized Architecture",
                 "IoT World Forum (IoTWF) Standardized Architecture",
                 "WSO2 Reference Architecture",
-                "Fog Computing y Edge Computing en Arquitecturas IoT"
+                "Fog Computing y Edge Computing en Arquitecturas IoT",
+                "IoT Layered Architecture of ITU-T",
+                "Fog Computing y Edge Computing",
+                "Arquitectura API-Oriented (REST y JSON)",
+                "Redes de sensores inalámbricos (WSN y BLE)",
+                "Orquestación centralizada"
             ]
         },
         {

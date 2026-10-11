@@ -149,13 +149,18 @@
             "contenido": "Proceso de revisión técnica formal. Planificación. Roles y responsabilidades. Criterios de entrada. Listas de comprobación. Identificación y registro de defectos. Reunión de revisión. Resultados y seguimiento.",
             "estado": "pendiente",
             "materiales_asociados": [
-                "Semana4-Clase2.pptx"
+                "Semana4-Clase2.pptx",
+                "CAA - 4.docx"
             ],
             "subtemas_adicionales": [
                 "Diferenciación entre opinión subjetiva y hallazgo técnico verificable",
                 "Formato estructurado de registro de hallazgos (ID, ubicación, criterio, descripción, evidencia/impacto, estado)",
                 "Listas de comprobación aplicadas a especificaciones de requisitos",
-                "Dinámica de la preparación individual previa a la reunión de revisión"
+                "Dinámica de la preparación individual previa a la reunión de revisión",
+                "Expediente de revisión técnica formal",
+                "Listas de comprobación (Checklist) aplicadas a requisitos",
+                "Criterios de entrada en revisiones técnicas",
+                "Registro, clasificación y justificación técnica de defectos en artefactos de software"
             ]
         },
         {
@@ -170,7 +175,17 @@
             "tema": "Aseguramiento de la Calidad del Software: elementos, tareas, metas y métricas",
             "objetivo": "Evaluar el aseguramiento de la calidad del software mediante tareas, metas, métricas e indicadores aplicados a un proyecto",
             "contenido": "Tareas del ACS. Metas de calidad. Planificación del aseguramiento. Estándares y procedimientos. Auditorías y revisiones. No conformidades. Medidas, métricas e indicadores del ACS. Evidencias y seguimiento de calidad.",
-            "estado": "pendiente"
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "T5.docx"
+            ],
+            "subtemas_adicionales": [
+                "Aseguramiento de Calidad (SQAaaS)",
+                "Automatización de SQA mediante pipelines CI/CD",
+                "Pruebas estáticas con linters (flake8 / pycodestyle)",
+                "Análisis estático de seguridad (SAST con bandit)",
+                "Diferencia entre evaluación y aseguramiento de la calidad (ISO/IEC 25010 y DevOps)"
+            ]
         },
         {
             "fecha": "15/10/2026",
@@ -191,7 +206,16 @@
             "tema": "Pruebas de software convencional, orientado a objetos y aplicaciones web",
             "objetivo": "Aplicar estrategias de prueba en software convencional y orientado a objetos mediante técnicas acordes con su estructura y comportamiento",
             "contenido": "Pruebas en software convencional. Pruebas de caja blanca y caja negra. Pruebas de unidad e integración. Particularidades de las pruebas orientadas a objetos. Pruebas de clases, métodos, estados y colaboraciones. Integración en sistemas OO.",
-            "estado": "pendiente"
+            "estado": "pendiente",
+            "materiales_asociados": [
+                "DIAPOSITIVAS - 1.pdf"
+            ],
+            "subtemas_adicionales": [
+                "Complejidad ciclomática de McCabe (V(G) = E - N + 2P)",
+                "Paradoja del ocultamiento de información en pruebas OO",
+                "Pruebas basadas en estado (Statecharts) aplicadas a objetos",
+                "Impacto del polimorfismo y enlace dinámico en la reutilización de pruebas"
+            ]
         },
         {
             "fecha": "23/10/2026",

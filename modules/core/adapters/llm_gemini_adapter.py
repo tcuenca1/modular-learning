@@ -21,7 +21,7 @@ class LLM_GeminiAdapter(LLMAdapterBase):
     """Adaptador concreto para Google Gemini utilizando el SDK moderno `google.genai`."""
 
     def __init__(self):
-        self.modelo_nombre = "gemini-2.5-flash"
+        self.modelo_nombre = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
         self._cliente: genai.Client | None = None
         self._configurar()
 
@@ -30,10 +30,8 @@ class LLM_GeminiAdapter(LLMAdapterBase):
             return self._cliente
 
         api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key or api_key == "tu_api_key_de_google_gemini_aqui":
-            raise ValueError(
-                "Error crítico: Debes configurar tu GEMINI_API_KEY real en el archivo .env (actualmente tiene el valor por defecto o está vacía)."
-            )
+        if not api_key:
+            raise ValueError("Falta la variable de entorno GEMINI_API_KEY en el archivo .env.")
         self._cliente = genai.Client(api_key=api_key)
         return self._cliente
 

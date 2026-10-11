@@ -91,13 +91,30 @@
             "contenido": "Gestión de riesgos, Evaluación de impacto y probabilidad.",
             "estado": "pendiente",
             "materiales_asociados": [
-                "GUÍA-PARA-LA-GESTIÓN-DE-RIESGOS-DE-SEGURIDAD-DE-LA-INFORMACIÓN-ABRIL-2020.pdf"
+                "GUÍA-PARA-LA-GESTIÓN-DE-RIESGOS-DE-SEGURIDAD-DE-LA-INFORMACIÓN-ABRIL-2020.pdf",
+                "Avance_Gestion_Riesgos_COMMNET.docx",
+                "Avance_Gestion_Riesgos_COMMNET.pdf",
+                "TAREA EXTRACLASE#1-PROYECTO.docx"
             ],
             "subtemas_adicionales": [
                 "Tríada CIA (Confidencialidad, Integridad y Disponibilidad)",
                 "Definición y distinción entre Riesgo inherente y Riesgo residual",
                 "Establecimiento del contexto para la gestión de riesgos",
-                "Monitoreo y revisión del riesgo de seguridad de la información"
+                "Monitoreo y revisión del riesgo de seguridad de la información",
+                "ISO/IEC 27005",
+                "MAGERIT v3",
+                "Análisis PESTEL",
+                "Análisis FODA",
+                "Comité de Seguridad de la Información",
+                "Identificación y valoración de activos de información",
+                "Matriz de calor",
+                "Comité de Seguridad de la Información (CSI)",
+                "Declaración de aplicabilidad (SoA)",
+                "Índice tentativo para proyecto de seguridad",
+                "Establecimiento del Comité de Seguridad de la Información",
+                "Establecimiento del contexto organizacional para riesgos",
+                "Identificación de Activos de Información",
+                "Valoración y ponderación de la criticidad de activos"
             ]
         },
         {
