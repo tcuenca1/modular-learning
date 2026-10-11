@@ -75,7 +75,7 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                         ):
                             time.sleep(tiempo_espera)
                     else:
-                        raise e
+                        raise
             raise RuntimeError("Se agotaron los reintentos por Rate Limit con Gemini.")
         except Exception as e:
             raise RuntimeError(f"Ocurrió un error al consultar la API de Google Gemini: {e}")
@@ -116,7 +116,7 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                         ):
                             time.sleep(tiempo_espera)
                     else:
-                        raise e
+                        raise
             raise RuntimeError("Se agotaron los reintentos por Rate Limit con Gemini.")
         except Exception as e:
             raise RuntimeError(f"Error al procesar archivo con Gemini: {e}")
@@ -148,7 +148,7 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                         ):
                             time.sleep(tiempo_espera)
                     else:
-                        raise e
+                        raise
             raise RuntimeError("Se agotaron los reintentos por Rate Limit con Gemini.")
         except Exception as e:
             raise RuntimeError(f"Error al obtener JSON estructurado de Gemini: {e}")
@@ -187,7 +187,7 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                         ):
                             time.sleep(tiempo_espera)
                     else:
-                        raise e
+                        raise
             raise RuntimeError("Se agotaron los reintentos por Rate Limit con Gemini en streaming.")
         except Exception as e:
             raise RuntimeError(f"Error en streaming con la API de Google Gemini: {e}")

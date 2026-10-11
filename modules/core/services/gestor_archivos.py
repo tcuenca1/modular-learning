@@ -335,7 +335,7 @@ def verificar_material_ingestado(nombre_archivo: str) -> bool:
             )
         elif isinstance(registro, dict):
             return nombre_archivo in registro or nombre_archivo.lower() in [
-                k.lower() for k in registro.keys()
+                k.lower() for k in registro
             ]
         return False
     except Exception:

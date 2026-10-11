@@ -1,9 +1,8 @@
 import os
 import subprocess
-from typing import Optional
 
 
-def ejecutar_comando(comando: list[str]) -> Optional[str]:
+def ejecutar_comando(comando: list[str]) -> str | None:
     """
     Ejecuta un comando de forma segura utilizando subprocess,
     incluyendo check=True y manejo de excepciones específicas.

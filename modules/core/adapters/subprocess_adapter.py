@@ -1,9 +1,8 @@
-import subprocess
 import shlex
-from typing import List, Union
+import subprocess
 
 
-def ejecutar_comando(comando: Union[str, List[str]]) -> str:
+def ejecutar_comando(comando: str | list[str]) -> str:
     """
     Ejecuta un comando de forma segura utilizando subprocess.
     Se asegura de no usar shell=True y valida los argumentos adecuadamente.
@@ -18,7 +17,7 @@ def ejecutar_comando(comando: Union[str, List[str]]) -> str:
 
     try:
         resultado = subprocess.run(
-            args, shell=False, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            args, shell=False, check=True, capture_output=True, text=True
         )
         return resultado.stdout
     except subprocess.CalledProcessError as e:

@@ -49,8 +49,9 @@ def test_nodered_plugin_analizar_flujo_valido(mocker):
 
 
 def test_nodered_plugin_analizar_flujo_invalido(mocker):
-    from modules.plugins.adapters.plugin_nodered import NodeRedPlugin
     import json
+
+    from modules.plugins.adapters.plugin_nodered import NodeRedPlugin
 
     plugin = NodeRedPlugin()
 

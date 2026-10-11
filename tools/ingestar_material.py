@@ -15,10 +15,10 @@ if hasattr(sys.stdout, "reconfigure"):
 warnings.simplefilter("ignore")
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-from google import genai
-from google.genai import types
 import questionary
 from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 from halo import Halo
 
 # Importar core, plugins y ui desde modules
@@ -349,7 +349,7 @@ def _procesar_materia(
     print("=" * 60)
 
 
-def ingestar_material(ruta_entrada: str = None) -> None:
+def ingestar_material(ruta_entrada: str | None = None) -> None:
     """
     Ingesta automática de material con soporte para selección individual o actualización global
     de todas las materias, filtrado de duplicados, clasificación, conversión a PDF, anonimización,

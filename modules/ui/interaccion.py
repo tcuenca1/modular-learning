@@ -1,3 +1,5 @@
+import sys
+
 import questionary
 
 from modules.core.services import gestor_archivos
@@ -22,7 +24,7 @@ def seleccionar_con_flechas(opciones: list[str]) -> str:
 
     if seleccion is None:
         print("\n\n⚠️ Operación cancelada por el usuario.")
-        exit(0)
+        sys.exit(0)
 
     return seleccion
 

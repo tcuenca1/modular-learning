@@ -1,5 +1,6 @@
 import os
 import sys
+
 import typer
 from rich.console import Console
 
@@ -45,6 +46,7 @@ def cmd_im():
 def cmd_quiz():
     """Motor de Recuerdo Activo (Quiz interactivo de temas completados)."""
     import questionary
+
     from modules.core.services import motor_evaluacion
 
     console.print("\n[bold cyan]🧠 [Motor de Recuerdo Activo - Quiz Académico][/bold cyan]\n")
@@ -79,6 +81,7 @@ def cmd_stats():
     from rich.panel import Panel
     from rich.progress import BarColumn, Progress, TextColumn
     from rich.table import Table
+
     from modules.core.services import telemetria
 
     stats = telemetria.obtener_estadisticas()
@@ -122,6 +125,7 @@ def cmd_up():
     """Actualiza e inspecciona los plugins prácticos y flujos (Cisco, Web, Node-RED, Todos)."""
     import questionary
     from rich.panel import Panel
+
     from modules.plugins.services import gestor_plugins
 
     console.print("\n[bold cyan]🔌 [Gestor de Plugins Prácticos y Flujos][/bold cyan]\n")
