@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import time
 import warnings
 from typing import Any
@@ -135,7 +136,16 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                         response = client.models.generate_content(
                             model=self.modelo_nombre, contents=prompt, config=config
                         )
-                        return json.loads(response.text)
+                        texto_respuesta = response.text
+                        match = re.search(r'\{.*\}', texto_respuesta, re.DOTALL)
+                        if match:
+                            texto_limpio = match.group(0)
+                        else:
+                            texto_limpio = texto_respuesta.strip()
+                        
+                        texto_limpio = texto_limpio.replace("```json", "").replace("```", "").strip()
+                        
+                        return json.loads(texto_limpio)
                 except Exception as e:
                     if "429" in str(e) or "ResourceExhausted" in str(e):
                         intento += 1

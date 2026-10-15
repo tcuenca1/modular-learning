@@ -35,13 +35,13 @@ def pedir_datos_inicio() -> dict[str, str]:
     ofreciendo las próximas clases del cronograma JSON si existen, y pidiendo profundidad.
     """
     print("=" * 65)
-    print(" 🎓 SISTEMA DE TUTORÍA PERSONALIZADO - CLI")
+    print(" SISTEMA DE TUTORIA PERSONALIZADO - CLI")
     print("=" * 65)
 
     materias = gestor_archivos.cargar_materias()
     opciones_menu = materias + ["[ + ] Añadir nueva asignatura..."]
 
-    print("\n📚 Selecciona la asignatura para la sesión de hoy:")
+    print("\nSelecciona la asignatura para la sesion de hoy:")
     seleccion = seleccionar_con_flechas(opciones_menu)
 
     if "[ + ]" in seleccion:
@@ -111,7 +111,7 @@ def mostrar_mensaje(mensaje: str, tipo: str = "info") -> None:
     elif tipo == "exito":
         print(f"✅ [ÉXITO]: {mensaje}")
     elif tipo == "error":
-        print(f"❌ [ERROR]: {mensaje}")
+        print(f"[ERROR]: {mensaje}")
     elif tipo == "ia":
         print("\n" + "🤖" + "=" * 60)
         print(" [TUTOR IA]:")

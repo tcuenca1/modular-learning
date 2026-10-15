@@ -54,7 +54,18 @@ def main() -> None:
 
         # Usar Structured Outputs (JSON) nativo a través del puerto LLM
         data_roadmap = llm.generar_json_estructurado(prompt_roadmap)
+        
+        if isinstance(data_roadmap, dict):
+            data_roadmap = {str(k).strip(): v for k, v in data_roadmap.items()}
+        else:
+            data_roadmap = {}
+            
         pasos_sesion = data_roadmap.get("pasos", [])
+        if isinstance(pasos_sesion, list):
+            pasos_sesion = [
+                {str(k).strip(): v for k, v in p.items()} if isinstance(p, dict) else p
+                for p in pasos_sesion
+            ]
 
         if not pasos_sesion:
             raise ValueError("El JSON del roadmap no contiene la clave 'pasos' esperada.")
