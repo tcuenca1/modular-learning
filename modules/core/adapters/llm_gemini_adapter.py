@@ -36,6 +36,37 @@ class LLM_GeminiAdapter(LLMAdapterBase):
         self._cliente = genai.Client(api_key=api_key)
         return self._cliente
 
+    def _normalizar_historial(self, contexto_previo: list[Any] | None) -> list[types.Content]:
+        """Convierte historiales en formato diccionario estándar a objetos types.Content de google.genai."""
+        if not contexto_previo:
+            return []
+        historial_normalizado: list[types.Content] = []
+        for item in contexto_previo:
+            if isinstance(item, types.Content):
+                historial_normalizado.append(item)
+            elif isinstance(item, dict):
+                rol = item.get("role", "user")
+                partes_raw = item.get("parts", [])
+                if not partes_raw and "content" in item:
+                    content_val = item["content"]
+                    partes_raw = [content_val] if isinstance(content_val, str) else content_val
+
+                partes: list[types.Part] = []
+                for p in partes_raw:
+                    if isinstance(p, types.Part):
+                        partes.append(p)
+                    elif isinstance(p, str):
+                        partes.append(types.Part.from_text(text=p))
+                    elif isinstance(p, dict):
+                        if "text" in p:
+                            partes.append(types.Part.from_text(text=p["text"]))
+                        else:
+                            partes.append(types.Part(**p))
+                    else:
+                        partes.append(types.Part.from_text(text=str(p)))
+                historial_normalizado.append(types.Content(role=rol, parts=partes))
+        return historial_normalizado
+
     def generar_texto(
         self, prompt: str, contexto_previo: list[dict] | None = None, formato_json: bool = False
     ) -> str:
@@ -54,8 +85,9 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                 try:
                     with Halo(text="Consultando a Gemini...", spinner="line"):
                         if contexto_previo:
+                            historial = self._normalizar_historial(contexto_previo)
                             chat = client.chats.create(
-                                model=self.modelo_nombre, history=contexto_previo
+                                model=self.modelo_nombre, history=historial
                             )
                             response = chat.send_message(prompt, config=config)
                             return response.text
@@ -144,7 +176,6 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                             texto_limpio = texto_respuesta.strip()
                         
                         texto_limpio = texto_limpio.replace("```json", "").replace("```", "").strip()
-                        
                         return json.loads(texto_limpio)
                 except Exception as e:
                     if "429" in str(e) or "ResourceExhausted" in str(e):
@@ -172,8 +203,9 @@ class LLM_GeminiAdapter(LLMAdapterBase):
             while intento < max_reintentos:
                 try:
                     if contexto_previo:
+                        historial = self._normalizar_historial(contexto_previo)
                         chat = client.chats.create(
-                            model=self.modelo_nombre, history=contexto_previo
+                            model=self.modelo_nombre, history=historial
                         )
                         response = chat.send_message_stream(prompt)
                     else:
