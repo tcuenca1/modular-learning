@@ -39,3 +39,20 @@ def test_normalizar_historial_con_content_existente(monkeypatch):
 
     assert len(resultado) == 1
     assert resultado[0] is content
+
+
+def test_parsear_json_limpieza_claves_y_bloques_markdown():
+    json_con_saltos_y_markdown = """```json
+    {
+        "\\n \\"pasos\\"": [
+            {"titulo": "Paso 1"}
+        ],
+        "  subtemas  ": ["a", "b"]
+    }
+    ```"""
+    resultado = LLM_GeminiAdapter._parsear_json(json_con_saltos_y_markdown)
+
+    assert "pasos" in resultado
+    assert "subtemas" in resultado
+    assert resultado["pasos"][0]["titulo"] == "Paso 1"
+    assert resultado["subtemas"] == ["a", "b"]

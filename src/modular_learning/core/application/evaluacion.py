@@ -1,10 +1,16 @@
+"""Servicio de aplicación para el motor de recuerdo activo y evaluación adaptativa."""
+
+from __future__ import annotations
+
 import json
 import os
 import random
 import re
+from typing import Any
 
 from modular_learning import settings
-from modular_learning.infrastructure.llm import gestor_llm
+from modular_learning.core.ports.llm import LLMPort
+from modular_learning.core.ports.repositorios import CronogramaRepo
 
 LETRAS = "ABCD"
 _PREFIJO_OPCION = re.compile(r"^\s*[A-Da-d][\)\.\-:]\s*")
@@ -26,7 +32,6 @@ def mezclar_opciones(pregunta: dict, rng: random.Random | None = None) -> dict:
     correcta = _limpiar_opcion(correcta_bruta)
 
     if correcta not in opciones:
-        # Respuesta dada solo como letra (ej. "B") o texto no coincidente: intenta resolver por letra.
         m = re.match(r"^\s*([A-Da-d])\b", correcta_bruta)
         if m and "ABCD".index(m.group(1).upper()) < len(pregunta.get("opciones", [])):
             correcta = opciones[LETRAS.index(m.group(1).upper())]
@@ -42,47 +47,65 @@ def mezclar_opciones(pregunta: dict, rng: random.Random | None = None) -> dict:
     }
 
 
-def generar_quiz() -> list[dict]:
-    """
-    Lee los archivos JSON en data/schedules/, filtra los temas marcados con estado "completado"
-    y solicita al gestor_llm generar 3 preguntas de opción múltiple basadas en esos temas.
-    Maneja excepciones si la carpeta o los archivos están vacíos o no hay temas completados.
-    """
-    carpeta_schedules = str(settings.ruta_cronogramas())
-    if not os.path.exists(carpeta_schedules):
-        raise FileNotFoundError(
-            "La carpeta data/schedules/ no existe. Ingesta un sílabo primero utilizando 'ml es'."
-        )
+class EvaluacionService:
+    """Caso de uso para la generación y calificación de quizzes académicos."""
 
-    archivos = [f for f in os.listdir(carpeta_schedules) if f.endswith("_cronograma.json")]
-    if not archivos:
-        raise FileNotFoundError(
-            "No se encontraron cronogramas en data/schedules/. Ejecuta 'ml es' para extraer sílabos."
-        )
+    def __init__(
+        self,
+        llm: LLMPort,
+        cronograma_repo: CronogramaRepo | None = None,
+        carpeta_schedules: str | None = None,
+    ):
+        self.llm = llm
+        self.cronograma_repo = cronograma_repo
+        self._carpeta_schedules = carpeta_schedules
 
-    temas_completados = []
-    for arch in archivos:
-        ruta = os.path.join(carpeta_schedules, arch)
-        try:
-            with open(ruta, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                clases = data.get("clases", []) if isinstance(data, dict) else data
-                for clase in clases:
-                    if clase.get("estado") == "completado":
-                        tema = clase.get("tema")
-                        if tema and tema not in temas_completados:
-                            temas_completados.append(tema)
-        except Exception:
-            continue
+    @property
+    def carpeta_schedules(self) -> str:
+        return self._carpeta_schedules or str(settings.ruta_cronogramas())
 
-    if not temas_completados:
-        raise ValueError(
-            "No hay temas marcados con estado 'completado' en los cronogramas. "
-            "Completa sesiones de estudio con 'ml init' para desbloquear el quiz de repaso activo."
-        )
+    def obtener_temas_completados(self) -> list[str]:
+        """Obtiene la lista de temas completados a través de los cronogramas."""
+        if not os.path.exists(self.carpeta_schedules):
+            raise FileNotFoundError(
+                "La carpeta data/schedules/ no existe. Ingesta un sílabo primero utilizando 'ml es'."
+            )
 
-    llm = gestor_llm.obtener_llm()
-    prompt = f"""
+        archivos = [f for f in os.listdir(self.carpeta_schedules) if f.endswith("_cronograma.json")]
+        if not archivos:
+            raise FileNotFoundError(
+                "No se encontraron cronogramas en data/schedules/. Ejecuta 'ml es' para extraer sílabos."
+            )
+
+        temas_completados: list[str] = []
+        for arch in archivos:
+            ruta = os.path.join(self.carpeta_schedules, arch)
+            try:
+                with open(ruta, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    clases = data.get("clases", []) if isinstance(data, dict) else data
+                    if not isinstance(clases, list):
+                        continue
+                    for clase in clases:
+                        if clase.get("estado", "").lower() == "completado":
+                            tema = clase.get("tema")
+                            if tema and tema not in temas_completados:
+                                temas_completados.append(tema)
+            except Exception:
+                continue
+
+        return temas_completados
+
+    def generar_quiz(self) -> list[dict[str, Any]]:
+        """Genera un quiz de 3 preguntas de opción múltiple usando temas completados."""
+        temas_completados = self.obtener_temas_completados()
+        if not temas_completados:
+            raise ValueError(
+                "No hay temas marcados con estado 'completado' en los cronogramas. "
+                "Completa sesiones de estudio con 'ml init' para desbloquear el quiz de repaso activo."
+            )
+
+        prompt = f"""
 Actúa como un profesor experto y evaluador académico riguroso. Basándote exclusivamente en los siguientes temas que el estudiante ya ha completado:
 {json.dumps(temas_completados, ensure_ascii=False)}
 
@@ -106,19 +129,65 @@ Devuelve la respuesta en formato JSON estricto con la siguiente estructura exact
 }}
 Devuelve ÚNICAMENTE el JSON válido, sin bloques markdown de código adicionales ni texto introductorio.
 """
+        respuesta_json = self.llm.generar_json_estructurado(prompt)
+        if isinstance(respuesta_json, list):
+            preguntas_brutas = respuesta_json
+        else:
+            preguntas_brutas = respuesta_json.get("preguntas", [])
 
-    respuesta_json = llm.generar_json_estructurado(prompt)
-    if isinstance(respuesta_json, list):
-        preguntas_brutas = respuesta_json
-    else:
-        preguntas_brutas = respuesta_json.get("preguntas", [])
+        preguntas: list[dict[str, Any]] = []
+        for p in preguntas_brutas:
+            try:
+                preguntas.append(mezclar_opciones(p))
+            except (ValueError, AttributeError, TypeError):
+                continue
 
-    preguntas = []
-    for p in preguntas_brutas:
-        try:
-            preguntas.append(mezclar_opciones(p))
-        except (ValueError, AttributeError, TypeError):
-            continue
-    if not preguntas:
-        raise RuntimeError("El LLM no generó preguntas válidas para el quiz.")
-    return preguntas
+        if not preguntas:
+            raise RuntimeError("El LLM no generó preguntas válidas para el quiz.")
+        return preguntas
+
+    def evaluar_respuestas(
+        self, preguntas: list[dict[str, Any]], respuestas: list[str]
+    ) -> dict[str, Any]:
+        """Evalúa las respuestas de un quiz comparándolas con las respuestas correctas."""
+        detalle = []
+        aciertos = 0
+        for idx, p in enumerate(preguntas):
+            elegida = respuestas[idx] if idx < len(respuestas) else ""
+            correcta = p.get("respuesta_correcta", "")
+            ok = elegida.strip().lower() == str(correcta).strip().lower()
+            aciertos += int(ok)
+            detalle.append({"correcto": ok, "respuesta_correcta": correcta, "elegida": elegida})
+
+        total = len(preguntas)
+        return {
+            "aciertos": aciertos,
+            "total": total,
+            "porcentaje": round(aciertos / total * 100) if total else 0,
+            "detalle": detalle,
+        }
+
+
+_instancia_por_defecto: EvaluacionService | None = None
+
+
+def configurar_servicio_defecto(servicio: EvaluacionService) -> None:
+    global _instancia_por_defecto
+    _instancia_por_defecto = servicio
+
+
+def generar_quiz() -> list[dict[str, Any]]:
+    if _instancia_por_defecto is None:
+        raise RuntimeError("EvaluacionService no ha sido inicializado en el contenedor.")
+    return _instancia_por_defecto.generar_quiz()
+
+
+_orig_generar_quiz = generar_quiz
+
+__all__ = [
+    "EvaluacionService",
+    "_orig_generar_quiz",
+    "configurar_servicio_defecto",
+    "generar_quiz",
+    "mezclar_opciones",
+]

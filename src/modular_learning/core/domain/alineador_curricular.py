@@ -2,7 +2,7 @@ import json
 import os
 
 from modular_learning import settings
-from modular_learning.infrastructure.llm import gestor_llm
+from modular_learning.core.ports.llm import LLMPort
 
 
 def _encontrar_ruta_cronograma(materia: str) -> str:
@@ -33,9 +33,8 @@ def _encontrar_ruta_cronograma(materia: str) -> str:
 
     try:
         for arch in os.listdir(carpeta_data):
-            if arch.endswith("_cronograma.json"):
-                if materia_slug.replace("_", "") in arch.upper().replace("_", ""):
-                    return os.path.join(carpeta_data, arch)
+            if arch.endswith("_cronograma.json") and materia_slug.replace("_", "") in arch.upper().replace("_", ""):
+                return os.path.join(carpeta_data, arch)
     except Exception:
         pass
 
@@ -43,12 +42,18 @@ def _encontrar_ruta_cronograma(materia: str) -> str:
 
 
 def asignar_material_a_clase(
-    materia: str, contenido_md: str, nombre_archivo: str = "material_nuevo.md"
+    materia: str,
+    contenido_md: str,
+    nombre_archivo: str = "material_nuevo.md",
+    llm: LLMPort | None = None,
 ) -> dict:
     """
     Evalúa la afinidad del contenido de un material recién ingestado contra cada clase del cronograma oficial
-    usando IA, limpia estrictamente la respuesta JSON, y asigna los subtemas y materiales asociados.
+    usando el puerto LLMPort, limpia estrictamente la respuesta JSON, y asigna los subtemas y materiales asociados.
     """
+    if llm is None:
+        raise ValueError("Se requiere una instancia válida de LLMPort para evaluar la afinidad curricular.")
+
     ruta_cronograma = _encontrar_ruta_cronograma(materia)
     if not ruta_cronograma or not os.path.exists(ruta_cronograma):
         print(f"⚠️ [Alineador] No se encontró cronograma para la materia '{materia}'.")
@@ -120,7 +125,6 @@ def asignar_material_a_clase(
 
     texto_respuesta = ""
     try:
-        llm = gestor_llm.obtener_llm()
         texto_respuesta = llm.generar_texto(prompt)
     except Exception:
         try:

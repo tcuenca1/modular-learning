@@ -1,438 +1,105 @@
-import mimetypes
-import os
-import sys
-import tempfile
-import time
-import warnings
+"""Comando CLI: `ml im` - Ingesta multimodal de material de estudio hacia Obsidian."""
 
-# Forzar UTF-8 en stdout
-if hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
-
-warnings.simplefilter("ignore")
-warnings.filterwarnings("ignore", category=FutureWarning)
+from __future__ import annotations
 
 import questionary
-from dotenv import load_dotenv
-from google import genai
-from google.genai import types
-from halo import Halo
 
+from modular_learning import bootstrap
 from modular_learning.apps.cli.ui import formateador
-from modular_learning.core.application import configuracion as servicio_config
-from modular_learning.core.application import plugins as gestor_plugins
-from modular_learning.core.domain import alineador_curricular
-from modular_learning.infrastructure.persistence import json_repositorios as gestor_archivos
+from modular_learning.apps.cli.ui.spinner import spinner
 
 
-def convertir_a_pdf_si_es_necesario(ruta_archivo: str) -> str:
-    """
-    Convierte archivos .docx o .pptx a PDF temporal para que Gemini pueda procesarlos óptimamente.
-    Retorna la ruta del archivo PDF (o la misma ruta si ya es PDF u otro formato).
-    """
-    ext = os.path.splitext(ruta_archivo)[1].lower()
-    if ext == ".pdf":
-        return ruta_archivo
+def _procesar_lote_materia(materia: str, ingesta_service) -> None:
+    print(f"\n📚 Analizando asignatura: \033[1;92m{materia}\033[0m")
+    escaneo = ingesta_service.escanear_materia(materia)
 
-    temp_dir = tempfile.gettempdir()
-    nombre_base = os.path.splitext(os.path.basename(ruta_archivo))[0]
-    ruta_pdf = os.path.join(temp_dir, f"{nombre_base}.pdf")
-
-    if ext == ".docx":
-        try:
-            with Halo(text="Leyendo documento Word (.docx) y extrayendo imágenes...", spinner="line") as spinner:
-                import docx
-                from google.genai import types
-
-                doc = docx.Document(ruta_archivo)
-                texto = "\n".join([parrafo.text for parrafo in doc.paragraphs])
-                
-                payload = [texto]
-                
-                # Extraer imágenes
-                for rel in doc.part.related_parts.values():
-                    if "image" in rel.content_type:
-                        image_bytes = rel.blob
-                        mime_type = rel.content_type
-                        payload.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
-                
-                spinner.succeed("Documento Word y sus imágenes extraídos correctamente.")
-                return payload
-        except Exception as e:
-            print(f"⚠️ Error al leer .docx: {e}. Procesando archivo original...")
-            return ruta_archivo
-
-    elif ext == ".pptx":
-        try:
-            with Halo(
-                text="Convirtiendo presentación PowerPoint (.pptx) a PDF...", spinner="line"
-            ) as spinner:
-                import comtypes.client
-
-                powerpoint = comtypes.client.CreateObject("Powerpoint.Application")
-                powerpoint.Visible = 1
-                deck = powerpoint.Presentations.Open(
-                    os.path.abspath(ruta_archivo), ReadOnly=True, WithWindow=False
-                )
-                deck.SaveAs(os.path.abspath(ruta_pdf), 32)
-                deck.Close()
-                powerpoint.Quit()
-                spinner.succeed("Conversión de PowerPoint a PDF completada.")
-                return ruta_pdf
-        except Exception as e:
-            print(
-                f"⚠️ Error al convertir .pptx a PDF: {e}. Asegúrate de tener PowerPoint instalado. Procesando archivo original..."
-            )
-            return ruta_archivo
-
-    return ruta_archivo
-
-
-def clasificar_tipo_material(ruta_archivo: str, ruta_raiz_lote: str) -> str:
-    """
-    Clasifica automáticamente el tipo de material basándose en su ubicación relativa dentro de la carpeta:
-    - Raíz de la carpeta -> 'actividad'
-    - Subcarpeta que contiene 'MATERIAL DE ESTUDIO' -> 'diapositiva'
-    - Subcarpeta que contiene 'MATERIAL ADICIONAL' -> 'lectura'
-    - Cualquier otro caso -> 'material_complementario'
-    """
-    rel_path = os.path.relpath(ruta_archivo, ruta_raiz_lote)
-    partes = rel_path.split(os.sep)
-
-    if len(partes) == 1:
-        return "actividad"
-
-    ruta_upper = rel_path.upper()
-    if "MATERIAL DE ESTUDIO" in ruta_upper:
-        return "diapositiva"
-    elif "MATERIAL ADICIONAL" in ruta_upper:
-        return "lectura"
-    else:
-        return "material_complementario"
-
-
-def _procesar_materia(
-    materia_input: str,
-    client,
-    modelo_nombre: str,
-    prompt_template: str,
-    vault_path: str,
-    ruta_base_uni: str,
-) -> None:
-    print(f"\n📚 Procesando asignatura: \033[1;92m{materia_input}\033[0m")
-    ruta_objetivo = os.path.join(ruta_base_uni, materia_input)
-
-    if not os.path.exists(ruta_objetivo):
-        print(f"⚠️ La ruta automática '{ruta_objetivo}' no existe en disco. Omitiendo...")
+    if not escaneo["existe"]:
+        print(f"⚠️ La carpeta '{escaneo['carpeta']}' no existe en disco. Omitiendo...")
         return
 
-    archivos_a_escanear = []
-    if os.path.isdir(ruta_objetivo):
-        for root, dirs, files in os.walk(ruta_objetivo):
-            for file in files:
-                if file.lower().endswith((".pdf", ".docx", ".pptx")):
-                    archivos_a_escanear.append(os.path.join(root, file))
-        ruta_raiz_lote = ruta_objetivo
-    else:
-        archivos_a_escanear = [ruta_objetivo]
-        ruta_raiz_lote = os.path.dirname(ruta_objetivo)
-
-    if not archivos_a_escanear:
-        print(f"⚠️ No se encontraron archivos soportados en '{ruta_objetivo}'.")
-        return
-
-    archivos_nuevos = []
-    contador_saltados_silenciosos = 0
-    for archivo_path in archivos_a_escanear:
-        nombre_archivo_original = os.path.basename(archivo_path)
-        if gestor_archivos.verificar_material_ingestado(nombre_archivo_original):
-            contador_saltados_silenciosos += 1
-        else:
-            archivos_nuevos.append(archivo_path)
-
+    pendientes = escaneo["pendientes"]
     print(
-        f"🚀 Archivos totales: {len(archivos_a_escanear)} | Omitidos (ya procesados): {contador_saltados_silenciosos} | Nuevos a procesar: {len(archivos_nuevos)}"
+        f"🚀 Archivos totales: {escaneo['total']} | Omitidos: {escaneo['omitidos']} | Nuevos a procesar: {len(pendientes)}"
     )
 
-    if not archivos_nuevos:
-        print(f"✨ Todos los archivos de '{materia_input}' ya han sido ingestados previamente.")
+    if not pendientes:
+        print(f"✨ Todos los archivos de '{materia}' ya han sido procesados previamente.")
         return
 
-    contador_exito = 0
-    contador_fallidos = 0
-
-    for idx, archivo_path in enumerate(archivos_nuevos, 1):
-        nombre_archivo_original = os.path.basename(archivo_path)
+    for idx, item in enumerate(pendientes, 1):
         print("\n" + "-" * 60)
-        print(
-            f"[{idx}/{len(archivos_nuevos)}] Archivo: {nombre_archivo_original} ({materia_input})"
-        )
+        print(f"[{idx}/{len(pendientes)}] Ingestando: {item['nombre']} ({item['tipo']})")
         print("-" * 60)
 
-        tipo_input = clasificar_tipo_material(archivo_path, ruta_raiz_lote)
-        print(f"📂 Tipo clasificado: '{tipo_input}'")
-
-        ruta_para_procesar = convertir_a_pdf_si_es_necesario(archivo_path)
-        ext = os.path.splitext(ruta_para_procesar)[1].lower()
-
-        # ...
-        if ext == ".docx":
-            # Si el conversor devolvió el texto (nuestro cambio en convertir_a_pdf_si_es_necesario)
-            payload_para_gemini = ruta_para_procesar
-        else:
-            if ext == ".pdf":
-                mime_type = "application/pdf"
-            else:
-                mime_type = mimetypes.guess_type(ruta_para_procesar)[0] or "text/plain"
-
-            try:
-                with open(ruta_para_procesar, "rb") as f:
-                    datos_binarios = f.read()
-
-                if len(datos_binarios) > 4_000_000:
-                    with Halo(
-                        text="Subiendo archivo pesado (>4MB) a Gemini (Files API)...",
-                        spinner="line",
-                    ) as spinner_up:
-                        uploaded_file = client.files.upload(file=ruta_para_procesar)
-                        spinner_up.succeed("Archivo pesado subido exitosamente a Gemini.")
-                else:
-                    parte_archivo = types.Part.from_bytes(data=datos_binarios, mime_type=mime_type)
-
-                payload_para_gemini = (
-                    uploaded_file if len(datos_binarios) > 4_000_000 else parte_archivo
+        try:
+            with spinner(f"Extrayendo y anonimizando conocimiento para '{item['nombre']}'..."):
+                res = ingesta_service.ingestar_archivo(
+                    ruta_archivo=item["ruta"],
+                    nombre_original=item["nombre"],
+                    materia=materia,
+                    tipo=item["tipo"],
                 )
-            except Exception as e:
-                print(f"❌ Error al leer archivo localmente: {e}")
-                contador_fallidos += 1
-                continue
-        # ...
 
-        materia_slug = materia_input.lower().replace(" ", "_")
-        fecha_actual = time.strftime("%Y-%m-%d")
+            formateador.imprimir_markdown_bonito(res.get("contenido_md", ""))
 
-        regla_privacidad = (
-            "\n\n[REGLA ESTRICTA DE PRIVACIDAD Y ANONIMIZACIÓN]:\n"
-            "Oculta o anonimiza cualquier nombre de estudiante, profesor, número de identificación institucional, "
-            "correos electrónicos o datos personales que aparezcan en el documento. Reemplázalos por etiquetas "
-            "genéricas como [ESTUDIANTE], [DOCENTE] o [ID_OMITIDO]."
-        )
-
-        prompt = (
-            prompt_template.replace("{materia}", materia_input)
-            .replace("{tipo}", tipo_input)
-            .replace("{fecha}", fecha_actual)
-            .replace("{materia_slug}", materia_slug)
-            + regla_privacidad
-        )
-
-        max_reintentos = 3
-        intento_gen = 0
-        exito_archivo = False
-
-        while intento_gen < max_reintentos:
-            try:
-                with Halo(
-                    text="Extrayendo conocimiento con Gemini (Privacidad Activa)...", spinner="line"
-                ) as spinner_gen:
-                    if ext == ".docx":
-                        # payload_para_gemini es una lista: [texto, img1, img2...]
-                        contenido = [prompt + "\n\nCONTENIDO DEL DOCUMENTO:\n" + payload_para_gemini[0]]
-                        contenido.extend(payload_para_gemini[1:])
-                        respuesta = client.models.generate_content(
-                            model=modelo_nombre, contents=contenido
-                        )
-                    else:
-                        respuesta = client.models.generate_content(
-                            model=modelo_nombre, contents=[payload_para_gemini, prompt]
-                        )
-                    spinner_gen.succeed("Contenido procesado y anonimizado correctamente.")
-
-                contenido_md = respuesta.text
-                formateador.imprimir_markdown_bonito(contenido_md)
-
-                tipo_carpeta = tipo_input.capitalize()
-                carpeta_salida = os.path.join(vault_path, materia_input, tipo_carpeta)
-                os.makedirs(carpeta_salida, exist_ok=True)
-
-                nombre_base = os.path.splitext(nombre_archivo_original)[0]
-                nombre_archivo_salida = f"{nombre_base.replace(' ', '_')}_Notas.md"
-                ruta_salida = os.path.join(carpeta_salida, nombre_archivo_salida)
-
-                with open(ruta_salida, "w", encoding="utf-8") as f:
-                    f.write(contenido_md)
-
-                print(f"[ÉXITO] Guardado en: {os.path.abspath(ruta_salida)}")
-
-                gestor_archivos.registrar_material(nombre_archivo_original, materia_input)
-
-                # Alineación Curricular (Motor de Pesos y Afinidad)
-                try:
-                    with Halo(
-                        text="Calculando afinidad con el cronograma...", spinner="line"
-                    ) as spinner_alineacion:
-                        resultado_alineacion = alineador_curricular.asignar_material_a_clase(
-                            materia_input, contenido_md, nombre_archivo_original
-                        )
-                        spinner_alineacion.succeed("Alineación curricular completada.")
-
-                    clase_asig = resultado_alineacion.get("clase_asignada", "X")
-                    afinidad = resultado_alineacion.get("peso_afinidad", 0)
-                    print(
-                        f"[✓] Asignado a Clase {clase_asig} (Afinidad: {afinidad}%) - Nuevos subtemas agregados"
-                    )
-                except Exception as err_alin:
-                    print(f"⚠️ No se pudo completar la alineación curricular: {err_alin}")
-
-                plugin = gestor_plugins.obtener_plugin(materia_input)
-                if plugin:
-                    try:
-                        with Halo(
-                            text="Extrayendo metadatos técnicos para memoria del plugin...",
-                            spinner="line",
-                        ):
-                            prompt_tecnico = (
-                                "Extrae únicamente un listado técnico de los comandos, nodos, topologías o configuraciones "
-                                "exactas que aparecen en este documento. Devuelve solo la lista, sin introducciones."
-                            )
-                            # El payload debe ser manejado adecuadamente si es texto plano o binario
-                            if isinstance(payload_para_gemini, str):
-                                contents = [payload_para_gemini, prompt_tecnico]
-                            else:
-                                contents = [payload_para_gemini, prompt_tecnico]
-
-                            res_tecnica = client.models.generate_content(
-                                model=modelo_nombre, contents=contents
-                            )
-                            texto_tecnico = res_tecnica.text.strip()
-                            if texto_tecnico:
-                                plugin.guardar_contexto_extraido(texto_tecnico)
-                                print(
-                                    f"🧠 Contexto técnico extraído y guardado en la memoria del plugin para '{materia_input}'."
-                                )
-                    except Exception as err_plugin:
-                        print(f"⚠️ No se pudo actualizar la memoria del plugin: {err_plugin}")
-
-                contador_exito += 1
-                exito_archivo = True
-                break
-
-            except Exception as e:
-                if "429" in str(e) or "ResourceExhausted" in str(e):
-                    intento_gen += 1
-                    tiempo_espera = 20 * intento_gen
-                    print(
-                        f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s..."
-                    )
-                    with Halo(text=f"Esperando {tiempo_espera}s por Rate Limit...", spinner="line"):
-                        time.sleep(tiempo_espera)
-                else:
-                    print(f"\n❌ Error durante la generación: {e}")
-                    break
-
-        if not exito_archivo:
-            contador_fallidos += 1
-
-    print("\n" + "=" * 60)
-    print(f" 📊 RESUMEN DE INGESTA PARA: {materia_input}")
-    print("=" * 60)
-    print(f"   Archivos nuevos procesados    : {contador_exito}")
-    print(f"   Omitidos (ya procesados prev.): {contador_saltados_silenciosos}")
-    print(f"   Fallidos                      : {contador_fallidos}")
-    print("=" * 60)
+            alineacion = res.get("alineacion", {})
+            clase_asig = alineacion.get("clase_asignada", "X")
+            afinidad = alineacion.get("peso_afinidad", 0)
+            print(f"✅ [✓] Asignado a Clase {clase_asig} (Afinidad: {afinidad}%)")
+            print(f"📄 Guardado en: {res['ruta_salida']}")
+        except Exception as e:
+            print(f"❌ Error al procesar '{item['nombre']}': {e}")
 
 
-def ingestar_material(ruta_entrada: str | None = None) -> None:
-    """
-    Ingesta automática de material con soporte para selección individual o actualización global
-    de todas las materias, filtrado de duplicados, clasificación, conversión a PDF, anonimización,
-    organización en Obsidian y alineación curricular.
-    """
-    load_dotenv(os.path.join(ruta_raiz, ".env"), override=True)
+def run(container: bootstrap.Container | None = None) -> None:
+    """Punto de entrada interactivo para `ml im`."""
+    cont = container or bootstrap.get_container()
+    materias_service = cont.materias_service
+    ingesta_service = cont.ingesta_service
 
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("Falta la variable de entorno GEMINI_API_KEY en el archivo .env.")
-
-    client = genai.Client(api_key=api_key)
-    modelo_nombre = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
-
-    materias = gestor_archivos.cargar_materias()
-    vault_path = servicio_config.ruta_boveda()
-    for mat in materias:
-        os.makedirs(os.path.join(vault_path, mat), exist_ok=True)
-
+    materias = materias_service.listar_materias()
     opciones_menu = (
         ["✨ Actualizar todas las materias"] + materias + ["[ + ] Añadir nueva asignatura..."]
     )
 
     print("\n📚 Selecciona la asignatura o modo de ingesta:")
-    seleccion = questionary.select(
-        "Selecciona una opción:",
-        choices=opciones_menu,
-        style=questionary.Style(
-            [
-                ("pointer", "fg:cyan bold"),
-                ("highlighted", "fg:cyan bold"),
-                ("answer", "fg:green bold"),
-            ]
-        ),
-    ).ask()
+    try:
+        seleccion = questionary.select(
+            "Selecciona una opción:",
+            choices=opciones_menu,
+            style=questionary.Style(
+                [
+                    ("pointer", "fg:cyan bold"),
+                    ("highlighted", "fg:cyan bold"),
+                    ("answer", "fg:green bold"),
+                ]
+            ),
+        ).ask()
+    except (KeyboardInterrupt, EOFError):
+        seleccion = None
 
     if seleccion is None:
         print("\nOperación cancelada.")
         return
 
-    ruta_base_uni = servicio_config.carpeta_material()
-
-    try:
-        prompt_template = gestor_archivos.leer_prompt("05_ingesta_material.md")
-    except Exception:
-        prompt_template = "Actúa como un extractor de conocimiento experto y transcribe este documento en Markdown."
-
     if "✨ Actualizar todas las materias" in seleccion:
         print("\n🚀 Iniciando actualización global de todas las asignaturas...")
         for mat in materias:
-            try:
-                _procesar_materia(
-                    mat, client, modelo_nombre, prompt_template, vault_path, ruta_base_uni
-                )
-            except Exception as e:
-                print(
-                    f"\n❌ Error al procesar la materia '{mat}': {e}. Continuando con la siguiente..."
-                )
-        print("\n✨ ¡Actualización global de todas las materias finalizada!")
+            _procesar_lote_materia(mat, ingesta_service)
+        print("\n✨ ¡Actualización global finalizada!")
     elif "[ + ]" in seleccion:
-        nueva_mat = input("\n✍️ Ingresa el nombre de la nueva asignatura: ").strip()
-        while not nueva_mat:
-            print("⚠️ El nombre no puede estar vacío.")
-            nueva_mat = input("✍️ Ingresa el nombre de la nueva asignatura: ").strip()
-        gestor_archivos.agregar_materia(nueva_mat)
-        materia_input = nueva_mat
-        os.makedirs(os.path.join(vault_path, materia_input), exist_ok=True)
         try:
-            _procesar_materia(
-                materia_input, client, modelo_nombre, prompt_template, vault_path, ruta_base_uni
-            )
-        except Exception as e:
-            print(f"\n❌ Error al procesar la nueva materia: {e}")
+            nueva_mat = input("\n✍️ Ingresa el nombre de la nueva asignatura: ").strip()
+            while not nueva_mat:
+                nueva_mat = input("✍️ Ingresa el nombre de la nueva asignatura: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print("\nOperación cancelada.")
+            return
+
+        materias_service.agregar_materia(nueva_mat)
+        _procesar_lote_materia(nueva_mat, ingesta_service)
     else:
-        materia_input = seleccion
-        try:
-            _procesar_materia(
-                materia_input, client, modelo_nombre, prompt_template, vault_path, ruta_base_uni
-            )
-        except Exception as e:
-            print(f"\n❌ Error al procesar la materia: {e}")
-
-    input("\nPresiona ENTER para salir...")
-
-
-def run():
-    ingestar_material()
+        _procesar_lote_materia(seleccion, ingesta_service)
 
 
 if __name__ == "__main__":

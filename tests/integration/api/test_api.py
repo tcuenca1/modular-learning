@@ -3,14 +3,15 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from modular_learning.core.application import tutoria as servicio_tutoria
 from modular_learning.apps.api import main as web_app
+from modular_learning.core.application import tutoria as servicio_tutoria
 
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)  # Aísla prompts/ y otros del proyecto real
     monkeypatch.setenv("ML_DATA_DIR", str(tmp_path / "data"))
+    web_app.bootstrap.build_container()
     web_app.SESIONES.clear()
     web_app.QUIZZES.clear()
     return TestClient(web_app.app)

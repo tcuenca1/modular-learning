@@ -1,6 +1,9 @@
+"""Adaptador concreto para Google Gemini utilizando el SDK moderno google.genai."""
+
+from __future__ import annotations
+
 import json
 import os
-import re
 import time
 import warnings
 from typing import Any
@@ -8,7 +11,6 @@ from typing import Any
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from halo import Halo
 
 from modular_learning.core.ports.llm import LLMAdapterBase
 
@@ -19,7 +21,7 @@ load_dotenv()
 
 
 class LLM_GeminiAdapter(LLMAdapterBase):
-    """Adaptador concreto para Google Gemini utilizando el SDK moderno `google.genai`."""
+    """Adaptador concreto para Google Gemini desacoplado de dependencias de UI (sin spinners de consola)."""
 
     def __init__(self):
         self.modelo_nombre = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
@@ -37,21 +39,50 @@ class LLM_GeminiAdapter(LLMAdapterBase):
         return self._cliente
 
     @staticmethod
+    def _sanitizar_claves_json(dato: Any) -> Any:
+        """Limpia saltos de línea, espacios y comillas residuales en las claves del JSON devuelto por el LLM."""
+        if isinstance(dato, dict):
+            limpio: dict[str, Any] = {}
+            for k, v in dato.items():
+                clave_limpia = str(k).strip().strip('"').strip("'").strip()
+                limpio[clave_limpia] = LLM_GeminiAdapter._sanitizar_claves_json(v)
+            return limpio
+        if isinstance(dato, list):
+            return [LLM_GeminiAdapter._sanitizar_claves_json(item) for item in dato]
+        return dato
+
+    @staticmethod
     def _parsear_json(texto: str) -> Any:
-        """Extrae el primer JSON válido (objeto o arreglo) de la respuesta del modelo."""
-        limpio = texto.strip().replace("```json", "").replace("```", "").strip()
+        """Extrae el primer JSON válido (objeto o arreglo) de la respuesta del modelo sanitizando claves."""
+        limpio = texto.strip()
+
+        # Limpiar bloques de código markdown si están presentes
+        if "```json" in limpio:
+            partes = limpio.split("```json")
+            if len(partes) > 1:
+                limpio = partes[1].split("```")[0]
+        elif "```" in limpio:
+            partes = limpio.split("```")
+            if len(partes) > 1:
+                limpio = partes[1].split("```")[0]
+
+        limpio = limpio.strip()
+
         try:
-            return json.loads(limpio)
+            objeto = json.loads(limpio)
+            return LLM_GeminiAdapter._sanitizar_claves_json(objeto)
         except json.JSONDecodeError:
             pass
+
         decoder = json.JSONDecoder()
         for i, caracter in enumerate(limpio):
             if caracter in "[{":
                 try:
                     objeto, _ = decoder.raw_decode(limpio[i:])
-                    return objeto
+                    return LLM_GeminiAdapter._sanitizar_claves_json(objeto)
                 except json.JSONDecodeError:
                     continue
+
         raise json.JSONDecodeError("La respuesta no contiene JSON válido", limpio, 0)
 
     def _normalizar_historial(self, contexto_previo: list[Any] | None) -> list[types.Content]:
@@ -101,19 +132,16 @@ class LLM_GeminiAdapter(LLMAdapterBase):
 
             while intento < max_reintentos:
                 try:
-                    with Halo(text="Consultando a Gemini...", spinner="line"):
-                        if contexto_previo:
-                            historial = self._normalizar_historial(contexto_previo)
-                            chat = client.chats.create(
-                                model=self.modelo_nombre, history=historial
-                            )
-                            response = chat.send_message(prompt, config=config)
-                            return response.text
-                        else:
-                            response = client.models.generate_content(
-                                model=self.modelo_nombre, contents=prompt, config=config
-                            )
-                            return response.text
+                    if contexto_previo:
+                        historial = self._normalizar_historial(contexto_previo)
+                        chat = client.chats.create(model=self.modelo_nombre, history=historial)
+                        response = chat.send_message(prompt, config=config)
+                        return response.text
+                    else:
+                        response = client.models.generate_content(
+                            model=self.modelo_nombre, contents=prompt, config=config
+                        )
+                        return response.text
                 except Exception as e:
                     if "429" in str(e) or "ResourceExhausted" in str(e):
                         intento += 1
@@ -121,10 +149,7 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                         print(
                             f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s..."
                         )
-                        with Halo(
-                            text=f"Esperando {tiempo_espera}s por Rate Limit...", spinner="line"
-                        ):
-                            time.sleep(tiempo_espera)
+                        time.sleep(tiempo_espera)
                     else:
                         raise
             raise RuntimeError("Se agotaron los reintentos por Rate Limit con Gemini.")
@@ -139,22 +164,21 @@ class LLM_GeminiAdapter(LLMAdapterBase):
 
             while intento < max_reintentos:
                 try:
-                    with Halo(text="Analizando documento con Gemini...", spinner="line"):
-                        mime = archivo_inline.get("mime_type", "application/pdf")
-                        file_bytes = archivo_inline.get("data", b"")
-                        ruta = archivo_inline.get("path")
+                    mime = archivo_inline.get("mime_type", "application/pdf")
+                    file_bytes = archivo_inline.get("data", b"")
+                    ruta = archivo_inline.get("path")
 
-                        if ruta and os.path.exists(ruta) and len(file_bytes) > 4_000_000:
-                            uploaded_file = client.files.upload(file=ruta)
-                            contents = [uploaded_file, prompt]
-                        else:
-                            parte_archivo = types.Part.from_bytes(data=file_bytes, mime_type=mime)
-                            contents = [parte_archivo, prompt]
+                    if ruta and os.path.exists(ruta) and len(file_bytes) > 4_000_000:
+                        uploaded_file = client.files.upload(file=ruta)
+                        contents = [uploaded_file, prompt]
+                    else:
+                        parte_archivo = types.Part.from_bytes(data=file_bytes, mime_type=mime)
+                        contents = [parte_archivo, prompt]
 
-                        response = client.models.generate_content(
-                            model=self.modelo_nombre, contents=contents
-                        )
-                        return response.text
+                    response = client.models.generate_content(
+                        model=self.modelo_nombre, contents=contents
+                    )
+                    return response.text
                 except Exception as e:
                     if "429" in str(e) or "ResourceExhausted" in str(e):
                         intento += 1
@@ -162,10 +186,7 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                         print(
                             f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s..."
                         )
-                        with Halo(
-                            text=f"Esperando {tiempo_espera}s por Rate Limit...", spinner="line"
-                        ):
-                            time.sleep(tiempo_espera)
+                        time.sleep(tiempo_espera)
                     else:
                         raise
             raise RuntimeError("Se agotaron los reintentos por Rate Limit con Gemini.")
@@ -182,11 +203,10 @@ class LLM_GeminiAdapter(LLMAdapterBase):
 
             while intento < max_reintentos:
                 try:
-                    with Halo(text="Generando estructura JSON con Gemini...", spinner="line"):
-                        response = client.models.generate_content(
-                            model=self.modelo_nombre, contents=prompt, config=config
-                        )
-                        return self._parsear_json(response.text)
+                    response = client.models.generate_content(
+                        model=self.modelo_nombre, contents=prompt, config=config
+                    )
+                    return self._parsear_json(response.text)
                 except Exception as e:
                     if "429" in str(e) or "ResourceExhausted" in str(e):
                         intento += 1
@@ -194,10 +214,7 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                         print(
                             f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s..."
                         )
-                        with Halo(
-                            text=f"Esperando {tiempo_espera}s por Rate Limit...", spinner="line"
-                        ):
-                            time.sleep(tiempo_espera)
+                        time.sleep(tiempo_espera)
                     else:
                         raise
             raise RuntimeError("Se agotaron los reintentos por Rate Limit con Gemini.")
@@ -214,9 +231,7 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                 try:
                     if contexto_previo:
                         historial = self._normalizar_historial(contexto_previo)
-                        chat = client.chats.create(
-                            model=self.modelo_nombre, history=historial
-                        )
+                        chat = client.chats.create(model=self.modelo_nombre, history=historial)
                         response = chat.send_message_stream(prompt)
                     else:
                         response = client.models.generate_content_stream(
@@ -234,10 +249,7 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                         print(
                             f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s..."
                         )
-                        with Halo(
-                            text=f"Esperando {tiempo_espera}s por Rate Limit...", spinner="line"
-                        ):
-                            time.sleep(tiempo_espera)
+                        time.sleep(tiempo_espera)
                     else:
                         raise
             raise RuntimeError("Se agotaron los reintentos por Rate Limit con Gemini en streaming.")
@@ -246,3 +258,5 @@ class LLM_GeminiAdapter(LLMAdapterBase):
 
 
 LLMGeminiAdapter = LLM_GeminiAdapter
+
+__all__ = ["LLMGeminiAdapter", "LLM_GeminiAdapter"]

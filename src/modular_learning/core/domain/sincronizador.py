@@ -1,8 +1,12 @@
+"""Lógica de dominio para sincronización y enriquecimiento de subtemas curriculares."""
+
+from __future__ import annotations
+
 import json
 import os
 
 from modular_learning import settings
-from modular_learning.infrastructure.llm import gestor_llm
+from modular_learning.core.ports.llm import LLMPort
 
 
 def _encontrar_ruta_cronograma(materia: str) -> str:
@@ -33,21 +37,23 @@ def _encontrar_ruta_cronograma(materia: str) -> str:
 
     try:
         for arch in os.listdir(carpeta_data):
-            if arch.endswith("_cronograma.json"):
-                if materia_slug.replace("_", "") in arch.upper().replace("_", ""):
-                    return os.path.join(carpeta_data, arch)
+            if arch.endswith("_cronograma.json") and materia_slug.replace("_", "") in arch.upper().replace("_", ""):
+                return os.path.join(carpeta_data, arch)
     except Exception:
         pass
 
     return ""
 
 
-def extraer_y_fusionar_subtemas(materia: str, contenido_md: str) -> int:
+def extraer_y_fusionar_subtemas(materia: str, contenido_md: str, llm: LLMPort) -> int:
     """
     Envía el cronograma oficial y los apuntes a la IA para extraer conceptos/subtemas técnicos
     no incluidos en el cronograma, y los fusiona en el archivo JSON de la materia.
     Retorna la cantidad de nuevos subtemas inyectados.
     """
+    if llm is None:
+        raise ValueError("Se requiere una instancia válida de LLMPort.")
+
     ruta_cronograma = _encontrar_ruta_cronograma(materia)
     if not ruta_cronograma or not os.path.exists(ruta_cronograma):
         print(f"⚠️ [Sincronizador] No se encontró cronograma para la materia '{materia}'.")
@@ -61,12 +67,6 @@ def extraer_y_fusionar_subtemas(materia: str, contenido_md: str) -> int:
         return 0
 
     if not isinstance(cronograma_data, list):
-        return 0
-
-    try:
-        llm = gestor_llm.obtener_llm()
-    except Exception as e:
-        print(f"⚠️ [Sincronizador] Error al inicializar gestor_llm: {e}")
         return 0
 
     cronograma_str = json.dumps(cronograma_data, indent=2, ensure_ascii=False)
@@ -144,3 +144,6 @@ def extraer_y_fusionar_subtemas(materia: str, contenido_md: str) -> int:
             print(f"⚠️ [Sincronizador] Error al guardar el cronograma actualizado: {e}")
 
     return subtemas_nuevos_totales
+
+
+__all__ = ["extraer_y_fusionar_subtemas"]

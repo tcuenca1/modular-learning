@@ -23,3 +23,8 @@ class LLMAdapterBase(ABC):
     @abstractmethod
     def generar_respuesta_stream(self, prompt: str, contexto_previo: list[dict] | None = None):
         """Envía un prompt y retorna un generador que produce chunks de texto en tiempo real (streaming)."""
+
+
+LLMPort = LLMAdapterBase
+
+__all__ = ["LLMAdapterBase", "LLMPort"]

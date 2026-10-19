@@ -1,249 +1,98 @@
-import json
-import os
+"""Comando CLI: `ml init` - Sesión interactiva de tutoría personalizada."""
+
+from __future__ import annotations
+
 import sys
-import warnings
-from typing import Any
+import uuid
 
-from dotenv import load_dotenv
-
+from modular_learning import bootstrap
 from modular_learning.apps.cli.ui import interaccion
-from modular_learning.core.application import configuracion as servicio_config
-from modular_learning.core.application import plugins as gestor_plugins
-from modular_learning.infrastructure.llm import gestor_llm
-from modular_learning.infrastructure.persistence import json_repositorios as gestor_archivos
-
-# Suprimir advertencias de deprecación
-warnings.filterwarnings("ignore", category=FutureWarning)
+from modular_learning.apps.cli.ui.spinner import spinner
 
 
-def main() -> None:
-    load_dotenv()
-    ruta_boveda = servicio_config.ruta_boveda()
-    llm = gestor_llm.obtener_llm()
+def run(container: bootstrap.Container | None = None) -> None:
+    """Ejecuta el flujo interactivo de tutoría como adaptador delgado."""
+    cont = container or bootstrap.get_container()
+    tutoria_service = cont.tutoria_service
 
     try:
-        # 1. Recopilar datos de inicio (Asignatura con questionary y Tema)
+        # 1. Recopilar datos interactivos del estudiante
         datos = interaccion.pedir_datos_inicio()
         materia = datos["materia"]
         tema = datos["tema"]
         nivel_profundidad = datos["nivel_profundidad"]
 
-        # Recuperar datos enriquecidos del Segundo Cerebro (Alineador Curricular)
-        detalle_clase = gestor_archivos.obtener_detalle_clase(materia, tema)
-        materiales_asociados = detalle_clase.get("materiales_asociados", [])
-        subtemas_adicionales = detalle_clase.get("subtemas_adicionales", [])
+        sesion_id = uuid.uuid4().hex
 
-        if materiales_asociados or subtemas_adicionales:
-            print("\n" + "🧠" + "=" * 60)
-            if materiales_asociados:
-                print(
-                    f" \033[1;95m[🧠 Segundo Cerebro Activo]\033[0m Contexto inyectado desde: {', '.join(materiales_asociados)}"
-                )
-            if subtemas_adicionales:
-                print(
-                    f" \033[1;96m[+]\033[0m Subtemas detectados: {', '.join(subtemas_adicionales)}"
-                )
-            print("=" * 62 + "\n")
-
-        # 2. Cargar prompt 01_roadmap_aprendizaje.md y generar ruta de sesión estructurada (JSON)
-        interaccion.mostrar_mensaje(f"Generando Roadmap JSON para el tema: '{tema}'...", "info")
-        prompt_roadmap_template = gestor_archivos.leer_prompt("01_roadmap_aprendizaje.md")
-
-        prompt_roadmap = prompt_roadmap_template.format(
-            tema=tema,
-            objetivo=f"Estudiar y dominar a fondo el tema dentro de la asignatura {materia}",
-        )
-
-        # Usar Structured Outputs (JSON) nativo a través del puerto LLM
-        data_roadmap = llm.generar_json_estructurado(prompt_roadmap)
-
-        if isinstance(data_roadmap, dict):
-            data_roadmap_dict = {str(k).strip(): v for k, v in data_roadmap.items()}
-            pasos_raw = data_roadmap_dict.get("pasos", [])
-            if not pasos_raw:
-                for k, v in data_roadmap_dict.items():
-                    if "paso" in k.lower():
-                        pasos_raw = v
-                        break
-        elif isinstance(data_roadmap, list):
-            pasos_raw = data_roadmap
-        else:
-            pasos_raw = []
-
-        pasos_sesion = []
-        if isinstance(pasos_raw, list):
-            for p in pasos_raw:
-                if isinstance(p, dict):
-                    p_limpio = {str(k).strip().lower(): v for k, v in p.items()}
-                    titulo = (
-                        p_limpio.get("titulo")
-                        or p_limpio.get("title")
-                        or p_limpio.get("nombre")
-                        or p_limpio.get("paso")
-                        or "Paso"
-                    )
-                    descripcion = (
-                        p_limpio.get("descripcion")
-                        or p_limpio.get("description")
-                        or p_limpio.get("detalle")
-                        or p_limpio.get("contenido")
-                        or ""
-                    )
-                    pasos_sesion.append({"titulo": str(titulo), "descripcion": str(descripcion)})
-                elif isinstance(p, str):
-                    pasos_sesion.append({"titulo": p, "descripcion": ""})
-
-        if not pasos_sesion:
-            raise ValueError("El JSON del roadmap no contiene una lista de 'pasos' válida.")
-
-        print("\n" + "=" * 65)
-        print(" 🗺️ RUTA DE SESIÓN ESTABLECIDA (JSON STRUCTURED OUTPUT):")
-        print("=" * 65)
-        for idx, p in enumerate(pasos_sesion, 1):
-            print(f"  {idx}. {p.get('titulo', 'Paso')}: {p.get('descripcion', '')}")
-        print("=" * 65)
-
-        # Historial de sesión para mantener contexto
-        historial_sesion: list[dict[str, Any]] = [
-            {"role": "user", "parts": [prompt_roadmap]},
-            {"role": "model", "parts": [json.dumps(data_roadmap, ensure_ascii=False)]},
-        ]
-
-        # 3. Bucle interactivo por cada paso usando prompt 02_explicacion_tema.md
-        prompt_explicacion_template = gestor_archivos.leer_prompt("02_explicacion_tema.md")
-
-        for idx, paso_obj in enumerate(pasos_sesion, 1):
-            titulo_paso = paso_obj.get("titulo", f"Paso {idx}")
-            desc_paso = paso_obj.get("descripcion", "")
-
-            print("\n" + "=" * 65)
-            interaccion.mostrar_mensaje(f"Paso {idx}/{len(pasos_sesion)}: {titulo_paso}", "info")
-            print("=" * 65)
-
-            prompt_explicacion = prompt_explicacion_template.format(
-                tema=f"{titulo_paso}: {desc_paso}",
+        # 2. Iniciar sesión y roadmap con el servicio
+        with spinner("Generando ruta de aprendizaje personalizada con IA..."):
+            sesion = tutoria_service.iniciar_sesion(
+                sesion_id=sesion_id,
+                materia=materia,
+                tema=tema,
                 nivel_profundidad=nivel_profundidad,
-                contexto_roadmap=f"Asignatura: {materia}. Tema principal: {tema}. Paso actual: {titulo_paso}",
             )
 
-            # Inyección y Directiva Estricta de Prompt (Segundo Cerebro)
-            if materiales_asociados or subtemas_adicionales:
-                lista_materiales_str = (
-                    ", ".join(materiales_asociados)
-                    if materiales_asociados
-                    else "Ninguno específico"
-                )
-                lista_subtemas_str = (
-                    ", ".join(subtemas_adicionales)
-                    if subtemas_adicionales
-                    else "Ninguno específico"
-                )
+        print("\n" + "=" * 65)
+        print(f" 🗺️ ROADMAP GENERADO: {len(sesion.pasos)} Pasos para dominar '{tema}'")
+        print("=" * 65)
+        for idx, p in enumerate(sesion.pasos, 1):
+            print(f"  {idx}. \033[1;96m{p.get('titulo')}\033[0m: {p.get('descripcion')}")
+        print("=" * 65 + "\n")
 
-                bloque_segundo_cerebro = f"""
-CONTEXTO DEL SEGUNDO CEREBRO (Material local del estudiante):
-- Archivos de referencia: {lista_materiales_str}
-- Subtemas clave a integrar: {lista_subtemas_str}
+        # 3. Recorrer cada paso del roadmap
+        for i, paso in enumerate(sesion.pasos):
+            titulo_paso = paso.get("titulo", f"Paso {i + 1}")
+            print(f"\n📖 [Paso {i + 1}/{len(sesion.pasos)}]: \033[1;94m{titulo_paso}\033[0m")
+            print("-" * 65)
 
-DIRECTIVA OBLIGATORIA: En tu respuesta, DEBES hacer referencia explícitamente a que estás utilizando estos subtemas extraídos de sus propios apuntes. Hazlo de forma natural pero evidente (ej. "Basándome en tu archivo X, profundicemos en Y..."). Integra estos subtemas en tu explicación del tema principal.
-"""
-                prompt_explicacion += "\n" + bloque_segundo_cerebro
+            with spinner(f"El tutor está elaborando la explicación para '{titulo_paso}'..."):
+                explicacion = tutoria_service.explicar_paso(sesion, i)
 
-            # Inyectar plugin práctico si existe (Arquitectura Hexagonal / Puertos y Adaptadores)
-            plugin = gestor_plugins.obtener_plugin(materia)
-            if plugin:
-                instrucciones_plugin = plugin.obtener_instrucciones_ia()
-                ejercicio_base = plugin.generar_ejercicio_base(titulo_paso)
-                prompt_explicacion += f"\n\n{instrucciones_plugin}\n\n{ejercicio_base}"
+            interaccion.mostrar_mensaje(explicacion, tipo="ia")
 
-            interaccion.mostrar_mensaje("El tutor está explicando el paso...", "info")
-            print("\n\033[1;36m🤖 [Tutor IA - Streaming en tiempo real]\033[0m")
-            explicacion_chunks = []
-            for chunk in llm.generar_respuesta_stream(
-                prompt_explicacion, contexto_previo=historial_sesion
-            ):
-                sys.stdout.write(chunk)
-                sys.stdout.flush()
-                explicacion_chunks.append(chunk)
-            print("\n")
-            explicacion = "".join(explicacion_chunks)
-
-            historial_sesion.append({"role": "user", "parts": [prompt_explicacion]})
-            historial_sesion.append({"role": "model", "parts": [explicacion]})
-
-            # Pausa interactiva para dudas
+            # Ciclo de resolución de dudas
             while True:
                 duda = interaccion.pausa_estudio()
-                if not duda or duda.lower() in ["s", "si", "sí", "ok", "continuar"]:
-                    interaccion.mostrar_mensaje("¡Entendido! Pasando al siguiente paso.", "exito")
+                if not duda:
                     break
-                else:
-                    interaccion.mostrar_mensaje("Consultando tu duda con el tutor...", "info")
-                    prompt_duda = f"Tengo esta duda sobre el paso '{titulo_paso}': {duda}. Respóndela técnicamente y de forma clara."
+                with spinner("El tutor está resolviendo tu duda..."):
+                    respuesta_duda = tutoria_service.responder_duda(sesion, i, duda)
+                interaccion.mostrar_mensaje(respuesta_duda, tipo="ia")
 
-                    respuesta_duda = llm.generar_texto(
-                        prompt_duda, contexto_previo=historial_sesion
-                    )
-                    interaccion.mostrar_mensaje(respuesta_duda, "ia")
+        # 4. Finalización y guardado en Obsidian
+        print("\n" + "=" * 65)
+        print(" 📝 Generando guía de repaso activo y consolidando notas...")
+        print("=" * 65)
 
-                    historial_sesion.append({"role": "user", "parts": [prompt_duda]})
-                    historial_sesion.append({"role": "model", "parts": [respuesta_duda]})
+        with spinner("Sintetizando guía final y registrando clase completada..."):
+            resultado = tutoria_service.finalizar_sesion(sesion)
 
-        # 4. Generar Guía de Estudio y Autoevaluación con prompt 03_resumen_evaluacion.md
-        interaccion.mostrar_mensaje(
-            "Generando Guía de Estudio y Autoevaluación definitiva...", "info"
-        )
-        prompt_resumen_template = gestor_archivos.leer_prompt("03_resumen_evaluacion.md")
-
-        nombres_pasos = [p.get("titulo", "") for p in pasos_sesion]
-        prompt_resumen = prompt_resumen_template.format(
-            materia=materia,
-            contenido_apuntes=f"Tema de estudio: {tema}\nPasos cubiertos:\n{', '.join(nombres_pasos)}",
-        )
-
-        guia_estudio_markdown = llm.generar_texto(prompt_resumen, contexto_previo=historial_sesion)
-
-        interaccion.mostrar_mensaje(
-            f"Guardando guía de repaso en Obsidian ({ruta_boveda})...", "info"
-        )
-        exito = gestor_archivos.guardar_resumen_obsidian(
-            materia, tema, guia_estudio_markdown, ruta_boveda
-        )
-
-        if exito:
+        if resultado.get("guardado_obsidian"):
             interaccion.mostrar_mensaje(
-                f"¡Guía de estudio guardada exitosamente en tu bóveda de Obsidian bajo la asignatura '{materia}'!",
-                "exito",
+                f"¡Guía de estudio guardada exitosamente en Obsidian bajo la materia '{materia}'!",
+                tipo="exito",
             )
-            # Actualizar estado de la clase en el cronograma JSON a completado
-            gestor_archivos.marcar_clase_completada(materia, tema)
         else:
-            interaccion.mostrar_mensaje("No se pudo guardar el archivo en Obsidian.", "error")
+            interaccion.mostrar_mensaje(
+                "La guía se generó, pero hubo una advertencia al persistir en la bóveda.",
+                tipo="info",
+            )
 
         print("\n" + "=" * 65)
-        print(" 🎉 ¡Sesión de estudio y autoevaluación completada con éxito!")
+        print(" 🎉 ¡Sesión de estudio completada con éxito!")
         print("=" * 65 + "\n")
 
     except KeyboardInterrupt:
         print("\n\n\033[1;33m⚠️ Sesión cancelada por el usuario. ¡Hasta pronto!\033[0m")
         sys.exit(0)
-    except FileNotFoundError as e:
-        interaccion.mostrar_mensaje(f"Archivo no encontrado: {e}", "error")
-        print(
-            "\033[1;33m💡 [Sugerencia] Revisa el archivo .env, la ruta de la bóveda de Obsidian o los archivos de configuración requeridos.\033[0m"
-        )
-        sys.exit(1)
-    except ConnectionError as e:
-        interaccion.mostrar_mensaje(f"Error de conexión: {e}", "error")
-        print(
-            "\033[1;33m💡 [Sugerencia] Verifica tu conexión a internet o el estado de la API de Gemini.\033[0m"
-        )
-        sys.exit(1)
     except Exception as e:
-        interaccion.mostrar_mensaje(f"Ocurrió un error en el sistema: {e}", "error")
-        print(
-            "\033[1;33m💡 [Sugerencia] Revisa el archivo .env y asegúrate de que las dependencias y la configuración sean correctas.\033[0m"
-        )
+        interaccion.mostrar_mensaje(f"Error en la sesión de tutoría: {e}", tipo="error")
         sys.exit(1)
+
+
+def main() -> None:
+    run()
 
 
 if __name__ == "__main__":

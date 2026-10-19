@@ -1,71 +1,84 @@
-"""
-Servicio de configuración del usuario (sin login).
+"""Servicio de aplicación para configuración de usuario."""
 
-Persiste en `data/config/ajustes.json` las rutas elegidas por el usuario:
-- carpeta_material: carpeta raíz con sus actividades y material de estudio (una subcarpeta por asignatura).
-- ruta_obsidian: bóveda de Obsidian, usada tanto para guardar lo ingestado como para las guías de estudio.
+from __future__ import annotations
 
-Si no hay ajustes guardados se usan las variables de entorno (compatibilidad con el CLI) o valores por defecto.
-"""
+from typing import Any
 
-import json
-import os
-
-ARCHIVO_AJUSTES = os.path.join("data", "config", "ajustes.json")
-DEFAULT_CARPETA_MATERIAL = "C:/Universidad"
-DEFAULT_OBSIDIAN = "obsidian_vault"
+from modular_learning.core.ports.config import AjustesPort
 
 
-def _leer() -> dict:
-    try:
-        with open(ARCHIVO_AJUSTES, encoding="utf-8") as f:
-            datos = json.load(f)
-        return datos if isinstance(datos, dict) else {}
-    except (OSError, json.JSONDecodeError):
-        return {}
+class ConfiguracionService:
+    """Caso de uso para la administración y validación de rutas de estudio y bóvedas."""
+
+    def __init__(self, ajustes_repo: AjustesPort):
+        self.ajustes_repo = ajustes_repo
+
+    def esta_configurado(self) -> bool:
+        return self.ajustes_repo.esta_configurado()
+
+    def carpeta_material(self) -> str:
+        return self.ajustes_repo.carpeta_material()
+
+    def ruta_boveda(self) -> str:
+        return self.ajustes_repo.ruta_boveda()
+
+    def obtener_ajustes(self) -> dict[str, Any]:
+        return self.ajustes_repo.obtener_ajustes()
+
+    def guardar_ajustes(
+        self, carpeta_material_nueva: str, ruta_obsidian_nueva: str
+    ) -> dict[str, Any]:
+        return self.ajustes_repo.guardar_ajustes(carpeta_material_nueva, ruta_obsidian_nueva)
 
 
+# Instancia por defecto para compatibilidad si se inyecta o enlaza en runtime
+_instancia_por_defecto: ConfiguracionService | None = None
+
+
+def configurar_servicio_defecto(servicio: ConfiguracionService) -> None:
+    global _instancia_por_defecto
+    _instancia_por_defecto = servicio
+
+
+def _obtener_servicio() -> ConfiguracionService:
+    if _instancia_por_defecto is None:
+        raise RuntimeError(
+            "ConfiguracionService no ha sido inicializado. "
+            "Usa Container de modular_learning.bootstrap o llama a configurar_servicio_defecto()."
+        )
+    return _instancia_por_defecto
+
+
+# Funciones de conveniencia que delegan al servicio
 def esta_configurado() -> bool:
-    datos = _leer()
-    return bool(datos.get("carpeta_material") and datos.get("ruta_obsidian"))
+    return _obtener_servicio().esta_configurado()
 
 
 def carpeta_material() -> str:
-    return (
-        _leer().get("carpeta_material")
-        or os.getenv("RUTA_BASE_UNIVERSIDAD")
-        or DEFAULT_CARPETA_MATERIAL
-    )
+    return _obtener_servicio().carpeta_material()
 
 
 def ruta_boveda() -> str:
-    return _leer().get("ruta_obsidian") or os.getenv("RUTA_OBSIDIAN") or DEFAULT_OBSIDIAN
+    return _obtener_servicio().ruta_boveda()
 
 
-def obtener_ajustes() -> dict:
-    return {
-        "configurado": esta_configurado(),
-        "carpeta_material": carpeta_material(),
-        "ruta_obsidian": ruta_boveda(),
-        "carpeta_material_existe": os.path.isdir(carpeta_material()),
-        "ruta_obsidian_existe": os.path.isdir(ruta_boveda()),
-    }
+def obtener_ajustes() -> dict[str, Any]:
+    return _obtener_servicio().obtener_ajustes()
 
 
-def guardar_ajustes(carpeta_material_nueva: str, ruta_obsidian_nueva: str) -> dict:
-    """Valida y guarda las rutas. La carpeta de material debe existir; la bóveda se crea si falta."""
-    material = os.path.normpath(carpeta_material_nueva.strip().strip('"'))
-    boveda = os.path.normpath(ruta_obsidian_nueva.strip().strip('"'))
-    if not carpeta_material_nueva.strip() or not ruta_obsidian_nueva.strip():
-        raise ValueError("Debes indicar ambas rutas.")
-    if not os.path.isdir(material):
-        raise ValueError(f"La carpeta de material no existe: {material}")
-    try:
-        os.makedirs(boveda, exist_ok=True)
-    except OSError as e:
-        raise ValueError(f"No se pudo crear la bóveda de Obsidian en {boveda}: {e}") from e
+def guardar_ajustes(carpeta_material_nueva: str, ruta_obsidian_nueva: str) -> dict[str, Any]:
+    return _obtener_servicio().guardar_ajustes(carpeta_material_nueva, ruta_obsidian_nueva)
 
-    os.makedirs(os.path.dirname(ARCHIVO_AJUSTES), exist_ok=True)
-    with open(ARCHIVO_AJUSTES, "w", encoding="utf-8") as f:
-        json.dump({"carpeta_material": material, "ruta_obsidian": boveda}, f, indent=4, ensure_ascii=False)
-    return obtener_ajustes()
+
+_orig_carpeta_material = carpeta_material
+
+__all__ = [
+    "ConfiguracionService",
+    "_orig_carpeta_material",
+    "carpeta_material",
+    "configurar_servicio_defecto",
+    "esta_configurado",
+    "guardar_ajustes",
+    "obtener_ajustes",
+    "ruta_boveda",
+]

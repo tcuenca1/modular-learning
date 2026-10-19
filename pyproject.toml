@@ -53,6 +53,7 @@ where = ["src"]
 
 [tool.importlinter]
 root_package = "modular_learning"
+include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Core es agnóstico"

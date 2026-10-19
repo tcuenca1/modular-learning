@@ -1,6 +1,5 @@
 """Factory / Enrutador de Proveedores LLM."""
 
-import os
 from dotenv import load_dotenv
 
 from modular_learning.core.ports.llm import LLMAdapterBase
