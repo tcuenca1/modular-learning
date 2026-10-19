@@ -54,21 +54,45 @@ def main() -> None:
 
         # Usar Structured Outputs (JSON) nativo a través del puerto LLM
         data_roadmap = llm.generar_json_estructurado(prompt_roadmap)
-        
+
         if isinstance(data_roadmap, dict):
-            data_roadmap = {str(k).strip(): v for k, v in data_roadmap.items()}
+            data_roadmap_dict = {str(k).strip(): v for k, v in data_roadmap.items()}
+            pasos_raw = data_roadmap_dict.get("pasos", [])
+            if not pasos_raw:
+                for k, v in data_roadmap_dict.items():
+                    if "paso" in k.lower():
+                        pasos_raw = v
+                        break
+        elif isinstance(data_roadmap, list):
+            pasos_raw = data_roadmap
         else:
-            data_roadmap = {}
-            
-        pasos_sesion = data_roadmap.get("pasos", [])
-        if isinstance(pasos_sesion, list):
-            pasos_sesion = [
-                {str(k).strip(): v for k, v in p.items()} if isinstance(p, dict) else p
-                for p in pasos_sesion
-            ]
+            pasos_raw = []
+
+        pasos_sesion = []
+        if isinstance(pasos_raw, list):
+            for p in pasos_raw:
+                if isinstance(p, dict):
+                    p_limpio = {str(k).strip().lower(): v for k, v in p.items()}
+                    titulo = (
+                        p_limpio.get("titulo")
+                        or p_limpio.get("title")
+                        or p_limpio.get("nombre")
+                        or p_limpio.get("paso")
+                        or "Paso"
+                    )
+                    descripcion = (
+                        p_limpio.get("descripcion")
+                        or p_limpio.get("description")
+                        or p_limpio.get("detalle")
+                        or p_limpio.get("contenido")
+                        or ""
+                    )
+                    pasos_sesion.append({"titulo": str(titulo), "descripcion": str(descripcion)})
+                elif isinstance(p, str):
+                    pasos_sesion.append({"titulo": p, "descripcion": ""})
 
         if not pasos_sesion:
-            raise ValueError("El JSON del roadmap no contiene la clave 'pasos' esperada.")
+            raise ValueError("El JSON del roadmap no contiene una lista de 'pasos' válida.")
 
         print("\n" + "=" * 65)
         print(" 🗺️ RUTA DE SESIÓN ESTABLECIDA (JSON STRUCTURED OUTPUT):")
