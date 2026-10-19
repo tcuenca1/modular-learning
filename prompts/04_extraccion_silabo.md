@@ -18,11 +18,11 @@ Contenido de la Sección del Sílabo ({materia}):
 FORMATO DE SALIDA
 Devuelve ÚNICAMENTE un arreglo JSON válido con esta estructura exacta:
 [
-  {
+  {{
     "fecha": "DD/MM/YYYY",
     "tema": "Nombre",
     "objetivo": "Objetivo",
     "contenido": "Resumen",
     "estado": "pendiente"
-  }
+  }}
 ]

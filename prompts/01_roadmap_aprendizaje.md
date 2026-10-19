@@ -22,19 +22,19 @@ RESTRICCIONES
 - Debes responder ESTRICTAMENTE con un objeto JSON válido, sin bloques markdown adicionales ni texto fuera del JSON.
 
 FORMATO DE SALIDA (ESTRICTAMENTE JSON)
-{
+{{
   "pasos": [
-    {
+    {{
       "titulo": "Paso 1: Fundamentos",
       "descripcion": "Explicación técnica del concepto básico necesario."
-    },
-    {
+    }},
+    {{
       "titulo": "Paso 2: Desarrollo",
       "descripcion": "Desglose del contenido principal y procesos técnicos."
-    },
-    {
+    }},
+    {{
       "titulo": "Paso 3: Aplicación",
       "descripcion": "Síntesis y práctica mental para consolidar el conocimiento."
-    }
+    }}
   ]
-}
+}}
