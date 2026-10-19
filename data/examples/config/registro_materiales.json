@@ -1,0 +1,17 @@
+[
+    {
+        "nombre": "Taller_01_Arquitectura_Hexagonal.pdf",
+        "materia": "Arquitectura de Software",
+        "fecha": "2026-10-01 10:00:00"
+    },
+    {
+        "nombre": "Guia_REST_API_Express.docx",
+        "materia": "Programacion Web",
+        "fecha": "2026-10-02 11:30:00"
+    },
+    {
+        "nombre": "Laboratorio_MQTT_Sensores.pptx",
+        "materia": "Internet de las Cosas",
+        "fecha": "2026-10-03 14:15:00"
+    }
+]

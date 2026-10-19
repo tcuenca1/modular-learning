@@ -6,7 +6,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from modules.core.services import gestor_archivos, gestor_llm
+from modules.core.services import gestor_archivos, gestor_llm, servicio_config
 from modules.plugins.services import gestor_plugins
 from modules.ui import interaccion
 
@@ -16,7 +16,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 def main() -> None:
     load_dotenv()
-    ruta_boveda = os.getenv("RUTA_OBSIDIAN", "obsidian_vault")
+    ruta_boveda = servicio_config.ruta_boveda()
     llm = gestor_llm.obtener_llm()
 
     try:

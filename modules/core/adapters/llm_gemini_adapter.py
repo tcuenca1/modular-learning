@@ -36,6 +36,24 @@ class LLM_GeminiAdapter(LLMAdapterBase):
         self._cliente = genai.Client(api_key=api_key)
         return self._cliente
 
+    @staticmethod
+    def _parsear_json(texto: str) -> Any:
+        """Extrae el primer JSON válido (objeto o arreglo) de la respuesta del modelo."""
+        limpio = texto.strip().replace("```json", "").replace("```", "").strip()
+        try:
+            return json.loads(limpio)
+        except json.JSONDecodeError:
+            pass
+        decoder = json.JSONDecoder()
+        for i, caracter in enumerate(limpio):
+            if caracter in "[{":
+                try:
+                    objeto, _ = decoder.raw_decode(limpio[i:])
+                    return objeto
+                except json.JSONDecodeError:
+                    continue
+        raise json.JSONDecodeError("La respuesta no contiene JSON válido", limpio, 0)
+
     def _normalizar_historial(self, contexto_previo: list[Any] | None) -> list[types.Content]:
         """Convierte historiales en formato diccionario estándar a objetos types.Content de google.genai."""
         if not contexto_previo:
@@ -168,15 +186,7 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                         response = client.models.generate_content(
                             model=self.modelo_nombre, contents=prompt, config=config
                         )
-                        texto_respuesta = response.text
-                        match = re.search(r'\{.*\}', texto_respuesta, re.DOTALL)
-                        if match:
-                            texto_limpio = match.group(0)
-                        else:
-                            texto_limpio = texto_respuesta.strip()
-                        
-                        texto_limpio = texto_limpio.replace("```json", "").replace("```", "").strip()
-                        return json.loads(texto_limpio)
+                        return self._parsear_json(response.text)
                 except Exception as e:
                     if "429" in str(e) or "ResourceExhausted" in str(e):
                         intento += 1

@@ -1,5 +1,0 @@
-Seguridad de la Informacion
-Ingenieria de Software II
-Programacion Web
-Internet de las Cosas
-Tecnologias de Conmutacion I

@@ -18,11 +18,15 @@ dependencies = [
     "halo>=0.0.31",
     "pyyaml>=6.0.0",
     "python-docx>=1.0.0",
-    "comtypes>=1.1.14"
+    "comtypes>=1.1.14",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+    "python-multipart>=0.0.9"
 ]
 
 [project.scripts]
 ml = "cli:app"
+ml-web = "run_web:run"
 
 [tool.ruff]
 line-length = 100
@@ -42,8 +46,11 @@ ignore = [
 quote-style = "double"
 
 [tool.setuptools]
-py-modules = ["cli", "main"]
+py-modules = ["cli", "main", "run_web"]
 
 [tool.setuptools.packages.find]
 include = ["modules*", "tools*"]
 exclude = ["obsidian_vault*", "data*"]
+
+[tool.setuptools.package-data]
+"modules.web" = ["static/*", "static/**/*"]

@@ -1,0 +1,3 @@
+[
+    "### 🔌 Análisis de Flujo IoT / Node-RED\n- **Archivo fuente:** /workspace/iot/flows.json\n- **Total de nodos:** 15\n\n#### Tipos de Nodos:\n- inject: 2\n- debug: 2\n- mqtt in: 2\n- function: 3\n- ui-chart: 1\n- ui-gauge: 1\n\n#### Sensores y Dispositivos Detectados:\n- Nodo [mqtt in] 'Sensor Temperatura' (Tópico MQTT: sensors/temperature)\n- Nodo [mqtt in] 'Sensor Humedad' (Tópico MQTT: sensors/humidity)\n- Nodo [function] 'Normalizar Lecturas' (Tópico MQTT: N/A)"
+]

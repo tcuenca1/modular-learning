@@ -1,5 +1,7 @@
 import os
 
+from modules.core.services import servicio_config
+
 from modules.plugins.adapters.plugin_cisco import CiscoPlugin
 from modules.plugins.adapters.plugin_nodered import NodeRedPlugin
 from modules.plugins.adapters.plugin_web import WebPlugin
@@ -55,11 +57,12 @@ def actualizar_plugin(seleccion: str) -> str:
     """
     seleccion_lower = seleccion.lower()
     resultados = []
-    ruta_base_uni = os.getenv("RUTA_BASE_UNIVERSIDAD", "C:/Universidad")
+    ruta_base_uni = servicio_config.carpeta_material()
+    ruta_boveda = servicio_config.ruta_boveda()
 
     rutas_busqueda = [
         os.path.join(ruta_base_uni, "Internet de las Cosas"),
-        os.path.join("obsidian_vault", "Internet de las Cosas"),
+        os.path.join(ruta_boveda, "Internet de las Cosas"),
         os.path.join("data", "plugins"),
     ]
 
@@ -95,7 +98,7 @@ def actualizar_plugin(seleccion: str) -> str:
         try:
             ruta_web = os.path.join(ruta_base_uni, "Programacion Web")
             if not os.path.exists(ruta_web):
-                ruta_web = os.path.join("obsidian_vault", "Programacion Web")
+                ruta_web = os.path.join(ruta_boveda, "Programacion Web")
             proyectos = []
             if os.path.exists(ruta_web):
                 for root, dirs, files in os.walk(ruta_web):

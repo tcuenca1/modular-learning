@@ -27,7 +27,7 @@ ruta_raiz = os.path.dirname(ruta_script)
 sys.path.append(ruta_raiz)
 
 from modules.core.domain import alineador_curricular
-from modules.core.services import gestor_archivos
+from modules.core.services import gestor_archivos, servicio_config
 from modules.plugins.services import gestor_plugins
 from modules.ui import formateador
 
@@ -365,7 +365,7 @@ def ingestar_material(ruta_entrada: str | None = None) -> None:
     modelo_nombre = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
     materias = gestor_archivos.cargar_materias()
-    vault_path = os.path.join(ruta_raiz, "obsidian_vault")
+    vault_path = servicio_config.ruta_boveda()
     for mat in materias:
         os.makedirs(os.path.join(vault_path, mat), exist_ok=True)
 
@@ -390,7 +390,7 @@ def ingestar_material(ruta_entrada: str | None = None) -> None:
         print("\nOperación cancelada.")
         return
 
-    ruta_base_uni = os.getenv("RUTA_BASE_UNIVERSIDAD", "C:/Universidad")
+    ruta_base_uni = servicio_config.carpeta_material()
 
     try:
         prompt_template = gestor_archivos.leer_prompt("05_ingesta_material.md")

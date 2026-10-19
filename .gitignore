@@ -14,7 +14,17 @@ obsidian_vault/
 .DS_Store
 session-*.md
 *.egg-info/
-data/vectordb/
 .agent_logs/
-data/config/*.log
 .aider*
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# API Static Assets
+src/modular_learning/apps/api/static/
+
+# Datos locales y excepciones para ejemplos anonimizados
+data/*
+!data/examples/
+!data/examples/**

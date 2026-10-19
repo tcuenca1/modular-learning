@@ -1,0 +1,5 @@
+[
+    "- sw1-2960#configure terminal\n- sw1-2960(config)#vlan 10\n- sw1-2960(config-vlan)#name Usuarios\n- sw1-2960(config-vlan)#exit\n- sw1-2960(config)#interface range fastethernet 0/1 - 10\n- sw1-2960(config-if)#switchport access vlan 10\n- sw1-2960(config-if)#exit",
+    "- Comandos de configuración de interfaz:\n  - `switchport mode access`\n  - `switchport mode trunk`\n  - `switchport trunk allowed vlan 10,20`\n\n- Comandos de verificación (`show`):\n  - `show interfaces trunk`\n  - `show vlan brief`",
+    "- Cisco Packet Tracer"
+]

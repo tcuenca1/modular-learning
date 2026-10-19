@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modular Learning · Tutor IA y gestión académica</title>
+  <meta name="description" content="Plataforma web de tutoría con IA: sesiones guiadas, quiz de recuerdo activo, telemetría de progreso, extracción de sílabos y segundo cerebro en Obsidian." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+  <div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-logo">🎓</div>
+        <div>
+          <h1 class="brand-title">Modular Learning</h1>
+          <p class="brand-sub">Tutor IA · Segundo Cerebro</p>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Navegación principal">
+        <button class="nav-item active" data-view="dashboard" id="nav-dashboard"><span>📊</span> Dashboard</button>
+        <button class="nav-item" data-view="tutor" id="nav-tutor"><span>🧑‍🏫</span> Sesión de tutoría</button>
+        <button class="nav-item" data-view="quiz" id="nav-quiz"><span>🧠</span> Quiz activo</button>
+        <button class="nav-item" data-view="silabo" id="nav-silabo"><span>📑</span> Sílabos</button>
+        <button class="nav-item" data-view="material" id="nav-material"><span>📥</span> Ingesta de material</button>
+        <button class="nav-item" data-view="plugins" id="nav-plugins"><span>🔌</span> Plugins</button>
+        <button class="nav-item" data-view="config" id="nav-config"><span>⚙️</span> Configuración</button>
+      </nav>
+      <div class="sidebar-foot">v1.0 · Arquitectura hexagonal</div>
+    </aside>
+
+    <main class="content">
+      <header class="topbar">
+        <button class="menu-btn" id="menu-btn" aria-label="Abrir menú">☰</button>
+        <h2 id="view-title">Dashboard</h2>
+      </header>
+
+      <!-- DASHBOARD -->
+      <section class="view active" id="view-dashboard">
+        <div class="hero glass">
+          <div>
+            <h2 class="hero-title">Tu progreso académico</h2>
+            <p class="muted">Telemetría en tiempo real de tus cronogramas y plugins activos.</p>
+          </div>
+          <div class="ring" id="ring-global" style="--pct:0">
+            <div class="ring-inner"><strong id="pct-global">0%</strong><small>global</small></div>
+          </div>
+        </div>
+        <div class="kpis" id="kpis"></div>
+        <h3 class="section-title">Desglose por asignatura</h3>
+        <div class="grid" id="materias-stats"></div>
+      </section>
+
+      <!-- TUTOR -->
+      <section class="view" id="view-tutor">
+        <div id="tutor-setup" class="glass panel">
+          <h3 class="section-title">Nueva sesión de estudio</h3>
+          <div class="form-grid">
+            <label>Asignatura
+              <select id="tutor-materia"></select>
+            </label>
+            <label class="hidden" id="tutor-nueva-wrap">Nombre de la nueva asignatura
+              <input type="text" id="tutor-nueva" placeholder="Ej. Bases de Datos" />
+            </label>
+            <label>Nivel de profundidad
+              <select id="tutor-nivel">
+                <option value="BÁSICO">Básico · visión general y analogías</option>
+                <option value="INTERMEDIO" selected>Intermedio · conceptos y funcionamiento</option>
+                <option value="AVANZADO">Avanzado · arquitectura y rigor técnico</option>
+              </select>
+            </label>
+          </div>
+          <div id="clases-pendientes" class="hidden">
+            <div class="clases-header">
+              <span class="clases-header-title">📅 Clases pendientes del cronograma</span>
+              <small class="muted">Orden cronológico vertical · Selecciona la clase a estudiar</small>
+            </div>
+            <div class="clases-lista" id="clases-lista"></div>
+          </div>
+          <label>Tema a estudiar
+            <input type="text" id="tutor-tema" placeholder="Ej. Modelo OSI, Patrones de diseño..." />
+          </label>
+          <button class="btn primary" id="tutor-iniciar">🚀 Generar roadmap e iniciar</button>
+        </div>
+
+        <div id="tutor-session" class="hidden">
+          <div class="session-head glass">
+            <div>
+              <h3 id="ses-tema" class="section-title"></h3>
+              <p class="muted small" id="ses-meta"></p>
+              <p class="brain hidden" id="ses-brain"></p>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress"><div class="progress-bar" id="ses-progress"></div></div>
+              <small id="ses-progress-txt">0 / 0</small>
+            </div>
+          </div>
+          <div class="session-layout">
+            <ol class="roadmap glass" id="roadmap"></ol>
+            <div class="tutor-pane">
+              <div class="glass panel tutor-canvas">
+                <div class="tutor-label"><span class="pulse"></span> Tutor IA</div>
+                <div id="tutor-output" class="markdown"></div>
+              </div>
+              <div class="glass panel chat" id="chat-box">
+                <div id="chat-log" class="chat-log"></div>
+                <div class="chat-input">
+                  <input type="text" id="duda-input" placeholder="¿Tienes alguna duda sobre este paso?" />
+                  <button class="btn" id="duda-enviar">Preguntar</button>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="btn ghost" id="btn-cancelar">✖ Cancelar sesión</button>
+                <button class="btn primary" id="btn-siguiente" disabled>Entendido, siguiente paso ➜</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="tutor-final" class="hidden glass panel">
+          <h3 class="section-title">🎉 ¡Sesión completada!</h3>
+          <p class="muted" id="final-status"></p>
+          <div class="markdown" id="final-guia"></div>
+          <button class="btn primary" id="btn-nueva">Nueva sesión</button>
+        </div>
+      </section>
+
+      <!-- QUIZ -->
+      <section class="view" id="view-quiz">
+        <div class="glass panel" id="quiz-intro">
+          <h3 class="section-title">Motor de Recuerdo Activo</h3>
+          <p class="muted">Preguntas generadas a partir de los temas que ya completaste.</p>
+          <button class="btn primary" id="quiz-generar">🧠 Generar quiz</button>
+        </div>
+        <div class="glass panel hidden" id="quiz-box">
+          <div class="quiz-top"><span id="quiz-counter"></span><div class="progress"><div class="progress-bar" id="quiz-progress"></div></div></div>
+          <h3 id="quiz-enunciado" class="quiz-q"></h3>
+          <div id="quiz-opciones" class="options"></div>
+          <button class="btn primary" id="quiz-next" disabled>Siguiente</button>
+        </div>
+        <div class="glass panel hidden" id="quiz-result"></div>
+      </section>
+
+      <!-- SÍLABOS -->
+      <section class="view" id="view-silabo">
+        <div class="glass panel">
+          <h3 class="section-title">Extraer cronograma de un sílabo</h3>
+          <label>Nombre de la asignatura (opcional, se sugiere desde el archivo)
+            <input type="text" id="silabo-materia" placeholder="Ej. Seguridad de la Informacion" />
+          </label>
+          <div class="dropzone" id="silabo-drop" tabindex="0">
+            <div class="drop-icon">📄</div>
+            <p><strong>Arrastra tu sílabo aquí</strong> o haz clic para elegirlo</p>
+            <small class="muted">PDF, MD o TXT</small>
+            <input type="file" id="silabo-file" accept=".pdf,.md,.txt" hidden />
+          </div>
+          <p class="muted small" id="silabo-file-name"></p>
+          <button class="btn primary" id="silabo-extraer" disabled>✨ Analizar con IA</button>
+        </div>
+        <div class="glass panel hidden" id="silabo-result">
+          <h3 class="section-title" id="silabo-result-title"></h3>
+          <div class="table-wrap"><table id="silabo-table"></table></div>
+          <button class="btn primary" id="silabo-guardar">💾 Guardar cronograma</button>
+        </div>
+      </section>
+
+      <!-- MATERIAL -->
+      <section class="view" id="view-material">
+        <!-- Modo 1: Sincronización automática desde carpetas (Estilo Plugin) -->
+        <div class="glass panel">
+          <div class="panel-header-inline">
+            <div>
+              <h3 class="section-title">📥 Sincronización de Material desde Carpeta</h3>
+              <p class="muted small">Revisa automáticamente las carpetas asignadas a tus asignaturas e ingesta los archivos nuevos hacia Obsidian.</p>
+            </div>
+            <button class="btn ghost small-btn" id="mat-btn-ajustes">⚙️ Ver ruta configurada</button>
+          </div>
+
+          <div class="form-grid">
+            <label>Seleccionar Asignatura a sincronizar
+              <select id="mat-sync-materia"></select>
+            </label>
+            <div class="sync-actions-cell">
+              <button class="btn primary" id="mat-btn-sync">🔄 Sincronizar e Ingestar Nuevos</button>
+            </div>
+          </div>
+
+          <div id="mat-folder-info" class="card sync-preview-card">
+            <div class="sync-meta-header">
+              <strong id="mat-info-materia">Todas las asignaturas</strong>
+              <span class="tag" id="mat-info-folder-status">Verificando...</span>
+            </div>
+            <p class="muted small mono" id="mat-info-path">C:/Universidad</p>
+            <div class="sync-kpis">
+              <div class="sync-kpi"><span>Archivos nuevos a procesar:</span> <strong id="mat-count-pendientes">0</strong></div>
+              <div class="sync-kpi"><span>Ya ingestados previamente:</span> <strong id="mat-count-omitidos">0</strong></div>
+            </div>
+          </div>
+
+          <!-- Barra de progreso de sincronización activa -->
+          <div id="mat-sync-progress-wrap" class="hidden">
+            <div class="progress-wrap-full">
+              <div class="progress"><div class="progress-bar" id="mat-sync-progress-bar"></div></div>
+              <div class="progress-text-row">
+                <small id="mat-sync-progress-txt">Procesando 0 de 0...</small>
+                <small id="mat-sync-progress-file" class="muted mono"></small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Log de archivos procesados -->
+          <div id="mat-sync-log" class="sync-log hidden"></div>
+        </div>
+
+        <!-- Modo 2: Subida manual individual puntual -->
+        <div class="glass panel">
+          <h3 class="section-title">📄 Subida Manual de Archivo Único</h3>
+          <p class="muted small">Para procesar un documento suelto que no esté en tus carpetas habituales.</p>
+          <div class="form-grid">
+            <label>Asignatura de destino
+              <select id="mat-materia"></select>
+            </label>
+            <label>Tipo de material
+              <select id="mat-tipo">
+                <option value="diapositiva">Diapositiva</option>
+                <option value="lectura">Lectura</option>
+                <option value="actividad">Actividad</option>
+                <option value="material_complementario" selected>Material complementario</option>
+              </select>
+            </label>
+          </div>
+          <div class="dropzone" id="mat-drop" tabindex="0">
+            <div class="drop-icon">📚</div>
+            <p><strong>Arrastra tu material aquí</strong> o haz clic</p>
+            <small class="muted">PDF, DOCX, TXT o MD · Se anonimiza automáticamente</small>
+            <input type="file" id="mat-file" accept=".pdf,.docx,.txt,.md" hidden />
+          </div>
+          <p class="muted small" id="mat-file-name"></p>
+          <button class="btn primary" id="mat-ingestar" disabled>⚙️ Procesar Archivo Suelto</button>
+        </div>
+        <div class="glass panel hidden" id="mat-result"></div>
+      </section>
+
+      <!-- PLUGINS -->
+      <section class="view" id="view-plugins">
+        <div class="grid" id="plugin-cards"></div>
+        <div class="glass panel hidden" id="plugin-result">
+          <h3 class="section-title" id="plugin-result-title"></h3>
+          <div class="markdown" id="plugin-result-body"></div>
+        </div>
+      </section>
+
+      <!-- CONFIGURACIÓN -->
+      <section class="view" id="view-config">
+        <div class="glass panel">
+          <h3 class="section-title">⚙️ Configuración del Entorno de Estudio</h3>
+          <p class="muted">Configura las rutas maestras de tu sistema. La versión web y el CLI comparten estas mismas carpetas.</p>
+
+          <div class="form-grid full-grid">
+            <label>📁 Carpeta de Actividades y Material de Estudio (Directorio Raíz)
+              <input type="text" id="cfg-carpeta-material" placeholder="Ej. C:/Universidad" />
+              <div class="path-status" id="cfg-status-material"><small class="muted">Cargando estado...</small></div>
+            </label>
+            <label>🧠 Bóveda de Obsidian (Obsidian Vault)
+              <input type="text" id="cfg-ruta-obsidian" placeholder="Ej. obsidian_vault o C:/Usuarios/MiObsidian" />
+              <div class="path-status" id="cfg-status-obsidian"><small class="muted">Cargando estado...</small></div>
+            </label>
+          </div>
+
+          <div class="alert-tip glass">
+            💡 <strong>Integración completa:</strong> Al ingestar material desde carpetas o generar resúmenes de sesión, los archivos se procesan, anonimizan y guardan directamente dentro de tu bóveda de Obsidian especificada, vinculando los índices de constelación por materia.
+          </div>
+
+          <div class="config-actions">
+            <button class="btn primary" id="cfg-guardar">💾 Guardar Configuración</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="loader hidden" id="loader" role="status" aria-live="polite">
+    <div class="spinner"></div><p id="loader-text">Procesando…</p>
+  </div>
+  <div class="toasts" id="toasts" aria-live="assertive"></div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
