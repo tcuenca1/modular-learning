@@ -3,30 +3,71 @@ requires = ["setuptools>=61.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "modular-learning-cli"
-version = "1.0.0"
-description = "Plataforma de tutoría y gestión de conocimiento académica basada en consola (CLI) con Gemini"
+name = "modular-learning"
+version = "2.0.0"
+description = "Plataforma de tutoría y gestión de conocimiento académica basada en consola (CLI) y Web con arquitectura hexagonal"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
-    "typer>=0.9.0",
-    "rich>=13.0.0",
     "google-genai>=1.0.0",
     "python-dotenv>=1.0.0",
     "pypdf>=3.0.0",
+    "python-docx>=1.0.0",
+    "pyyaml>=6.0.0",
+    "comtypes>=1.1.14; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+cli = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
     "questionary>=2.0.0",
     "halo>=0.0.31",
-    "pyyaml>=6.0.0",
-    "python-docx>=1.0.0",
-    "comtypes>=1.1.14",
+]
+web = [
     "fastapi>=0.110.0",
-    "uvicorn>=0.29.0",
-    "python-multipart>=0.0.9"
+    "uvicorn[standard]>=0.29.0",
+    "python-multipart>=0.0.9",
+]
+dev = [
+    "pytest",
+    "httpx",
+    "ruff",
+    "import-linter",
+    "pre-commit",
+]
+all = [
+    "modular-learning[cli,web,dev]",
 ]
 
 [project.scripts]
-ml = "cli:app"
-ml-web = "run_web:run"
+ml = "modular_learning.apps.cli.main:app"
+ml-web = "modular_learning.apps.api.main:run"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"modular_learning.core" = ["prompts/*.md"]
+"modular_learning.apps.api" = ["static/**/*"]
+
+[tool.importlinter]
+root_package = "modular_learning"
+
+[[tool.importlinter.contracts]]
+name = "Core es agnóstico"
+type = "forbidden"
+source_modules = ["modular_learning.core"]
+forbidden_modules = [
+    "modular_learning.infrastructure",
+    "modular_learning.apps",
+    "typer",
+    "rich",
+    "questionary",
+    "halo",
+    "fastapi",
+    "google",
+]
 
 [tool.ruff]
 line-length = 100
@@ -44,13 +85,3 @@ ignore = [
 
 [tool.ruff.format]
 quote-style = "double"
-
-[tool.setuptools]
-py-modules = ["cli", "main", "run_web"]
-
-[tool.setuptools.packages.find]
-include = ["modules*", "tools*"]
-exclude = ["obsidian_vault*", "data*"]
-
-[tool.setuptools.package-data]
-"modules.web" = ["static/*", "static/**/*"]
