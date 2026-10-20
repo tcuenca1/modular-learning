@@ -139,8 +139,8 @@ def run() -> None:
     """Punto de entrada para el servidor web: `ml-web`."""
     import uvicorn
 
-    host = os.getenv("WEB_HOST", "127.0.0.1")
-    port = int(os.getenv("WEB_PORT", "8000"))
+    host = os.getenv("WEB_HOST", "0.0.0.0" if os.getenv("PORT") else "127.0.0.1")
+    port = int(os.getenv("PORT", os.getenv("WEB_PORT", "8000")))
     uvicorn.run("modular_learning.apps.api.main:app", host=host, port=port, reload=False)
 
 
