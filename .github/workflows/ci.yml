@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'refactor/**'
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  python:
+    name: Python (Linter, Arquitectura y Tests)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Instalar dependencias completas
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[all]"
+
+      - name: Verificar estilo y calidad de código (Ruff)
+        run: ruff check src tests
+
+      - name: Validar contratos de arquitectura hexagonal (Import Linter)
+        run: lint-imports
+
+      - name: Ejecutar suite de pruebas (Pytest)
+        run: pytest -q
+
+  frontend:
+    name: Frontend (Linter y Compilación Vite)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar linter (Oxlint)
+        run: npm run lint
+
+      - name: Compilar frontend React (Vite & Tailwind v4)
+        run: npm run build
