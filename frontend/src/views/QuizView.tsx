@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   AlertCircle,
   ArrowLeft,
@@ -13,7 +13,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
-import type { DetalleEvaluacion, PreguntaQuiz } from '@/api/types'
+import type { DetalleEvaluacion, PreguntaQuiz, ResumenRepaso } from '@/api/types'
+import { Markdown, TextoConFormulas } from '@/components/Markdown'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,10 +25,13 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { enlaceTutoria } from '@/lib/asignaturas'
+
+type Modo = 'nuevas' | 'vencidas'
 
 export function QuizView() {
   const navigate = useNavigate()
-  const [generando, setGenerando] = useState(false)
+  const [generando, setGenerando] = useState<Modo | null>(null)
   const [evaluando, setEvaluando] = useState(false)
   const [quizId, setQuizId] = useState<string | null>(null)
   const [preguntas, setPreguntas] = useState<PreguntaQuiz[]>([])
@@ -43,26 +47,41 @@ export function QuizView() {
     detalle: DetalleEvaluacion[]
   } | null>(null)
 
-  const handleGenerarQuiz = async () => {
+  // Preguntas vencidas según el repaso espaciado
+  const [resumen, setResumen] = useState<ResumenRepaso | null>(null)
+
+  const cargarResumen = () => {
+    api
+      .getResumenRepaso()
+      .then(setResumen)
+      .catch(() => setResumen(null))
+  }
+
+  useEffect(cargarResumen, [])
+
+  const handleGenerarQuiz = async (modo: Modo = 'nuevas') => {
     try {
-      setGenerando(true)
+      setGenerando(modo)
       setErrorMensaje(null)
       setResultado(null)
       setRespuestasUsuario({})
       setPreguntaActual(0)
 
-      const res = await api.generarQuiz()
+      const res = modo === 'vencidas' ? await api.repasoPendiente() : await api.generarQuiz()
       setQuizId(res.quiz_id)
       setPreguntas(res.preguntas)
       toast.success('Repaso listo', {
-        description: `${res.preguntas.length} preguntas sobre lo que ya estudiaste.`,
+        description:
+          modo === 'vencidas'
+            ? `${res.preguntas.length} preguntas que tocaba volver a ver hoy.`
+            : `${res.preguntas.length} preguntas sobre lo que ya estudiaste.`,
       })
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       setErrorMensaje(msg)
       toast.error('No pude preparar el repaso', { description: msg })
     } finally {
-      setGenerando(false)
+      setGenerando(null)
     }
   }
 
@@ -94,6 +113,7 @@ export function QuizView() {
         respuestas: respuestasArray,
       })
       setResultado(res)
+      cargarResumen()
       toast.success('Repaso corregido', {
         description: `Acertaste ${res.aciertos} de ${res.total}.`,
       })
@@ -110,6 +130,15 @@ export function QuizView() {
   if (resultado) {
     const esAprobado = resultado.porcentaje >= 60
     const esExcelente = resultado.porcentaje >= 80
+    // Enlace a una tutoría centrada en la pregunta fallada
+    const refuerzo = (idx: number) => {
+      const det = resultado.detalle[idx]
+      const materia = det?.materia || preguntas[idx]?.materia
+      if (!materia) return null
+      return enlaceTutoria(materia, det?.tema || preguntas[idx]?.tema, preguntas[idx]?.enunciado)
+    }
+    const primeraFallada = resultado.detalle.findIndex((d) => !d.correcto)
+    const enlaceRefuerzo = primeraFallada >= 0 ? refuerzo(primeraFallada) : null
 
     return (
       <div className="space-y-6 pb-12 max-w-4xl mx-auto">
@@ -176,6 +205,8 @@ export function QuizView() {
                 const esCorrecta = det?.correcto ?? false
                 const elegida = det?.elegida || '(Sin responder)'
                 const correcta = det?.respuesta_correcta || ''
+                const clase = [det?.materia || p.materia, det?.tema || p.tema].filter(Boolean)
+                const enlace = esCorrecta ? null : refuerzo(idx)
 
                 return (
                   <div
@@ -192,7 +223,7 @@ export function QuizView() {
                           {idx + 1}
                         </span>
                         <p className="font-semibold text-slate-900 dark:text-white">
-                          {p.enunciado}
+                          <TextoConFormulas>{p.enunciado}</TextoConFormulas>
                         </p>
                       </div>
                       <div className="shrink-0">
@@ -220,7 +251,7 @@ export function QuizView() {
                           Tu respuesta
                         </p>
                         <p className="font-medium text-slate-800 dark:text-slate-200">
-                          {elegida}
+                          <TextoConFormulas>{elegida}</TextoConFormulas>
                         </p>
                       </div>
 
@@ -229,10 +260,29 @@ export function QuizView() {
                           Respuesta correcta
                         </p>
                         <p className="font-medium text-slate-800 dark:text-slate-200">
-                          {correcta}
+                          <TextoConFormulas>{correcta}</TextoConFormulas>
                         </p>
                       </div>
                     </div>
+
+                    {!esCorrecta && (
+                      <div className="mt-4 space-y-2 border-t border-rose-200/70 pt-3 dark:border-rose-950">
+                        {clase.length > 0 && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{clase.join(' · ')}</p>
+                        )}
+                        {det?.explicacion && (
+                          <Markdown className="text-[0.85rem]">{det.explicacion}</Markdown>
+                        )}
+                        {enlace && (
+                          <Link
+                            to={enlace}
+                            className="inline-block text-xs font-medium text-indigo-700 hover:underline hover:underline-offset-4 dark:text-indigo-300"
+                          >
+                            Reforzar este tema →
+                          </Link>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -241,20 +291,24 @@ export function QuizView() {
             <div className="flex flex-col sm:flex-row justify-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
               <Button
                 variant="default"
-                onClick={handleGenerarQuiz}
-                disabled={generando}
+                onClick={() => handleGenerarQuiz(resumen?.pendientes_hoy ? 'vencidas' : 'nuevas')}
+                disabled={generando !== null}
                 className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2 text-xs"
               >
                 <RotateCw className="h-3.5 w-3.5" />
-                Otro repaso
+                {resumen?.pendientes_hoy
+                  ? `Repasar ${resumen.pendientes_hoy} pendientes`
+                  : 'Otro repaso'}
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate('/tutoria')}
-                className="text-xs"
-              >
-                Reforzar con el tutor
-              </Button>
+              {enlaceRefuerzo && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(enlaceRefuerzo)}
+                  className="text-xs"
+                >
+                  Reforzar con el tutor
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 onClick={() => navigate('/')}
@@ -330,7 +384,7 @@ export function QuizView() {
               <HelpCircle className="h-4 w-4" /> Enunciado
             </div>
             <CardTitle className="text-lg font-semibold leading-relaxed mt-1 text-slate-900 dark:text-white">
-              {preguntaActualObj.enunciado}
+              <TextoConFormulas>{preguntaActualObj.enunciado}</TextoConFormulas>
             </CardTitle>
           </CardHeader>
 
@@ -353,7 +407,7 @@ export function QuizView() {
                         : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/70 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800/60 dark:text-slate-300'
                     }`}
                   >
-                    <span className="leading-relaxed">{opcion}</span>
+                    <span className="leading-relaxed"><TextoConFormulas>{opcion}</TextoConFormulas></span>
                     <div
                       className={`h-4 w-4 shrink-0 rounded-full border flex items-center justify-center ${
                         isSelected
@@ -439,10 +493,39 @@ export function QuizView() {
       <div className="space-y-3">
         <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Repaso</h1>
         <p className="text-lg leading-relaxed text-slate-600 dark:text-slate-400">
-          Tres preguntas sobre las clases que ya terminaste. Las opciones están pensadas para que no
-          se pueda adivinar la respuesta por su forma: hay que saberla.
+          Preguntas sobre las clases que ya terminaste. Las que falles vuelven pronto; las que
+          aciertes, cada vez más espaciadas. Las opciones están pensadas para que no se pueda
+          adivinar la respuesta por su forma: hay que saberla.
         </p>
       </div>
+
+      {resumen && resumen.pendientes_hoy > 0 && (
+        <section className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
+          <div>
+            <p className="font-display text-xl text-slate-900 dark:text-slate-50">
+              Tienes <span className="marcador cifra">{resumen.pendientes_hoy}</span>{' '}
+              {resumen.pendientes_hoy === 1 ? 'pregunta' : 'preguntas'} para repasar hoy
+            </p>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              Las que ya viste y toca volver a ver. No consume cuota de Gemini.
+            </p>
+          </div>
+          <Button
+            onClick={() => handleGenerarQuiz('vencidas')}
+            disabled={generando !== null}
+            className="shrink-0 gap-2"
+          >
+            {generando === 'vencidas' ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Preparando…
+              </>
+            ) : (
+              'Repasar ahora'
+            )}
+          </Button>
+        </section>
+      )}
 
       {errorMensaje && (
         <div className="space-y-3 border-l-2 border-amber-400 bg-amber-50/60 py-3 pl-4 pr-3 text-sm dark:bg-amber-950/20">
@@ -454,17 +537,24 @@ export function QuizView() {
       )}
 
       <div className="flex flex-wrap items-center gap-4">
-        <Button onClick={handleGenerarQuiz} disabled={generando} className="gap-2 px-5">
-          {generando ? (
+        <Button
+          variant={resumen?.pendientes_hoy ? 'outline' : 'default'}
+          onClick={() => handleGenerarQuiz('nuevas')}
+          disabled={generando !== null}
+          className="gap-2 px-5"
+        >
+          {generando === 'nuevas' ? (
             <>
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               Preparando preguntas…
             </>
           ) : (
-            'Empezar repaso'
+            'Preguntas nuevas'
           )}
         </Button>
-        <span className="text-sm text-slate-500">Al terminar verás qué fallaste y la respuesta correcta.</span>
+        <span className="text-sm text-slate-500">
+          Tres preguntas nuevas de tus clases. Al terminar verás qué fallaste y por qué.
+        </span>
       </div>
     </div>
   )

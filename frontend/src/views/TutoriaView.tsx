@@ -11,6 +11,7 @@ import {
   RotateCw,
   Send,
   Sparkles,
+  Target,
 } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -32,6 +33,29 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useEventStream } from '@/hooks/useEventStream'
+import { clave } from '@/lib/asignaturas'
+
+/** Línea discreta con la pregunta fallada que motiva la sesión de refuerzo. */
+function Reforzando({ enfoque, onQuitar }: { enfoque: string; onQuitar?: () => void }) {
+  return (
+    <p className="flex min-w-0 items-start gap-2 text-sm text-slate-600 dark:text-slate-400">
+      <Target className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-600 dark:text-indigo-400" />
+      <span className="min-w-0">
+        <span className="font-display italic text-slate-500">Reforzando:</span>{' '}
+        <span className="break-words text-slate-800 dark:text-slate-200">{enfoque}</span>
+        {onQuitar && (
+          <button
+            type="button"
+            onClick={onQuitar}
+            className="ml-2 cursor-pointer text-xs text-slate-500 underline underline-offset-4 hover:text-slate-800 dark:hover:text-slate-200"
+          >
+            quitar
+          </button>
+        )}
+      </span>
+    </p>
+  )
+}
 
 interface DudaChat {
   duda: string
@@ -47,6 +71,7 @@ export function TutoriaView() {
   const [materia, setMateria] = useState(materiaInicial)
   const [nivel, setNivel] = useState('INTERMEDIO')
   const [tema, setTema] = useState(params.get('tema') || '')
+  const [enfoque, setEnfoque] = useState(params.get('enfoque') || '')
   const [clasesPendientes, setClasesPendientes] = useState<ClaseCronograma[]>([])
   const [cargandoClases, setCargandoClases] = useState(false)
   const [iniciando, setIniciando] = useState(false)
@@ -72,9 +97,10 @@ export function TutoriaView() {
       .getMaterias()
       .then((res) => {
         setMaterias(res.materias)
-        if (res.materias.length > 0 && !res.materias.includes(materiaInicial)) {
-          setMateria(res.materias[0])
-        }
+        // El enlace puede traer el nombre derivado del cronograma: se cruza con el catálogo
+        const enCatalogo = res.materias.find((m) => clave(m) === clave(materiaInicial))
+        if (enCatalogo) setMateria(enCatalogo)
+        else if (res.materias.length > 0) setMateria(res.materias[0])
       })
       .catch((err) => console.error(err))
   }, [materiaInicial])
@@ -144,6 +170,7 @@ export function TutoriaView() {
         materia: materia.trim(),
         tema: tema.trim(),
         nivel_profundidad: nivel,
+        enfoque: enfoque.trim() || undefined,
       })
       setSesion(res)
       setPasoActual(0)
@@ -251,6 +278,7 @@ export function TutoriaView() {
                   setSesion(null)
                   setResumenFinal(null)
                   setTema('')
+                  setEnfoque('')
                 }}
               >
                 Estudiar otro tema
@@ -283,6 +311,11 @@ export function TutoriaView() {
             <h1 className="mt-1 text-3xl font-semibold text-slate-900 dark:text-white">
               {sesion.tema}
             </h1>
+            {sesion.enfoque && (
+              <div className="mt-2">
+                <Reforzando enfoque={sesion.enfoque} />
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -546,6 +579,8 @@ export function TutoriaView() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleIniciar} className="space-y-6">
+            {enfoque && <Reforzando enfoque={enfoque} onQuitar={() => setEnfoque('')} />}
+
             {/* Selector de Asignatura y Nivel */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
