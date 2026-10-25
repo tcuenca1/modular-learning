@@ -11,11 +11,11 @@ export const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
     return (
       <div
         ref={ref}
-        className={cn('relative h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800', className)}
+        className={cn('relative h-1.5 w-full overflow-hidden rounded-sm bg-slate-200 dark:bg-slate-800', className)}
         {...props}
       >
         <div
-          className="h-full bg-indigo-600 transition-all duration-300 dark:bg-indigo-500"
+          className="h-full bg-indigo-600 transition-all duration-500 dark:bg-indigo-400"
           style={{ width: `${validValue}%` }}
         />
       </div>

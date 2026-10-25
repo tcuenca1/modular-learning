@@ -292,7 +292,7 @@ export function QuizView() {
                 Respondidas: {contestadas} de {totalPreguntas}
               </span>
             </div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="mt-1 text-3xl font-semibold text-slate-900 dark:text-white">
               Evaluación Formativa
             </h1>
           </div>
@@ -438,7 +438,7 @@ export function QuizView() {
   return (
     <div className="space-y-8 pb-12 max-w-3xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
           Recuerdo Activo y Evaluación Formativa
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">

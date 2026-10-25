@@ -27,7 +27,7 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { useEventStream } from '@/hooks/useEventStream'
 
-export function MaterialView() {
+export function MaterialView({ embebido = false }: { embebido?: boolean }) {
   const [materias, setMaterias] = useState<string[]>([])
   const [materiaSeleccionada, setMateriaSeleccionada] = useState<string>('__todas__')
   const [escaneos, setEscaneos] = useState<EscaneoMaterial[]>([])
@@ -177,14 +177,16 @@ export function MaterialView() {
 
   return (
     <div className="space-y-8 pb-12">
+      {!embebido && (
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
           Gestión e Ingesta Multimodal de Material
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Escanea directorios locales, anonimiza documentos y sincroniza notas con Obsidian en tiempo real.
         </p>
       </div>
+      )}
 
       {/* Barra de Controles y Escaneo */}
       <Card>

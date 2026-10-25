@@ -29,7 +29,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-export function SilabosView() {
+export function SilabosView({ embebido = false }: { embebido?: boolean }) {
   const [file, setFile] = useState<File | null>(null)
   const [materia, setMateria] = useState('')
   const [isDragging, setIsDragging] = useState(false)
@@ -160,14 +160,16 @@ export function SilabosView() {
 
   return (
     <div className="space-y-8 pb-12">
+      {!embebido && (
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
           Extracción y Gestión de Sílabos
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
           Convierte sílabos académicos en cronogramas estructurados mediante IA con vista previa editable.
         </p>
       </div>
+      )}
 
       {/* Zona Drag & Drop */}
       <Card>

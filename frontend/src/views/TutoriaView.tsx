@@ -13,6 +13,7 @@ import {
   Send,
   Sparkles,
 } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import type {
@@ -38,11 +39,14 @@ interface DudaChat {
 }
 
 export function TutoriaView() {
+  const [params] = useSearchParams()
+  const materiaInicial = params.get('materia') || ''
+
   // Estado de configuración previa
   const [materias, setMaterias] = useState<string[]>([])
-  const [materia, setMateria] = useState('')
+  const [materia, setMateria] = useState(materiaInicial)
   const [nivel, setNivel] = useState('INTERMEDIO')
-  const [tema, setTema] = useState('')
+  const [tema, setTema] = useState(params.get('tema') || '')
   const [clasesPendientes, setClasesPendientes] = useState<ClaseCronograma[]>([])
   const [cargandoClases, setCargandoClases] = useState(false)
   const [iniciando, setIniciando] = useState(false)
@@ -68,12 +72,12 @@ export function TutoriaView() {
       .getMaterias()
       .then((res) => {
         setMaterias(res.materias)
-        if (res.materias.length > 0) {
+        if (res.materias.length > 0 && !res.materias.includes(materiaInicial)) {
           setMateria(res.materias[0])
         }
       })
       .catch((err) => console.error(err))
-  }, [])
+  }, [materiaInicial])
 
   // Cargar clases pendientes cuando cambia la materia
   useEffect(() => {
@@ -276,7 +280,7 @@ export function TutoriaView() {
               <span className="text-slate-300">•</span>
               <Badge variant="secondary">{sesion.nivel_profundidad}</Badge>
             </div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            <h1 className="mt-1 text-3xl font-semibold text-slate-900 dark:text-white">
               {sesion.tema}
             </h1>
           </div>
@@ -555,7 +559,7 @@ export function TutoriaView() {
   return (
     <div className="space-y-8 pb-12 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
           Tutoría Interactiva Personalizada
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -623,12 +627,12 @@ export function TutoriaView() {
                       type="button"
                       key={idx}
                       onClick={() => setTema(clase.tema)}
-                      className="bg-zinc-800/60 hover:bg-zinc-700 text-zinc-200 border border-white/5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                      className="flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-300 bg-transparent px-3 py-1 text-xs text-slate-700 transition-colors hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-800 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-200"
                     >
-                      <Clock className="h-3 w-3 text-indigo-400" />
+                      <Clock className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
                       <span>{clase.tema}</span>
                       {clase.semana && (
-                        <span className="text-[10px] text-zinc-400 opacity-80">(Sem. {clase.semana})</span>
+                        <span className="text-[10px] text-slate-500">(Sem. {clase.semana})</span>
                       )}
                     </button>
                   ))}

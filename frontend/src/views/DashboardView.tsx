@@ -108,11 +108,11 @@ export function DashboardView() {
     <div className="space-y-8 pb-12">
       {/* Encabezado */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          Panel de Control Académico
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
+          Progreso
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Supervisa el avance curricular, telemetría de estudio y estado de asignaturas en tiempo real.
+          Cuánto del sílabo llevas estudiado, asignatura por asignatura.
         </p>
       </div>
 
@@ -206,30 +206,30 @@ export function DashboardView() {
             <div className="h-[320px] w-full pt-4">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-slate-200)" />
                   <XAxis
                     dataKey="name"
-                    tick={{ fontSize: 12, fill: '#64748b' }}
-                    axisLine={{ stroke: '#cbd5e1' }}
+                    tick={{ fontSize: 12, fill: 'var(--color-slate-500)' }}
+                    axisLine={{ stroke: 'var(--color-slate-300)' }}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fontSize: 12, fill: '#64748b' }}
-                    axisLine={{ stroke: '#cbd5e1' }}
+                    tick={{ fontSize: 12, fill: 'var(--color-slate-500)' }}
+                    axisLine={{ stroke: 'var(--color-slate-300)' }}
                     tickLine={false}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#ffffff',
+                      backgroundColor: 'var(--color-white)',
                       borderRadius: '8px',
-                      border: '1px solid #e2e8f0',
+                      border: '1px solid var(--color-slate-200)',
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       fontSize: '12px',
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: '13px', paddingTop: '10px' }} />
-                  <Bar dataKey="Completados" fill="#4f46e5" radius={[4, 4, 0, 0]} stackId="a" />
-                  <Bar dataKey="Pendientes" fill="#cbd5e1" radius={[4, 4, 0, 0]} stackId="a" />
+                  <Bar dataKey="Completados" fill="var(--color-indigo-600)" radius={[4, 4, 0, 0]} stackId="a" />
+                  <Bar dataKey="Pendientes" fill="var(--color-slate-300)" radius={[4, 4, 0, 0]} stackId="a" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
