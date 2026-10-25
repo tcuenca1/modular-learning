@@ -2,9 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { api } from '@/api/client'
-import type { ClaseCronograma, EscaneoMaterial, MateriaStat, StatsResponse } from '@/api/types'
+import type {
+  ClaseCronograma,
+  EscaneoMaterial,
+  MateriaStat,
+  ResumenRepaso,
+  StatsResponse,
+} from '@/api/types'
+import type { ClaseFechada } from '@/lib/asignaturas'
 import {
   clave,
+  claveDia,
+  clasesConFecha,
   describirFecha,
   enlaceTutoria as enlaceTutoriaBase,
   formatoCorto,
@@ -57,6 +66,8 @@ export function HoyView() {
   const [asignaturas, setAsignaturas] = useState<Asignatura[] | null>(null)
   const [escaneos, setEscaneos] = useState<EscaneoMaterial[] | null>(null)
   const [errorEscaneo, setErrorEscaneo] = useState(false)
+  const [resumen, setResumen] = useState<ResumenRepaso | null>(null)
+  const [clasesDeHoy, setClasesDeHoy] = useState<ClaseFechada[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -82,6 +93,18 @@ export function HoyView() {
       }
     }
     cargar()
+    // Secundarios: si fallan, la pantalla sigue siendo útil
+    api
+      .getResumenRepaso()
+      .then((r) => activo && setResumen(r))
+      .catch(() => activo && setResumen(null))
+    Promise.all([api.getCronogramas(), api.getMaterias()])
+      .then(([{ cronogramas }, { materias }]) => {
+        if (!activo) return
+        const claveHoy = claveDia(hoy)
+        setClasesDeHoy(clasesConFecha(cronogramas, materias).filter((c) => claveDia(c.fecha) === claveHoy))
+      })
+      .catch(() => undefined)
     // El escaneo recorre carpetas locales y puede tardar: se carga aparte
     api
       .escanearMaterial()
@@ -90,7 +113,7 @@ export function HoyView() {
     return () => {
       activo = false
     }
-  }, [])
+  }, [hoy])
 
   // Lo que toca: la clase pendiente más antigua (o la más próxima si no hay atrasos)
   const ordenadas = useMemo(() => {
@@ -121,6 +144,26 @@ export function HoyView() {
         <p className="cifra text-xs text-slate-500 dark:text-slate-400">
           {capitalizar(formatoFecha.format(hoy))}
         </p>
+        {clasesDeHoy.length > 0 && (
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            <span className="font-display italic text-slate-500">Hoy en clase:</span>{' '}
+            {clasesDeHoy.map((c, i) => (
+              <span key={i}>
+                {i > 0 && '; '}
+                <Link
+                  to={enlaceTutoriaBase(c.materia, c.clase.tema)}
+                  className={cn(
+                    'text-slate-800 underline decoration-slate-300 underline-offset-4 hover:decoration-indigo-600 dark:text-slate-200 dark:decoration-slate-600',
+                    c.completada && 'opacity-60'
+                  )}
+                >
+                  {c.clase.tema}
+                </Link>{' '}
+                <span className="text-slate-500">({c.materia})</span>
+              </span>
+            ))}
+          </p>
+        )}
 
         {!asignaturas ? (
           <div className="mt-4 space-y-3">
@@ -219,17 +262,36 @@ export function HoyView() {
             <h2 className="border-b border-slate-200 pb-2 text-xl text-slate-900 dark:border-slate-800 dark:text-slate-100">
               Repaso
             </h2>
-            {stats && stats.temas_completados > 0 ? (
+            {resumen && resumen.pendientes_hoy > 0 ? (
               <div className="mt-4 space-y-3">
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Tienes <span className="cifra text-slate-900 dark:text-slate-100">{stats.temas_completados}</span>{' '}
-                  {stats.temas_completados === 1 ? 'tema listo' : 'temas listos'} para ponerte a prueba.
+                  <span className="cifra marcador text-slate-900 dark:text-slate-100">{resumen.pendientes_hoy}</span>{' '}
+                  {resumen.pendientes_hoy === 1 ? 'pregunta' : 'preguntas'} para hoy.
                 </p>
                 <Link
                   to="/repaso"
                   className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
-                  Hacer un repaso
+                  Repasar ahora
+                </Link>
+              </div>
+            ) : stats && stats.temas_completados > 0 ? (
+              <div className="mt-4 space-y-3">
+                <p className="text-sm text-slate-500">
+                  Nada pendiente hoy
+                  {resumen && resumen.total > 0 && (
+                    <>
+                      {' '}· <span className="cifra">{resumen.dominadas}</span> de{' '}
+                      <span className="cifra">{resumen.total}</span> dominadas
+                    </>
+                  )}
+                  .
+                </p>
+                <Link
+                  to="/repaso"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  Preguntas nuevas
                 </Link>
               </div>
             ) : (

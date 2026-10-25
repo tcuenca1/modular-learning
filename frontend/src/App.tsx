@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { AsignaturasView } from '@/views/AsignaturasView'
+import { CalendarioView } from '@/views/CalendarioView'
 import { ConfigView } from '@/views/ConfigView'
 import { HoyView } from '@/views/HoyView'
 import { PluginsView } from '@/views/PluginsView'
@@ -18,6 +19,7 @@ export default function App() {
           <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8 md:py-12">
             <Routes>
               <Route path="/" element={<HoyView />} />
+              <Route path="/calendario" element={<CalendarioView />} />
               <Route path="/tutoria" element={<TutoriaView />} />
               <Route path="/repaso" element={<QuizView />} />
               <Route path="/progreso" element={<ProgresoView />} />

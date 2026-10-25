@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { api } from '@/api/client'
-import type { ClaseCronograma, MateriaStat, StatsResponse } from '@/api/types'
+import type { ClaseCronograma, EventoHistorial, MateriaStat, StatsResponse } from '@/api/types'
 import {
   clave,
   describirFecha,
@@ -58,6 +58,47 @@ function ClasesPendientes({ materia, hoy }: { materia: string; hoy: Date }) {
         )
       })}
     </ol>
+  )
+}
+
+/** Últimos eventos de estudio de la asignatura: tutorías terminadas y repasos. */
+function HistorialBreve({ materia }: { materia: string }) {
+  const [eventos, setEventos] = useState<EventoHistorial[] | null>(null)
+
+  useEffect(() => {
+    let activo = true
+    api
+      .getHistorial(materia)
+      .then((r) => activo && setEventos(r.eventos.slice(0, 5)))
+      .catch(() => activo && setEventos([]))
+    return () => {
+      activo = false
+    }
+  }, [materia])
+
+  if (!eventos || eventos.length === 0) return null
+
+  return (
+    <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-800">
+      <p className="mb-1.5 font-display text-xs italic text-slate-500">Historial reciente</p>
+      <ol className="space-y-1">
+        {eventos.map((e, i) => {
+          const fecha = parsearFecha(e.fecha)
+          return (
+            <li key={i} className="grid grid-cols-[3.5rem_3.75rem_minmax(0,1fr)_auto] items-baseline gap-2 text-sm sm:grid-cols-[4.5rem_4.5rem_minmax(0,1fr)_auto] sm:gap-3">
+              <span className="cifra text-xs text-slate-500">{fecha ? formatoCorto.format(fecha) : '—'}</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400">
+                {e.tipo === 'tutoria' ? 'Tutoría' : 'Repaso'}
+              </span>
+              <span className="truncate text-slate-700 dark:text-slate-300">{e.tema || '—'}</span>
+              <span className="cifra text-right text-xs text-slate-600 dark:text-slate-400">
+                {e.tipo === 'repaso' && e.total !== undefined ? `${e.aciertos ?? 0}/${e.total}` : ''}
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+    </div>
   )
 }
 
@@ -188,6 +229,7 @@ export function ProgresoView() {
                   {expandida && (
                     <div className="mb-4 ml-5 border-l border-slate-200 pl-4 dark:border-slate-800">
                       <ClasesPendientes materia={f.nombre} hoy={hoy} />
+                      <HistorialBreve materia={f.nombre} />
                     </div>
                   )}
                 </li>

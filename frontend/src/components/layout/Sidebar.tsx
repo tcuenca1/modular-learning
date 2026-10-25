@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import {
   BookMarked,
+  CalendarDays,
   GraduationCap,
   Layers,
   LineChart,
@@ -26,6 +27,7 @@ const GRUPOS: { titulo: string; items: ItemNav[] }[] = [
     titulo: 'Estudiar',
     items: [
       { nombre: 'Hoy', ruta: '/', icono: Sun },
+      { nombre: 'Calendario', ruta: '/calendario', icono: CalendarDays },
       { nombre: 'Tutoría', ruta: '/tutoria', icono: GraduationCap },
       { nombre: 'Repaso', ruta: '/repaso', icono: Repeat2 },
       { nombre: 'Progreso', ruta: '/progreso', icono: LineChart },
