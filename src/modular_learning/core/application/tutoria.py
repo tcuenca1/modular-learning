@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from modular_learning.core.application.plugins import PluginsService
+from modular_learning.core.application.repaso import RepasoService
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
@@ -35,6 +36,10 @@ class SesionTutoria:
     subtemas_adicionales: list[str] = field(default_factory=list)
     historial: list[dict[str, Any]] = field(default_factory=list)
     pasos_completados: set[int] = field(default_factory=set)
+    # Pregunta de repaso fallada que motivó la sesión (modo refuerzo)
+    enfoque: str | None = None
+    # Preguntas de este tema que el estudiante falló en repasos anteriores
+    fallos_previos: list[str] = field(default_factory=list)
 
 
 def normalizar_nivel(nivel: str | None) -> str:
@@ -95,6 +100,7 @@ class TutoriaService:
         lector_docs: LectorDocumentosPort,
         ajustes_port: AjustesPort,
         plugins_service: PluginsService | None = None,
+        repaso: RepasoService | None = None,
     ):
         self.llm = llm
         self.cronograma_repo = cronograma_repo
@@ -102,19 +108,37 @@ class TutoriaService:
         self.lector_docs = lector_docs
         self.ajustes_port = ajustes_port
         self.plugins_service = plugins_service
+        self.repaso = repaso
 
     def iniciar_sesion(
-        self, sesion_id: str, materia: str, tema: str, nivel_profundidad: str | None
+        self,
+        sesion_id: str,
+        materia: str,
+        tema: str,
+        nivel_profundidad: str | None,
+        enfoque: str | None = None,
     ) -> SesionTutoria:
-        """Genera el roadmap con el LLM y construye la sesión inicial."""
+        """Genera el roadmap con el LLM y construye la sesión inicial.
+
+        Con `enfoque` (una pregunta de repaso fallada) la ruta se orienta a corregir ese error.
+        """
         nivel = normalizar_nivel(nivel_profundidad)
         detalle = self.cronograma_repo.obtener_detalle_clase(materia, tema)
+        fallos = self.repaso.fallos_previos(materia, tema) if self.repaso else []
+        enfoque = (enfoque or "").strip() or None
+
+        objetivo = f"Estudiar y dominar a fondo el tema dentro de la asignatura {materia}"
+        if enfoque:
+            objetivo = (
+                f"Reforzar el tema dentro de la asignatura {materia}. En un repaso fallé esta "
+                f"pregunta: «{enfoque}». Construye la ruta para entender exactamente el concepto "
+                "que me hizo fallar, empezando por la causa más probable del error."
+            )
+        if fallos:
+            objetivo += ". Otras preguntas de este tema que fallé antes: " + " | ".join(fallos)
 
         prompt_plantilla = self.lector_docs.leer_prompt("01_roadmap_aprendizaje.md")
-        prompt_roadmap = prompt_plantilla.format(
-            tema=tema,
-            objetivo=f"Estudiar y dominar a fondo el tema dentro de la asignatura {materia}",
-        )
+        prompt_roadmap = prompt_plantilla.format(tema=tema, objetivo=objetivo)
         data_roadmap = self.llm.generar_json_estructurado(prompt_roadmap)
         pasos = normalizar_roadmap(data_roadmap)
 
@@ -126,6 +150,8 @@ class TutoriaService:
             pasos=pasos,
             materiales_asociados=list(detalle.get("materiales_asociados", [])),
             subtemas_adicionales=list(detalle.get("subtemas_adicionales", [])),
+            enfoque=enfoque,
+            fallos_previos=fallos,
             historial=[
                 {"role": "user", "parts": [prompt_roadmap]},
                 {"role": "model", "parts": [json.dumps(data_roadmap, ensure_ascii=False)]},
@@ -157,6 +183,19 @@ CONTEXTO DEL SEGUNDO CEREBRO (Material local del estudiante):
 - Subtemas clave a integrar: {subtemas}
 
 DIRECTIVA OBLIGATORIA: En tu respuesta, DEBES hacer referencia explícitamente a que estás utilizando estos subtemas extraídos de sus propios apuntes. Hazlo de forma natural pero evidente (ej. "Basándome en tu archivo X, profundicemos en Y..."). Integra estos subtemas en tu explicación del tema principal.
+"""
+
+        if sesion.enfoque or sesion.fallos_previos:
+            fallidas = [sesion.enfoque] if sesion.enfoque else []
+            fallidas += [f for f in sesion.fallos_previos if f != sesion.enfoque]
+            listado = "\n".join(f"- {f}" for f in fallidas)
+            prompt += f"""
+
+PREGUNTAS DE REPASO QUE EL ESTUDIANTE FALLÓ SOBRE ESTE TEMA:
+{listado}
+
+DIRECTIVA: Cuando el paso actual tenga relación con estas preguntas, aclara explícitamente el error
+conceptual que lleva a fallarlas, sin limitarte a dar la respuesta.
 """
 
         if self.plugins_service:
@@ -199,7 +238,8 @@ DIRECTIVA OBLIGATORIA: En tu respuesta, DEBES hacer referencia explícitamente a
         titulo = sesion.pasos[indice_paso].get("titulo", f"Paso {indice_paso + 1}")
         prompt = (
             f"Tengo esta duda sobre el paso '{titulo}': {duda}. "
-            "Respóndela técnicamente y de forma clara."
+            "Respóndela técnicamente y de forma clara. Si usas fórmulas, escríbelas en LaTeX "
+            "entre signos de dólar."
         )
         respuesta = self.llm.generar_texto(prompt, contexto_previo=sesion.historial)
         sesion.historial.append({"role": "user", "parts": [prompt]})
@@ -226,6 +266,10 @@ DIRECTIVA OBLIGATORIA: En tu respuesta, DEBES hacer referencia explícitamente a
             if guardado
             else False
         )
+        if self.repaso:
+            self.repaso.registrar_tutoria(
+                sesion.materia, sesion.tema, sesion.nivel_profundidad, sesion.enfoque
+            )
         return {"guia": guia, "guardado_obsidian": guardado, "clase_completada": completada}
 
 

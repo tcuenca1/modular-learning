@@ -15,6 +15,7 @@ class IniciarTutoria(BaseModel):
     materia: str = Field(min_length=1)
     tema: str = Field(min_length=1)
     nivel_profundidad: str = "INTERMEDIO"
+    enfoque: str | None = None
 
 
 class Duda(BaseModel):

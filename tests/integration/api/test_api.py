@@ -194,3 +194,59 @@ def test_motor_evaluacion_mezclar_opciones():
     # La respuesta correcta debe estar entre las opciones y tener prefijo A-D
     assert mezclada["respuesta_correcta"] in mezclada["opciones"]
     assert any("Esta es la opcion super larga" in o for o in mezclada["opciones"])
+
+
+def test_repaso_espaciado_por_api(app, client):
+    preguntas = [
+        {
+            "enunciado": "P1",
+            "opciones": ["A) x", "B) y"],
+            "respuesta_correcta": "A) x",
+            "materia": "Redes",
+            "tema": "VLAN",
+            "explicacion": "Porque x.",
+        }
+    ]
+
+    class EvaluacionFija(EvaluacionService):
+        def generar_quiz(self):
+            return preguntas
+
+    contenedor = app.state.container
+    servicio = EvaluacionFija(
+        llm=None,  # type: ignore[arg-type]
+        cronograma_repo=contenedor.cronograma_repo,
+        repaso=contenedor.repaso_service,
+    )
+    app.dependency_overrides[get_evaluacion_service] = lambda: servicio
+
+    assert client.get("/api/repaso/resumen").json() == {
+        "pendientes_hoy": 0,
+        "total": 0,
+        "dominadas": 0,
+    }
+    assert client.get("/api/repaso/pendientes").status_code == 404
+
+    q = client.get("/api/quiz/generar").json()
+    assert q["preguntas"][0]["tema"] == "VLAN"
+    assert "respuesta_correcta" not in q["preguntas"][0]
+    r = client.post(
+        "/api/quiz/evaluar", json={"quiz_id": q["quiz_id"], "respuestas": ["B) y"]}
+    ).json()
+    assert r["detalle"][0]["explicacion"] == "Porque x."
+
+    assert client.get("/api/repaso/resumen").json()["total"] == 1
+    eventos = client.get("/api/repaso/historial", params={"materia": "Redes"}).json()["eventos"]
+    assert eventos[0]["falladas"] == ["P1"]
+
+
+def test_cronogramas_para_calendario(client, tmp_path):
+    import json as _json
+
+    carpeta = tmp_path / "data" / "schedules"
+    carpeta.mkdir(parents=True, exist_ok=True)
+    (carpeta / "Redes_cronograma.json").write_text(
+        _json.dumps({"clases": [{"fecha": "27/10/2026", "tema": "VLAN"}]}), encoding="utf-8"
+    )
+    datos = client.get("/api/materias/cronogramas").json()["cronogramas"]
+    assert datos == {"Redes": [{"fecha": "27/10/2026", "tema": "VLAN"}]}

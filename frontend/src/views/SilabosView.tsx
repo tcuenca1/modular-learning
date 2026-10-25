@@ -79,7 +79,7 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
 
   const handleExtraer = async () => {
     if (!file) {
-      toast.error('Selecciona un archivo de sílabo primero.')
+      toast.error('Primero elige el archivo del sílabo.')
       return
     }
 
@@ -88,11 +88,11 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
       const res = await api.extraerSilabo(file, materia)
       setMateria(res.materia)
       setClases(res.datos.clases || [])
-      toast.success('¡Extracción completada con éxito!', {
+      toast.success('Clases extraídas', {
         description: `Se estructuraron ${res.datos.clases?.length || 0} sesiones de clase.`,
       })
     } catch (err) {
-      toast.error('Error al extraer cronograma', {
+      toast.error('No pude leer el sílabo', {
         description: err instanceof Error ? err.message : String(err),
       })
     } finally {
@@ -135,7 +135,7 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
 
   const handleGuardar = async () => {
     if (!materia.trim()) {
-      toast.error('Indica el nombre de la asignatura.')
+      toast.error('Escribe el nombre de la asignatura.')
       return
     }
     if (clases.length === 0) {
@@ -146,11 +146,11 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
     try {
       setSaving(true)
       const res = await api.guardarSilabo(materia.trim(), clases)
-      toast.success('¡Cronograma guardado exitosamente!', {
+      toast.success('Cronograma guardado', {
         description: `Guardado en ${res.ruta}`,
       })
     } catch (err) {
-      toast.error('Error al guardar cronograma', {
+      toast.error('No pude guardar el cronograma', {
         description: err instanceof Error ? err.message : String(err),
       })
     } finally {
@@ -174,9 +174,9 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
       {/* Zona Drag & Drop */}
       <Card>
         <CardHeader>
-          <CardTitle>Cargar Archivo de Sílabo</CardTitle>
+          <CardTitle>Subir sílabo</CardTitle>
           <CardDescription>
-            Soporta documentos en formato PDF institucional, Markdown o Texto plano (.pdf, .md, .txt)
+            PDF, Markdown o texto plano. Se extraen las clases con sus fechas.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -201,17 +201,17 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
               <UploadCloud className="h-6 w-6" />
             </div>
             <p className="mt-3 text-sm font-medium text-slate-900 dark:text-white">
-              {file ? file.name : 'Arrastra y suelta tu sílabo aquí o haz clic para explorar'}
+              {file ? file.name : 'Arrastra el sílabo aquí o haz clic para elegirlo'}
             </p>
             <p className="mt-1 text-xs text-slate-400">
-              {file ? `${(file.size / 1024).toFixed(1)} KB` : 'Máximo recomendado 20 MB'}
+              {file ? `${(file.size / 1024).toFixed(1)} KB` : 'Hasta 20 MB'}
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                Nombre de la Asignatura
+                Asignatura
               </label>
               <Input
                 placeholder="Ej. Seguridad de la Información"
@@ -229,12 +229,12 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
                 {extracting ? (
                   <>
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Analizando y Extrayendo con IA...
+                    Leyendo el sílabo…
                   </>
                 ) : (
                   <>
                     <FileText className="h-4 w-4" />
-                    Procesar y Extraer Cronograma
+                    Extraer clases
                   </>
                 )}
               </Button>
@@ -249,11 +249,11 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
-                <CardTitle>Vista Previa del Cronograma</CardTitle>
+                <CardTitle>Revisa las clases</CardTitle>
                 <Badge variant="outline">{clases.length} clases</Badge>
               </div>
               <CardDescription>
-                Revisa o edita los títulos y semanas antes de consolidar el cronograma en disco.
+                Corrige lo que haga falta antes de guardar.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -269,11 +269,11 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
                 {saving ? (
                   <>
                     <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Guardando...
+                    Guardando…
                   </>
                 ) : (
                   <>
-                    <Save className="h-4 w-4" /> Guardar Cronograma
+                    <Save className="h-4 w-4" /> Guardar
                   </>
                 )}
               </Button>
@@ -343,9 +343,9 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
       {clases.length === 0 && !extracting && (
         <div className="rounded-lg border border-slate-200/80 bg-slate-50/50 p-6 text-center text-slate-500 dark:border-slate-800 dark:bg-slate-900/50">
           <AlertCircle className="mx-auto h-8 w-8 text-slate-400" />
-          <p className="mt-2 text-sm font-medium">Ningún cronograma cargado actualmente</p>
+          <p className="mt-2 text-sm font-medium">Todavía no hay clases que revisar</p>
           <p className="text-xs text-slate-400">
-            Carga un archivo de sílabo arriba para extraer las clases automáticamente.
+            Cuando subas un sílabo, sus clases aparecerán aquí.
           </p>
         </div>
       )}

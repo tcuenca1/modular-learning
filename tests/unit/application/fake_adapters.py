@@ -6,10 +6,12 @@ import os
 from collections.abc import Iterator
 from typing import Any
 
+from modular_learning.core.domain.repaso_espaciado import Tarjeta
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.llm import LLMPort
+from modular_learning.core.ports.repaso import HistorialRepo, TarjetasRepo
 from modular_learning.core.ports.repositorios import (
     CronogramaRepo,
     MateriaRepo,
@@ -222,3 +224,37 @@ class InMemoryAjustesPort(AjustesPort):
         self._ruta_bov = ruta_obsidian_nueva
         self._configurado = True
         return self.obtener_ajustes()
+
+
+class InMemoryTarjetasRepo(TarjetasRepo):
+    """Tarjetas de repaso espaciado en memoria."""
+
+    def __init__(self) -> None:
+        self.tarjetas: dict[str, Tarjeta] = {}
+
+    def listar(self) -> list[Tarjeta]:
+        return list(self.tarjetas.values())
+
+    def obtener(self, tarjeta_id: str) -> Tarjeta | None:
+        return self.tarjetas.get(tarjeta_id)
+
+    def guardar(self, tarjeta: Tarjeta) -> None:
+        self.tarjetas[tarjeta.id] = tarjeta
+
+
+class InMemoryHistorialRepo(HistorialRepo):
+    """Historial de estudio en memoria."""
+
+    def __init__(self) -> None:
+        self.eventos: list[dict[str, Any]] = []
+
+    def registrar(self, evento: dict[str, Any]) -> None:
+        self.eventos.append(evento)
+
+    def listar(self, materia: str | None = None, tema: str | None = None) -> list[dict[str, Any]]:
+        return [
+            e
+            for e in reversed(self.eventos)
+            if (materia is None or e.get("materia") == materia)
+            and (tema is None or e.get("tema") == tema)
+        ]

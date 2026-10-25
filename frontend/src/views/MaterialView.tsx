@@ -82,14 +82,14 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
           fallidos: !ev.ok ? prev.fallidos + 1 : prev.fallidos,
         }))
       } else if (ev.evento === 'fin') {
-        toast.success('¡Sincronización finalizada!', {
+        toast.success('Material procesado', {
           description: `Completados con éxito: ${ev.exitosos || 0}, Fallidos: ${ev.fallidos || 0}`,
         })
         handleEscanear()
       }
     },
     onError: (err) => {
-      toast.error('Error durante la sincronización', {
+      toast.error('Se interrumpió el procesamiento', {
         description: err.message,
       })
     },
@@ -115,11 +115,11 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
       )
       setEscaneos(res.escaneos)
       const totalPendientes = res.escaneos.reduce((acc, e) => acc + e.pendientes.length, 0)
-      toast.info('Escaneo finalizado', {
-        description: `Se encontraron ${totalPendientes} archivos nuevos pendientes de ingesta.`,
+      toast.info('Carpetas revisadas', {
+        description: `${totalPendientes} archivos nuevos por procesar.`,
       })
     } catch (err) {
-      toast.error('Error al escanear carpetas de material', {
+      toast.error('No pude revisar tus carpetas', {
         description: err instanceof Error ? err.message : String(err),
       })
     } finally {
@@ -142,11 +142,11 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
   const handleUploadIndividual = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!uploadFile) {
-      toast.error('Selecciona un archivo para subir.')
+      toast.error('Elige un archivo.')
       return
     }
     if (!uploadMateria.trim()) {
-      toast.error('Indica la asignatura.')
+      toast.error('Escribe la asignatura.')
       return
     }
 
@@ -154,14 +154,14 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
       setSubiendo(true)
       const res = await api.ingestarArchivo(uploadFile, uploadMateria.trim(), uploadTipo)
       setResultadoSubida(res)
-      toast.success('¡Material ingestado y anonimizado con éxito!', {
+      toast.success('Nota creada', {
         description: `Asignado a Clase ${res.alineacion?.clase_asignada || 'X'} (Afinidad: ${
           res.alineacion?.peso_afinidad || 0
         }%)`,
       })
       setUploadFile(null)
     } catch (err) {
-      toast.error('Error al ingestar material', {
+      toast.error('No pude procesar el archivo', {
         description: err instanceof Error ? err.message : String(err),
       })
     } finally {
@@ -193,9 +193,9 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle>Escaneo y Sincronización en Tiempo Real</CardTitle>
+              <CardTitle>Tus carpetas</CardTitle>
               <CardDescription>
-                Detecta automáticamente diapositivas, lecturas y actividades pendientes en tu carpeta de estudio.
+                Busca archivos nuevos en la carpeta de cada asignatura y los convierte en notas.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -204,7 +204,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
                 onChange={(e) => setMateriaSeleccionada(e.target.value)}
                 className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
               >
-                <option value="__todas__">✨ Todas las Asignaturas</option>
+                <option value="__todas__">Todas las asignaturas</option>
                 {materias.map((m) => (
                   <option key={m} value={m}>
                     {m}
@@ -219,7 +219,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
                 className="gap-1.5"
               >
                 <FolderSearch className={`h-4 w-4 ${escaneando ? 'animate-spin' : ''}`} />
-                {escaneando ? 'Escaneando...' : 'Escanear'}
+                {escaneando ? 'Revisando…' : 'Revisar'}
               </Button>
               {isStreaming ? (
                 <Button
@@ -237,7 +237,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
                   disabled={totalPendientes === 0 && escaneos.length > 0}
                   className="gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
                 >
-                  <Play className="h-4 w-4" /> Sincronizar Pendientes
+                  <Play className="h-4 w-4" /> Procesar nuevos
                 </Button>
               )}
             </div>
@@ -304,7 +304,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
       {escaneos.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white">
-            Resultados del Escaneo por Asignatura
+            Archivos encontrados
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {escaneos.map((esc, i) => (
@@ -313,7 +313,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-semibold">{esc.materia}</CardTitle>
                     <Badge variant={esc.existe ? 'secondary' : 'destructive'}>
-                      {esc.existe ? `${esc.pendientes.length} nuevos` : 'Carpeta no hallada'}
+                      {esc.existe ? `${esc.pendientes.length} nuevos` : 'No existe la carpeta'}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -340,9 +340,9 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
       {/* Subida Individual y Anonimización */}
       <Card>
         <CardHeader>
-          <CardTitle>Subida y Procesamiento Individual</CardTitle>
+          <CardTitle>Subir un archivo suelto</CardTitle>
           <CardDescription>
-            Sube un archivo puntual para extraer su conocimiento, aplicar filtros de privacidad y alinearlo al cronograma.
+            Se convierte en nota, se quitan los datos personales y se asigna a la clase que corresponda.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -363,17 +363,17 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
 
               <div>
                 <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                  Tipo de Material
+                  Tipo
                 </label>
                 <select
                   value={uploadTipo}
                   onChange={(e) => setUploadTipo(e.target.value)}
                   className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
                 >
-                  <option value="material_complementario">Material Complementario</option>
-                  <option value="actividad">Actividad / Práctica</option>
-                  <option value="diapositiva">Diapositiva de Clase</option>
-                  <option value="lectura">Lectura / Artículo</option>
+                  <option value="material_complementario">Complementario</option>
+                  <option value="actividad">Actividad o práctica</option>
+                  <option value="diapositiva">Diapositivas</option>
+                  <option value="lectura">Lectura o artículo</option>
                 </select>
               </div>
 
@@ -403,7 +403,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
               {subiendo ? (
                 <>
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Anonimizando y Alineando con IA...
+                  Procesando…
                 </>
               ) : (
                 <>

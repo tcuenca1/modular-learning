@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   HelpCircle,
   RotateCw,
-  Sparkles,
   XCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -55,13 +54,13 @@ export function QuizView() {
       const res = await api.generarQuiz()
       setQuizId(res.quiz_id)
       setPreguntas(res.preguntas)
-      toast.success('¡Quiz generado con éxito!', {
-        description: `Se han formulado ${res.preguntas.length} preguntas desafiantes de recuerdo activo.`,
+      toast.success('Repaso listo', {
+        description: `${res.preguntas.length} preguntas sobre lo que ya estudiaste.`,
       })
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       setErrorMensaje(msg)
-      toast.error('No se pudo generar el quiz', { description: msg })
+      toast.error('No pude preparar el repaso', { description: msg })
     } finally {
       setGenerando(false)
     }
@@ -83,7 +82,7 @@ export function QuizView() {
     const sinResponder = respuestasArray.filter((r) => !r.trim()).length
     if (sinResponder > 0) {
       const confirmar = confirm(
-        `Tienes ${sinResponder} pregunta(s) sin responder. ¿Deseas enviar el quiz de todos modos?`
+        `Te faltan ${sinResponder} por responder. ¿Corregir de todos modos?`
       )
       if (!confirmar) return
     }
@@ -95,11 +94,11 @@ export function QuizView() {
         respuestas: respuestasArray,
       })
       setResultado(res)
-      toast.success('¡Evaluación completada!', {
-        description: `Obtuviste ${res.aciertos} de ${res.total} aciertos (${res.porcentaje}%).`,
+      toast.success('Repaso corregido', {
+        description: `Acertaste ${res.aciertos} de ${res.total}.`,
       })
     } catch (err) {
-      toast.error('Error al evaluar respuestas', {
+      toast.error('No pude corregir tus respuestas', {
         description: err instanceof Error ? err.message : String(err),
       })
     } finally {
@@ -136,10 +135,10 @@ export function QuizView() {
 
             <CardTitle className="mt-4 text-2xl font-bold">
               {esExcelente
-                ? '¡Rendimiento Excepcional!'
+                ? 'Lo tienes dominado'
                 : esAprobado
-                ? '¡Buen Trabajo de Recuerdo Activo!'
-                : 'Oportunidad de Refuerzo'}
+                ? 'Vas bien'
+                : 'Toca repasar'}
             </CardTitle>
             <CardDescription className="text-sm">
               Has respondido correctamente{' '}
@@ -161,7 +160,7 @@ export function QuizView() {
                 Puntaje: {resultado.porcentaje}%
               </Badge>
               <Badge variant="secondary">
-                {esAprobado ? 'Dominio Consolidado' : 'Requiere Repaso'}
+                {esAprobado ? 'Aprobado' : 'Por reforzar'}
               </Badge>
             </div>
           </CardHeader>
@@ -169,7 +168,7 @@ export function QuizView() {
           <CardContent className="p-8 pt-2 space-y-6">
             <div className="space-y-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Desglose Detallado por Pregunta
+                Pregunta por pregunta
               </h3>
 
               {preguntas.map((p, idx) => {
@@ -218,7 +217,7 @@ export function QuizView() {
                         }`}
                       >
                         <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                          Tu Selección
+                          Tu respuesta
                         </p>
                         <p className="font-medium text-slate-800 dark:text-slate-200">
                           {elegida}
@@ -227,7 +226,7 @@ export function QuizView() {
 
                       <div className="rounded-lg p-3 border border-emerald-300/60 bg-emerald-100/50 dark:border-emerald-900 dark:bg-emerald-950/40">
                         <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-1">
-                          Respuesta Correcta
+                          Respuesta correcta
                         </p>
                         <p className="font-medium text-slate-800 dark:text-slate-200">
                           {correcta}
@@ -247,21 +246,21 @@ export function QuizView() {
                 className="bg-indigo-600 hover:bg-indigo-500 text-white gap-2 text-xs"
               >
                 <RotateCw className="h-3.5 w-3.5" />
-                Intentar Otro Quiz
+                Otro repaso
               </Button>
               <Button
                 variant="outline"
                 onClick={() => navigate('/tutoria')}
                 className="text-xs"
               >
-                Ir a Tutoría de Refuerzo
+                Reforzar con el tutor
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => navigate('/')}
                 className="text-xs"
               >
-                Volver al Dashboard
+                Volver a Hoy
               </Button>
             </div>
           </CardContent>
@@ -285,7 +284,7 @@ export function QuizView() {
           <div>
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="gap-1.5 text-indigo-600 font-semibold">
-                <Brain className="h-3.5 w-3.5" /> Recuerdo Activo
+                <Brain className="h-3.5 w-3.5" /> Repaso
               </Badge>
               <span className="text-slate-300">•</span>
               <span className="text-xs font-medium text-slate-500">
@@ -293,7 +292,7 @@ export function QuizView() {
               </span>
             </div>
             <h1 className="mt-1 text-3xl font-semibold text-slate-900 dark:text-white">
-              Evaluación Formativa
+              Repaso
             </h1>
           </div>
           <div>
@@ -301,7 +300,7 @@ export function QuizView() {
               variant="outline"
               size="sm"
               onClick={() => {
-                if (confirm('¿Deseas abandonar el quiz en curso? Tus respuestas se perderán.')) {
+                if (confirm('¿Dejar el repaso? Perderás tus respuestas.')) {
                   setPreguntas([])
                   setQuizId(null)
                 }
@@ -337,7 +336,7 @@ export function QuizView() {
 
           <CardContent className="p-6 space-y-3">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-              Selecciona la opción correcta:
+              Elige una respuesta
             </p>
 
             <div className="grid gap-2.5">
@@ -417,12 +416,12 @@ export function QuizView() {
                   {evaluando ? (
                     <>
                       <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Evaluando...
+                      Corrigiendo…
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="h-3.5 w-3.5" />
-                      Finalizar y Evaluar
+                      Corregir
                     </>
                   )}
                 </Button>
@@ -434,98 +433,39 @@ export function QuizView() {
     )
   }
 
-  // ------------------------- ESTADO 3: PANTALLA INICIAL (IDLE) -------------------------
+  // ------------------------- ESTADO 3: PANTALLA INICIAL -------------------------
   return (
-    <div className="space-y-8 pb-12 max-w-3xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
-          Recuerdo Activo y Evaluación Formativa
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Pon a prueba tu comprensión técnica con cuestionarios generados por IA a partir de las clases que ya has completado.
+    <div className="mx-auto max-w-2xl space-y-8 pb-12">
+      <div className="space-y-3">
+        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Repaso</h1>
+        <p className="text-lg leading-relaxed text-slate-600 dark:text-slate-400">
+          Tres preguntas sobre las clases que ya terminaste. Las opciones están pensadas para que no
+          se pueda adivinar la respuesta por su forma: hay que saberla.
         </p>
       </div>
 
       {errorMensaje && (
-        <Card className="border-amber-200 bg-amber-50/50 dark:border-amber-950 dark:bg-amber-950/20">
-          <CardContent className="p-4 flex items-start gap-3 text-xs">
-            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-2 flex-1">
-              <p className="font-semibold text-amber-900 dark:text-amber-200">
-                Aviso de Requisitos Previos
-              </p>
-              <p className="text-amber-800 dark:text-amber-300 leading-relaxed">
-                {errorMensaje}
-              </p>
-              <div className="pt-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => navigate('/tutoria')}
-                  className="text-xs bg-white dark:bg-slate-900"
-                >
-                  Ir a Tutoría para Completar Clases
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-3 border-l-2 border-amber-400 bg-amber-50/60 py-3 pl-4 pr-3 text-sm dark:bg-amber-950/20">
+          <p className="text-amber-900 dark:text-amber-200">{errorMensaje}</p>
+          <Button size="sm" variant="outline" onClick={() => navigate('/tutoria')}>
+            Ir a Tutoría
+          </Button>
+        </div>
       )}
 
-      <Card className="shadow-sm border-slate-200 dark:border-slate-800">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
-              <Brain className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">Generador de Quiz Dinámico</CardTitle>
-              <CardDescription className="text-xs">
-                Basado en técnicas de Active Recall y preguntas de opción múltiple con reglas anti-patrón.
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-5 dark:border-slate-800 dark:bg-slate-950/40 space-y-3 text-xs">
-            <h3 className="font-semibold text-slate-700 dark:text-slate-300">
-              ¿Cómo funciona este módulo?
-            </h3>
-            <ul className="space-y-2 text-slate-600 dark:text-slate-400 list-disc list-inside leading-relaxed">
-              <li>
-                <strong>Extracción de Contexto:</strong> Escanea tus cronogramas en busca de temas marcados con estado <em>completado</em>.
-              </li>
-              <li>
-                <strong>Generación Anti-Patrón:</strong> El LLM diseña 3 preguntas técnicas avanzadas donde los distractores son plausibles y tienen longitudes homogéneas.
-              </li>
-              <li>
-                <strong>Retroalimentación Formativa:</strong> Al terminar, recibirás la corrección detallada con la respuesta correcta y tu selección.
-              </li>
-            </ul>
-          </div>
-
-          <div className="pt-2">
-            <Button
-              onClick={handleGenerarQuiz}
-              disabled={generando}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-3 rounded-lg shadow-sm gap-2 text-sm transition-colors cursor-pointer"
-            >
-              {generando ? (
-                <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Sintetizando Preguntas de Recuerdo Activo...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  Generar Quiz de Recuerdo Activo
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button onClick={handleGenerarQuiz} disabled={generando} className="gap-2 px-5">
+          {generando ? (
+            <>
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              Preparando preguntas…
+            </>
+          ) : (
+            'Empezar repaso'
+          )}
+        </Button>
+        <span className="text-sm text-slate-500">Al terminar verás qué fallaste y la respuesta correcta.</span>
+      </div>
     </div>
   )
 }

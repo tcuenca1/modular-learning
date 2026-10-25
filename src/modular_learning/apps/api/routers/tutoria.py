@@ -44,6 +44,7 @@ def iniciar_tutoria(
             materia=body.materia.strip(),
             tema=body.tema.strip(),
             nivel_profundidad=body.nivel_profundidad,
+            enfoque=body.enfoque,
         )
     except (ValueError, FileNotFoundError) as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -61,6 +62,8 @@ def iniciar_tutoria(
         "pasos": sesion.pasos,
         "materiales_asociados": sesion.materiales_asociados,
         "subtemas_adicionales": sesion.subtemas_adicionales,
+        "enfoque": sesion.enfoque,
+        "fallos_previos": sesion.fallos_previos,
     }
 
 

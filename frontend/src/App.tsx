@@ -3,9 +3,9 @@ import { Toaster } from 'sonner'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { AsignaturasView } from '@/views/AsignaturasView'
 import { ConfigView } from '@/views/ConfigView'
-import { DashboardView } from '@/views/DashboardView'
 import { HoyView } from '@/views/HoyView'
 import { PluginsView } from '@/views/PluginsView'
+import { ProgresoView } from '@/views/ProgresoView'
 import { QuizView } from '@/views/QuizView'
 import { TutoriaView } from '@/views/TutoriaView'
 
@@ -20,7 +20,7 @@ export default function App() {
               <Route path="/" element={<HoyView />} />
               <Route path="/tutoria" element={<TutoriaView />} />
               <Route path="/repaso" element={<QuizView />} />
-              <Route path="/progreso" element={<DashboardView />} />
+              <Route path="/progreso" element={<ProgresoView />} />
               <Route path="/asignaturas" element={<AsignaturasView />} />
               <Route path="/plugins" element={<PluginsView />} />
               <Route path="/config" element={<ConfigView />} />

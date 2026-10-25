@@ -3,6 +3,14 @@ import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import { api } from '@/api/client'
 import type { ClaseCronograma, EscaneoMaterial, MateriaStat, StatsResponse } from '@/api/types'
+import {
+  clave,
+  describirFecha,
+  enlaceTutoria as enlaceTutoriaBase,
+  formatoCorto,
+  inicioDelDia,
+  parsearFecha,
+} from '@/lib/asignaturas'
 import { cn } from '@/lib/utils'
 
 interface Asignatura {
@@ -12,51 +20,14 @@ interface Asignatura {
   fechaSiguiente?: Date
 }
 
-const DIA_MS = 86_400_000
-
-/** Normaliza nombres para cruzar el catálogo de materias con las estadísticas por cronograma. */
-function clave(nombre: string): string {
-  return nombre
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-}
-
-/** Interpreta fechas dd/mm/aaaa (formato de los cronogramas) o ISO. */
-function parsearFecha(valor: unknown): Date | undefined {
-  if (typeof valor !== 'string') return undefined
-  const dmy = valor.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
-  if (dmy) return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]))
-  const iso = new Date(valor)
-  return Number.isNaN(iso.getTime()) ? undefined : iso
-}
-
-function inicioDelDia(fecha: Date): Date {
-  return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate())
-}
-
-function describirFecha(fecha: Date | undefined, hoy: Date): string {
-  if (!fecha) return 'sin fecha en el cronograma'
-  const dias = Math.round((inicioDelDia(fecha).getTime() - hoy.getTime()) / DIA_MS)
-  if (dias === 0) return 'es hoy'
-  if (dias === 1) return 'es mañana'
-  if (dias > 1) return `en ${dias} días`
-  if (dias === -1) return 'fue ayer'
-  return `fue hace ${-dias} días`
-}
-
 const formatoFecha = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' })
-const formatoCorto = new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short' })
 
 function capitalizar(texto: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
 function enlaceTutoria(a: Asignatura): string {
-  const q = new URLSearchParams({ materia: a.nombre })
-  if (a.siguiente?.tema) q.set('tema', a.siguiente.tema)
-  return `/tutoria?${q.toString()}`
+  return enlaceTutoriaBase(a.nombre, a.siguiente?.tema)
 }
 
 /** Una marca por clase del cronograma: llenas las completadas, la siguiente resaltada. */

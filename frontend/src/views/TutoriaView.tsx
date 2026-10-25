@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
 import {
   ArrowLeft,
   ArrowRight,
@@ -21,6 +20,7 @@ import type {
   FinalizarTutoriaResponse,
   SesionTutoriaResponse,
 } from '@/api/types'
+import { Markdown } from '@/components/Markdown'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -120,7 +120,7 @@ export function TutoriaView() {
       setPasosCompletados((prev) => new Set(prev).add(pasoActual))
     },
     onError: (err) => {
-      toast.error('Error en la explicación streaming', { description: err.message })
+      toast.error('Se cortó la explicación', { description: err.message })
     },
   })
 
@@ -134,7 +134,7 @@ export function TutoriaView() {
   const handleIniciar = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!materia.trim() || !tema.trim()) {
-      toast.error('Por favor completa la asignatura y el tema de estudio.')
+      toast.error('Elige una asignatura y escribe qué quieres estudiar.')
       return
     }
 
@@ -151,11 +151,11 @@ export function TutoriaView() {
       setPasosCompletados(new Set())
       setDudasPorPaso({})
       setResumenFinal(null)
-      toast.success('¡Ruta de aprendizaje generada!', {
+      toast.success('Tu ruta de estudio está lista', {
         description: `Roadmap estructurado en ${res.pasos.length} pasos para dominar "${res.tema}".`,
       })
     } catch (err) {
-      toast.error('Error al iniciar la sesión de tutoría', {
+      toast.error('No pude preparar la sesión', {
         description: err instanceof Error ? err.message : String(err),
       })
     } finally {
@@ -184,7 +184,7 @@ export function TutoriaView() {
         ],
       }))
     } catch (err) {
-      toast.error('Error al resolver duda', {
+      toast.error('No pude responder tu duda', {
         description: err instanceof Error ? err.message : String(err),
       })
     } finally {
@@ -199,13 +199,13 @@ export function TutoriaView() {
       stopStream()
       const res = await api.finalizarTutoria(sesion.sesion_id)
       setResumenFinal(res)
-      toast.success('¡Sesión finalizada con éxito!', {
+      toast.success('Sesión guardada', {
         description: res.guardado_obsidian
-          ? 'Guía de estudio sintetizada y guardada en Obsidian.'
+          ? 'La guía de repaso ya está en tu bóveda de Obsidian.'
           : 'Sesión completada.',
       })
     } catch (err) {
-      toast.error('Error al finalizar sesión', {
+      toast.error('No pude guardar la sesión', {
         description: err instanceof Error ? err.message : String(err),
       })
     } finally {
@@ -222,25 +222,25 @@ export function TutoriaView() {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
               <CheckCircle2 className="h-8 w-8" />
             </div>
-            <CardTitle className="mt-4 text-2xl font-bold">¡Sesión de Tutoría Completada!</CardTitle>
+            <CardTitle className="mt-4 text-2xl font-bold">Clase terminada</CardTitle>
             <CardDescription className="text-sm">
-              Has dominado los conceptos de <strong className="text-slate-800 dark:text-slate-200">{sesion.tema}</strong> en{' '}
+              Terminaste <strong className="text-slate-800 dark:text-slate-200">{sesion.tema}</strong> en{' '}
               <span className="text-indigo-600">{sesion.materia}</span>.
             </CardDescription>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <Badge variant="success">Clase Marcada como Completada</Badge>
+              <Badge variant="success">Marcada como completada</Badge>
               {resumenFinal.guardado_obsidian && (
-                <Badge variant="secondary">Sincronizado con Bóveda Obsidian</Badge>
+                <Badge variant="secondary">Guardada en Obsidian</Badge>
               )}
             </div>
           </CardHeader>
           <CardContent className="p-8 pt-4 space-y-6">
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-2">
-                Guía de Repaso Activo y Notas Consolidadas
+                Tu guía de repaso
               </h3>
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-6 dark:border-slate-800 dark:bg-slate-950/60 prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed">
-                <ReactMarkdown>{resumenFinal.guia}</ReactMarkdown>
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-6 dark:border-slate-800 dark:bg-slate-950/60">
+                <Markdown>{resumenFinal.guia}</Markdown>
               </div>
             </div>
 
@@ -253,7 +253,7 @@ export function TutoriaView() {
                   setTema('')
                 }}
               >
-                Iniciar Otra Tutoría
+                Estudiar otro tema
               </Button>
             </div>
           </CardContent>
@@ -289,13 +289,13 @@ export function TutoriaView() {
               variant="outline"
               size="sm"
               onClick={() => {
-                if (confirm('¿Deseas salir de la sesión actual? El progreso de esta clase no se guardará.')) {
+                if (confirm('¿Salir de la sesión? Lo que llevas de esta clase no se guardará.')) {
                   setSesion(null)
                 }
               }}
               className="text-xs text-slate-500"
             >
-              Salir de la Sesión
+              Salir
             </Button>
             <Button
               size="sm"
@@ -306,12 +306,12 @@ export function TutoriaView() {
               {finalizando ? (
                 <>
                   <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Consolidando...
+                  Guardando…
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  Finalizar y Guardar en Obsidian
+                  Terminar y guardar
                 </>
               )}
             </Button>
@@ -325,7 +325,7 @@ export function TutoriaView() {
             <Card>
               <CardHeader className="p-4 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                  <span>Ruta de Aprendizaje</span>
+                  <span>Ruta</span>
                   <span>
                     {pasoActual + 1} de {sesion.pasos.length}
                   </span>
@@ -385,11 +385,11 @@ export function TutoriaView() {
               <Card className="p-4 space-y-2 text-xs">
                 <p className="font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
                   <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
-                  Segundo Cerebro Integrado
+                  De tus apuntes
                 </p>
                 {sesion.subtemas_adicionales?.length > 0 && (
                   <p className="text-slate-500 text-[11px]">
-                    Subtemas clave: {sesion.subtemas_adicionales.join(', ')}
+                    Subtemas: {sesion.subtemas_adicionales.join(', ')}
                   </p>
                 )}
                 {sesion.materiales_asociados?.length > 0 && (
@@ -411,7 +411,7 @@ export function TutoriaView() {
                   </span>
                   {isStreaming && (
                     <Badge variant="secondary" className="gap-1.5 text-indigo-600 animate-pulse">
-                      <RotateCw className="h-3 w-3 animate-spin" /> Explicando en tiempo real...
+                      <RotateCw className="h-3 w-3 animate-spin" /> Escribiendo…
                     </Badge>
                   )}
                 </div>
@@ -424,44 +424,14 @@ export function TutoriaView() {
               </CardHeader>
 
               <CardContent className="p-6">
-                {/* Renderizado Markdown con resaltado de código sobrio */}
-                <div className="prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed space-y-4">
+                {/* Explicación en Markdown con fórmulas LaTeX */}
+                <div>
                   {explicacionTexto ? (
-                    <ReactMarkdown
-                      components={{
-                        pre({ children, ...props }) {
-                          return (
-                            <pre
-                              className="rounded-lg border border-slate-800 bg-slate-950 p-4 font-mono text-xs text-slate-100 overflow-x-auto shadow-inner"
-                              {...props}
-                            >
-                              {children}
-                            </pre>
-                          )
-                        },
-                        code({ className, children, ...props }) {
-                          const isInline = !className
-                          return isInline ? (
-                            <code
-                              className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-indigo-600 dark:bg-slate-800 dark:text-indigo-400"
-                              {...props}
-                            >
-                              {children}
-                            </code>
-                          ) : (
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          )
-                        },
-                      }}
-                    >
-                      {explicacionTexto}
-                    </ReactMarkdown>
+                    <Markdown>{explicacionTexto}</Markdown>
                   ) : (
                     <div className="flex h-36 items-center justify-center text-slate-400 gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
-                      <span>El tutor está formulando la explicación técnica...</span>
+                      <span>El tutor está preparando la explicación…</span>
                     </div>
                   )}
                 </div>
@@ -504,7 +474,7 @@ export function TutoriaView() {
               <CardHeader className="p-4 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <HelpCircle className="h-4 w-4 text-indigo-500" />
-                  Preguntas y Dudas sobre este Paso
+                  ¿Dudas sobre este paso?
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-4">
@@ -516,8 +486,8 @@ export function TutoriaView() {
                         <div className="flex items-start gap-2 text-indigo-900 dark:text-indigo-200 font-medium">
                           <span className="font-bold">Pregunta:</span> {d.duda}
                         </div>
-                        <div className="border-l-2 border-indigo-400 pl-3 text-slate-700 dark:text-slate-300 leading-relaxed">
-                          {d.respuesta}
+                        <div className="border-l-2 border-indigo-400 pl-3">
+                          <Markdown className="text-[0.85rem]">{d.respuesta}</Markdown>
                         </div>
                       </div>
                     ))}
@@ -529,7 +499,7 @@ export function TutoriaView() {
                   <Input
                     value={dudaInput}
                     onChange={(e) => setDudaInput(e.target.value)}
-                    placeholder="Escribe tu duda técnica sobre esta explicación..."
+                    placeholder="Pregunta lo que no te quedó claro…"
                     className="text-xs"
                     disabled={enviandoDuda}
                   />
@@ -544,7 +514,7 @@ export function TutoriaView() {
                     ) : (
                       <Send className="h-3.5 w-3.5" />
                     )}
-                    Resolver Duda
+                    Preguntar
                   </Button>
                 </form>
               </CardContent>
@@ -560,18 +530,18 @@ export function TutoriaView() {
     <div className="space-y-8 pb-12 max-w-4xl mx-auto">
       <div>
         <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
-          Tutoría Interactiva Personalizada
+          Tutoría
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Inicia una sesión de estudio guiada por IA, alineada a tus apuntes del Segundo Cerebro y actividades prácticas.
+          Elige un tema y el tutor te lo explica paso a paso, apoyándose en tus apuntes.
         </p>
       </div>
 
       <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle>Configura tu Sesión de Estudio</CardTitle>
+          <CardTitle>Qué vas a estudiar</CardTitle>
           <CardDescription>
-            Elige la materia y el tema a dominar. Puedes hacer clic en cualquiera de las clases pendientes recomendadas.
+            Toma una clase pendiente o escribe cualquier tema.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -580,7 +550,7 @@ export function TutoriaView() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Asignatura Académica
+                  Asignatura
                 </label>
                 <select
                   value={materia}
@@ -597,16 +567,16 @@ export function TutoriaView() {
 
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Nivel de Profundidad Técnica
+                  Profundidad
                 </label>
                 <select
                   value={nivel}
                   onChange={(e) => setNivel(e.target.value)}
                   className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
                 >
-                  <option value="BÁSICO">BÁSICO - Conceptos fundamentales y visión general</option>
-                  <option value="INTERMEDIO">INTERMEDIO - Profundidad técnica estándar y ejemplos prácticos</option>
-                  <option value="AVANZADO">AVANZADO - Casos de borde, arquitectura y optimización</option>
+                  <option value="BÁSICO">Básica: conceptos y visión general</option>
+                  <option value="INTERMEDIO">Intermedia: detalle técnico y ejemplos</option>
+                  <option value="AVANZADO">Avanzada: casos límite y optimización</option>
                 </select>
               </div>
             </div>
@@ -615,7 +585,7 @@ export function TutoriaView() {
             <div className="space-y-3">
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5 text-indigo-500" />
-                Clases Pendientes Recomendadas en Cronograma
+                Clases pendientes
               </label>
 
               {cargandoClases ? (
@@ -639,7 +609,7 @@ export function TutoriaView() {
                 </div>
               ) : (
                 <p className="text-xs text-slate-400 italic py-1">
-                  No hay clases pendientes registradas para esta materia. Puedes escribir cualquier tema libremente abajo.
+                  Esta asignatura no tiene clases pendientes. Escribe el tema que quieras.
                 </p>
               )}
             </div>
@@ -648,17 +618,17 @@ export function TutoriaView() {
             <div className="space-y-2">
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <BookOpen className="h-3.5 w-3.5 text-indigo-500" />
-                Tema Específico de Estudio
+                Tema
               </label>
               <Input
                 value={tema}
                 onChange={(e) => setTema(e.target.value)}
-                placeholder="Ej. Arquitectura de Microservicios, Enrutamiento BGP, Protocolo MQTT..."
+                placeholder="Ej. Enrutamiento BGP"
                 className="text-xs"
                 required
               />
               <p className="text-[11px] text-slate-400">
-                Escribe el tema que deseas estudiar o selecciona una de las clases recomendadas arriba.
+                Puede ser cualquier tema, aunque no esté en el sílabo.
               </p>
             </div>
 
@@ -672,12 +642,12 @@ export function TutoriaView() {
                 {iniciando ? (
                   <>
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Diseñando Ruta de Aprendizaje con IA...
+                    Preparando la ruta…
                   </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    Comenzar Sesión de Tutoría
+                    Empezar
                   </>
                 )}
               </Button>

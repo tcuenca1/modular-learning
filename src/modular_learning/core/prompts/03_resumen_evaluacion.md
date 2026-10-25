@@ -44,3 +44,6 @@ Usa formato Markdown estructurado de la siguiente manera:
 
 ## 📝 Retroalimentación y Autoevaluación
 (Genera 5 preguntas de análisis o aplicación basadas en los apuntes. Escribe las respuestas correctas al final de esta sección usando formato *spoiler* o texto invertido/separado para no leerlas por accidente).
+
+NOTACIÓN MATEMÁTICA
+Escribe toda fórmula, ecuación, variable o unidad con notación matemática en LaTeX: entre signos de dólar simples para fórmulas dentro del texto y entre dobles signos de dólar, en su propia línea, para ecuaciones destacadas. No uses bloques de código para fórmulas.

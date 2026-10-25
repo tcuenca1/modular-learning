@@ -26,11 +26,14 @@ def run(container: bootstrap.Container | None = None) -> None:
         return
 
     if not preguntas:
-        console.print("[yellow]⚠️ No hay preguntas disponibles o no se encontraron temas completados.[/yellow]")
+        console.print(
+            "[yellow]⚠️ No hay preguntas disponibles o no se encontraron temas completados.[/yellow]"
+        )
         return
 
     puntuacion = 0
     total = len(preguntas)
+    respuestas: list[str] = []
 
     for idx, p in enumerate(preguntas, 1):
         enunciado = p.get("enunciado", "Pregunta")
@@ -56,6 +59,7 @@ def run(container: bootstrap.Container | None = None) -> None:
         if seleccion is None:
             console.print("\n[yellow]⚠️ Quiz cancelado por el usuario.[/yellow]")
             return
+        respuestas.append(seleccion)
 
         if seleccion.strip().lower() == respuesta_correcta.strip().lower():
             console.print("[green]✔ ¡Correcto![/green]\n")
@@ -65,11 +69,12 @@ def run(container: bootstrap.Container | None = None) -> None:
                 f"[red]✖ Incorrecto. La respuesta correcta era: {respuesta_correcta}[/red]\n"
             )
 
+    # Programa cada pregunta en el repaso espaciado según el resultado
+    evaluacion_service.evaluar_respuestas(preguntas, respuestas)
+
     pct = (puntuacion / total) * 100 if total > 0 else 0
     console.print("=" * 50)
-    console.print(
-        f" [bold]📊 Puntuación final: {puntuacion} de {total} ({pct:.0f}%)[/bold]"
-    )
+    console.print(f" [bold]📊 Puntuación final: {puntuacion} de {total} ({pct:.0f}%)[/bold]")
     console.print("=" * 50 + "\n")
 
 

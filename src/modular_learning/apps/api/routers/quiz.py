@@ -17,6 +17,16 @@ from modular_learning.core.application.evaluacion import EvaluacionService
 
 router = APIRouter(prefix="/api/quiz", tags=["quiz"])
 
+CAMPOS_PUBLICOS = ("enunciado", "opciones", "materia", "tema")
+
+
+def publicar_quiz(store: SessionStore, preguntas: list[dict[str, Any]]) -> dict[str, Any]:
+    """Guarda el quiz completo en sesión y expone al cliente las preguntas sin la respuesta."""
+    quiz_id = uuid.uuid4().hex
+    store.guardar_quiz(quiz_id, preguntas)
+    publicas = [{campo: p.get(campo, "") for campo in CAMPOS_PUBLICOS} for p in preguntas]
+    return {"quiz_id": quiz_id, "preguntas": publicas}
+
 
 @router.get("/generar")
 def generar_quiz(
@@ -29,15 +39,7 @@ def generar_quiz(
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
-
-    quiz_id = uuid.uuid4().hex
-    store.guardar_quiz(quiz_id, preguntas)
-
-    # Exponer al cliente las preguntas sin la respuesta correcta
-    publicas = [
-        {"enunciado": p.get("enunciado", ""), "opciones": p.get("opciones", [])} for p in preguntas
-    ]
-    return {"quiz_id": quiz_id, "preguntas": publicas}
+    return publicar_quiz(store, preguntas)
 
 
 @router.post("/evaluar")

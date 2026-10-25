@@ -29,6 +29,13 @@ def crear_materia(
     return {"materias": materias}
 
 
+@router.get("/cronogramas")
+def cronogramas(
+    servicio: Annotated[MateriasService, Depends(get_materias_service)],
+) -> dict[str, dict[str, list[dict[str, Any]]]]:
+    return {"cronogramas": servicio.listar_cronogramas()}
+
+
 @router.get("/{materia}/clases")
 def proximas_clases(
     materia: str,

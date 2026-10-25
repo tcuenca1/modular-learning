@@ -13,6 +13,7 @@ from pathlib import Path
 PACKAGE_ROOT = Path(__file__).resolve().parent
 REPO_ROOT = PACKAGE_ROOT.parent.parent
 
+
 def ruta_data() -> Path:
     """Retorna la ruta raíz del directorio de datos (resuelto dinámicamente desde ML_DATA_DIR)."""
     env_dir = os.environ.get("ML_DATA_DIR")
@@ -54,6 +55,11 @@ def ruta_ajustes() -> Path:
 def ruta_plugins_memoria() -> Path:
     """Retorna la ruta a la carpeta de memorias persistentes de plugins."""
     return ruta_data() / "plugins"
+
+
+def ruta_repaso() -> Path:
+    """Retorna la carpeta de tarjetas de repaso espaciado e historial de estudio."""
+    return ruta_data() / "repaso"
 
 
 def ruta_vectordb() -> Path:

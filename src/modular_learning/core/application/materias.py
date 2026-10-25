@@ -33,5 +33,11 @@ class MateriasService:
             return []
         return self.cronograma_repo.obtener_proximas_clases(materia)
 
+    def listar_cronogramas(self) -> dict[str, list[dict[str, Any]]]:
+        """Todas las clases de todos los cronogramas, para el calendario."""
+        if not self.cronograma_repo:
+            return {}
+        return self.cronograma_repo.listar_cronogramas()
+
 
 __all__ = ["MateriasService"]

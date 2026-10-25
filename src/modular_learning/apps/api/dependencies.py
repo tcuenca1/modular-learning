@@ -14,6 +14,7 @@ from modular_learning.core.application.evaluacion import EvaluacionService
 from modular_learning.core.application.ingesta import IngestaService
 from modular_learning.core.application.materias import MateriasService
 from modular_learning.core.application.plugins import PluginsService
+from modular_learning.core.application.repaso import RepasoService
 from modular_learning.core.application.silabo import SilaboService
 from modular_learning.core.application.telemetria import TelemetriaService
 from modular_learning.core.application.tutoria import TutoriaService
@@ -66,3 +67,7 @@ def get_configuracion_service(cont: ContainerDep) -> ConfiguracionService:
 
 def get_materias_service(cont: ContainerDep) -> MateriasService:
     return cont.materias_service
+
+
+def get_repaso_service(cont: ContainerDep) -> RepasoService:
+    return cont.repaso_service

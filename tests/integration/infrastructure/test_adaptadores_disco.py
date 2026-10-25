@@ -68,3 +68,35 @@ def test_boveda_guardar_nota(tmp_path):
     )
     assert ruta.replace("\\", "/").endswith("Redes/Lectura/Doc_Notas.md")
     assert (tmp_path / "Redes" / "Lectura" / "Doc_Notas.md").read_text(encoding="utf-8") == "# Hola"
+
+
+def test_repos_de_repaso_persisten_tarjetas_e_historial(tmp_path):
+    from datetime import date
+
+    from modular_learning.core.domain.repaso_espaciado import Tarjeta, programar
+    from modular_learning.infrastructure.persistence.json_repaso import (
+        JsonHistorialRepo,
+        JsonTarjetasRepo,
+    )
+
+    tarjetas = JsonTarjetasRepo(str(tmp_path / "repaso" / "tarjetas.json"))
+    assert tarjetas.listar() == []
+    t = Tarjeta(
+        id="a1",
+        materia="Redes",
+        tema="VLAN",
+        enunciado="¿Qué es?",
+        opciones=["A) x"],
+        respuesta_correcta="A) x",
+    )
+    tarjetas.guardar(programar(t, False, date(2026, 10, 25)))
+    recuperada = JsonTarjetasRepo(str(tmp_path / "repaso" / "tarjetas.json")).obtener("a1")
+    assert recuperada == t
+    assert recuperada.ultimo_fallo
+
+    historial = JsonHistorialRepo(str(tmp_path / "repaso" / "historial.json"))
+    historial.registrar({"tipo": "tutoria", "materia": "Redes", "tema": "VLAN y trunking"})
+    historial.registrar({"tipo": "repaso", "materia": "IoT", "tema": "MQTT"})
+    assert [e["tipo"] for e in historial.listar()] == ["repaso", "tutoria"]
+    assert len(historial.listar(materia="redes", tema="vlan")) == 1
+    assert historial.listar(materia="Redes", tema="MQTT") == []
