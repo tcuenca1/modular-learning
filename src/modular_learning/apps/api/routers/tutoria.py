@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from collections.abc import Iterator
 from typing import Annotated, Any
 
@@ -16,16 +17,8 @@ from modular_learning.apps.api.dependencies import (
 )
 from modular_learning.apps.api.schemas import Duda, IniciarTutoria
 from modular_learning.apps.api.session_store import SessionStore
-from modular_learning.core.application import tutoria as servicio_tutoria
 from modular_learning.core.application.materias import MateriasService
-from modular_learning.core.application.tutoria import (
-    SesionTutoria,
-    TutoriaService,
-    _orig_explicar_paso_stream,
-    _orig_finalizar_sesion,
-    _orig_iniciar_sesion,
-    _orig_responder_duda,
-)
+from modular_learning.core.application.tutoria import SesionTutoria, TutoriaService
 
 router = APIRouter(prefix="/api/tutoria", tags=["tutoria"])
 
@@ -44,21 +37,14 @@ def iniciar_tutoria(
     materias_srv: Annotated[MateriasService, Depends(get_materias_service)],
     store: Annotated[SessionStore, Depends(get_session_store)],
 ) -> dict[str, Any]:
-    import uuid
-
     sesion_id = uuid.uuid4().hex
     try:
-        if getattr(servicio_tutoria, "iniciar_sesion", None) is not _orig_iniciar_sesion:
-            sesion = servicio_tutoria.iniciar_sesion(
-                sesion_id, body.materia.strip(), body.tema.strip(), body.nivel_profundidad
-            )
-        else:
-            sesion = servicio.iniciar_sesion(
-                sesion_id=sesion_id,
-                materia=body.materia.strip(),
-                tema=body.tema.strip(),
-                nivel_profundidad=body.nivel_profundidad,
-            )
+        sesion = servicio.iniciar_sesion(
+            sesion_id=sesion_id,
+            materia=body.materia.strip(),
+            tema=body.tema.strip(),
+            nivel_profundidad=body.nivel_profundidad,
+        )
     except (ValueError, FileNotFoundError) as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
@@ -90,10 +76,7 @@ def explicar_paso(
     if not 0 <= indice < len(sesion.pasos):
         raise HTTPException(status_code=404, detail="Paso inexistente en la sesión.")
 
-    if getattr(servicio_tutoria, "explicar_paso_stream", None) is not _orig_explicar_paso_stream:
-        stream_iter = servicio_tutoria.explicar_paso_stream(sesion, indice)
-    else:
-        stream_iter = servicio.explicar_paso_stream(sesion, indice)
+    stream_iter = servicio.explicar_paso_stream(sesion, indice)
 
     def eventos() -> Iterator[str]:
         try:
@@ -119,10 +102,7 @@ def resolver_duda(
 ) -> dict[str, str]:
     sesion = _obtener_sesion_activa(sesion_id, store)
     try:
-        if getattr(servicio_tutoria, "responder_duda", None) is not _orig_responder_duda:
-            respuesta = servicio_tutoria.responder_duda(sesion, body.paso, body.duda.strip())
-        else:
-            respuesta = servicio.responder_duda(sesion, body.paso, body.duda.strip())
+        respuesta = servicio.responder_duda(sesion, body.paso, body.duda.strip())
     except IndexError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
@@ -138,10 +118,7 @@ def finalizar_tutoria(
 ) -> dict[str, Any]:
     sesion = _obtener_sesion_activa(sesion_id, store)
     try:
-        if getattr(servicio_tutoria, "finalizar_sesion", None) is not _orig_finalizar_sesion:
-            resultado = servicio_tutoria.finalizar_sesion(sesion)
-        else:
-            resultado = servicio.finalizar_sesion(sesion)
+        resultado = servicio.finalizar_sesion(sesion)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
     store.eliminar_sesion(sesion_id)

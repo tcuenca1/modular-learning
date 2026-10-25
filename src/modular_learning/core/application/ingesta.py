@@ -2,18 +2,22 @@
 
 from __future__ import annotations
 
+import logging
 import mimetypes
 import os
 import time
 from collections.abc import Iterator
 from typing import Any
 
+from modular_learning.core.application.plugins import PluginsService
 from modular_learning.core.domain import alineador_curricular
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.llm import LLMPort
 from modular_learning.core.ports.repositorios import CronogramaRepo, RegistroMaterialesRepo
+
+logger = logging.getLogger(__name__)
 
 EXTENSIONES_MATERIAL = (".pdf", ".docx", ".txt", ".md")
 EXTENSIONES_NO_SOPORTADAS_WEB = (".pptx",)
@@ -37,7 +41,7 @@ class IngestaService:
         boveda_port: BovedaNotasPort,
         lector_docs: LectorDocumentosPort,
         ajustes_port: AjustesPort,
-        plugins_service: Any | None = None,
+        plugins_service: PluginsService | None = None,
         cronograma_repo: CronogramaRepo | None = None,
     ):
         self.llm = llm
@@ -60,25 +64,34 @@ class IngestaService:
             return "lectura"
         return "material_complementario"
 
-    def _leer_docx(self, ruta: str) -> str:
-        import docx
-
-        documento = docx.Document(ruta)
-        return "\n".join(p.text for p in documento.paragraphs)
-
     def _generar_contenido(self, ruta: str, prompt: str) -> str:
         ext = os.path.splitext(ruta)[1].lower()
-        if ext == ".docx":
-            texto = self._leer_docx(ruta)
+        if ext in (".docx", ".txt", ".md"):
+            texto = self.lector_docs.extraer_texto(ruta)
             return self.llm.generar_texto(f"{prompt}\n\nCONTENIDO DEL DOCUMENTO:\n{texto}")
-        if ext in (".txt", ".md"):
-            with open(ruta, encoding="utf-8", errors="replace") as f:
-                return self.llm.generar_texto(f"{prompt}\n\nCONTENIDO DEL DOCUMENTO:\n{f.read()}")
 
-        mime = "application/pdf" if ext == ".pdf" else (mimetypes.guess_type(ruta)[0] or "text/plain")
-        with open(ruta, "rb") as f:
-            datos = f.read()
-        return self.llm.generar_texto_con_archivo({"mime_type": mime, "data": datos, "path": ruta}, prompt)
+        mime = (
+            "application/pdf" if ext == ".pdf" else (mimetypes.guess_type(ruta)[0] or "text/plain")
+        )
+        return self.llm.generar_texto_con_archivo({"mime_type": mime, "path": ruta}, prompt)
+
+    def _alinear_con_cronograma(
+        self, materia: str, contenido_md: str, nombre_archivo: str
+    ) -> dict[str, Any]:
+        """Asigna el material a la clase más afín y persiste el cronograma actualizado."""
+        if not self.cronograma_repo:
+            return {}
+        clases = self.cronograma_repo.obtener_cronograma(materia) or []
+        resultado = alineador_curricular.asignar_material_a_clase(
+            clases, contenido_md, nombre_archivo, llm=self.llm
+        )
+        if resultado.get("asignado") is True:
+            self.cronograma_repo.guardar_cronograma(materia, clases)
+        elif resultado.get("asignado") is False:
+            self.cronograma_repo.agregar_material_transversal(
+                materia, alineador_curricular.item_material_transversal(nombre_archivo, resultado)
+            )
+        return resultado
 
     def ingestar_archivo(
         self,
@@ -91,12 +104,7 @@ class IngestaService:
         if tipo not in TIPOS_MATERIAL:
             tipo = "material_complementario"
 
-        if self.ajustes_port:
-            ruta_boveda = self.ajustes_port.ruta_boveda()
-        else:
-            from modular_learning.core.application import configuracion as servicio_config
-
-            ruta_boveda = servicio_config.ruta_boveda()
+        ruta_boveda = self.ajustes_port.ruta_boveda()
         try:
             plantilla = self.lector_docs.leer_prompt("05_ingesta_material.md")
         except Exception:
@@ -112,21 +120,18 @@ class IngestaService:
 
         contenido_md = self._generar_contenido(ruta_archivo, prompt)
 
-        carpeta_salida = os.path.join(ruta_boveda, materia, tipo.capitalize())
-        os.makedirs(carpeta_salida, exist_ok=True)
         base = os.path.splitext(nombre_original)[0].replace(" ", "_")
-        ruta_salida = os.path.join(carpeta_salida, f"{base}_Notas.md")
-        with open(ruta_salida, "w", encoding="utf-8") as f:
-            f.write(contenido_md)
+        ruta_salida = self.boveda_port.guardar_nota(
+            materia, tipo.capitalize(), f"{base}_Notas", contenido_md, ruta_boveda
+        )
 
         self.registro_repo.registrar_material(nombre_original, materia)
 
         alineacion: dict[str, Any] = {}
         try:
-            alineacion = alineador_curricular.asignar_material_a_clase(
-                materia, contenido_md, nombre_original, llm=self.llm
-            )
+            alineacion = self._alinear_con_cronograma(materia, contenido_md, nombre_original)
         except Exception as e:
+            logger.warning("No se pudo alinear '%s' con el cronograma: %s", nombre_original, e)
             alineacion = {"error": str(e)}
 
         plugin_actualizado = False
@@ -142,34 +147,27 @@ class IngestaService:
                     if tecnico:
                         plugin.guardar_contexto_extraido(tecnico)
                         plugin_actualizado = True
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("No se pudo actualizar la memoria del plugin: %s", e)
 
         return {
             "archivo": nombre_original,
             "materia": materia,
             "tipo": tipo,
-            "ruta_salida": os.path.abspath(ruta_salida),
+            "ruta_salida": ruta_salida,
             "contenido_md": contenido_md,
             "alineacion": alineacion,
             "plugin_actualizado": plugin_actualizado,
         }
 
     def escanear_materia(self, materia: str) -> dict[str, Any]:
-        from modular_learning.core.application import configuracion as servicio_config
-        from modular_learning.core.application.configuracion import _orig_carpeta_material
-
-        if getattr(servicio_config, "carpeta_material", None) is not _orig_carpeta_material:
-            base_carpeta = servicio_config.carpeta_material()
-        elif self.ajustes_port:
-            base_carpeta = self.ajustes_port.carpeta_material()
-        else:
-            base_carpeta = servicio_config.carpeta_material()
-        carpeta = os.path.join(base_carpeta, materia)
+        """Detecta los archivos nuevos (no ingestados) de la carpeta de la asignatura."""
+        carpeta = os.path.join(self.ajustes_port.carpeta_material(), materia)
+        archivos = self.lector_docs.listar_archivos(carpeta)
         resultado: dict[str, Any] = {
             "materia": materia,
             "carpeta": carpeta,
-            "existe": os.path.isdir(carpeta),
+            "existe": archivos is not None,
             "total": 0,
             "omitidos": 0,
             "no_soportados": 0,
@@ -178,22 +176,25 @@ class IngestaService:
         if not resultado["existe"]:
             return resultado
 
-        for raiz, _, archivos in os.walk(carpeta):
-            for nombre in sorted(archivos):
-                ext = os.path.splitext(nombre)[1].lower()
-                if ext in EXTENSIONES_NO_SOPORTADAS_WEB:
-                    resultado["no_soportados"] += 1
-                    continue
-                if ext not in EXTENSIONES_MATERIAL:
-                    continue
-                resultado["total"] += 1
-                if self.registro_repo.verificar_material_ingestado(nombre):
-                    resultado["omitidos"] += 1
-                    continue
-                ruta = os.path.join(raiz, nombre)
-                resultado["pendientes"].append(
-                    {"nombre": nombre, "ruta": ruta, "tipo": self.clasificar_tipo_material(ruta, carpeta)}
-                )
+        for ruta in archivos or []:
+            nombre = os.path.basename(ruta)
+            ext = os.path.splitext(nombre)[1].lower()
+            if ext in EXTENSIONES_NO_SOPORTADAS_WEB:
+                resultado["no_soportados"] += 1
+                continue
+            if ext not in EXTENSIONES_MATERIAL:
+                continue
+            resultado["total"] += 1
+            if self.registro_repo.verificar_material_ingestado(nombre):
+                resultado["omitidos"] += 1
+                continue
+            resultado["pendientes"].append(
+                {
+                    "nombre": nombre,
+                    "ruta": ruta,
+                    "tipo": self.clasificar_tipo_material(ruta, carpeta),
+                }
+            )
         return resultado
 
     def escanear(self, materias: list[str]) -> list[dict[str, Any]]:
@@ -219,7 +220,9 @@ class IngestaService:
                     "tipo": item["tipo"],
                 }
                 try:
-                    r = self.ingestar_archivo(item["ruta"], item["nombre"], escaneo["materia"], item["tipo"])
+                    r = self.ingestar_archivo(
+                        item["ruta"], item["nombre"], escaneo["materia"], item["tipo"]
+                    )
                     exitosos += 1
                     al = r.get("alineacion") or {}
                     yield {
@@ -241,42 +244,10 @@ class IngestaService:
         }
 
 
-_instancia_por_defecto: IngestaService | None = None
-
-
-def configurar_servicio_defecto(servicio: IngestaService) -> None:
-    global _instancia_por_defecto
-    _instancia_por_defecto = servicio
-
-
-def ingestar_archivo(
-    ruta_archivo: str, nombre_original: str, materia: str, tipo: str = "material_complementario"
-) -> dict[str, Any]:
-    if _instancia_por_defecto is None:
-        raise RuntimeError("IngestaService no inicializado en el contenedor.")
-    return _instancia_por_defecto.ingestar_archivo(ruta_archivo, nombre_original, materia, tipo)
-
-
-def escanear(materias: list[str]) -> list[dict[str, Any]]:
-    if _instancia_por_defecto is None:
-        raise RuntimeError("IngestaService no inicializado en el contenedor.")
-    return _instancia_por_defecto.escanear(materias)
-
-
-def ingestar_pendientes_stream(materias: list[str]) -> Iterator[dict[str, Any]]:
-    if _instancia_por_defecto is None:
-        raise RuntimeError("IngestaService no inicializado en el contenedor.")
-    return _instancia_por_defecto.ingestar_pendientes_stream(materias)
-
-
 __all__ = [
     "EXTENSIONES_MATERIAL",
     "EXTENSIONES_NO_SOPORTADAS_WEB",
     "REGLA_PRIVACIDAD",
     "TIPOS_MATERIAL",
     "IngestaService",
-    "configurar_servicio_defecto",
-    "escanear",
-    "ingestar_archivo",
-    "ingestar_pendientes_stream",
 ]

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from unittest.mock import MagicMock
 
 from modular_learning.core.application.configuracion import ConfiguracionService
@@ -31,9 +30,7 @@ def test_configuracion_service():
 
 def test_materias_service():
     materia_repo = InMemoryMateriaRepo(["Redes", "IoT"])
-    cronograma_repo = InMemoryCronogramaRepo(
-        {"Redes": [{"tema": "Tema 1", "estado": "pendiente"}]}
-    )
+    cronograma_repo = InMemoryCronogramaRepo({"Redes": [{"tema": "Tema 1", "estado": "pendiente"}]})
     service = MateriasService(materia_repo, cronograma_repo)
 
     assert service.listar_materias() == ["Redes", "IoT"]
@@ -45,26 +42,23 @@ def test_materias_service():
     assert proximas[0]["tema"] == "Tema 1"
 
 
-def test_telemetria_service(tmp_path):
-    schedules_dir = tmp_path / "schedules"
-    schedules_dir.mkdir()
-
-    cronograma_data = {
-        "clases": [
-            {"tema": "Tema 1", "estado": "completado"},
-            {"tema": "Tema 2", "estado": "pendiente"},
-        ]
-    }
-    (schedules_dir / "redes_cronograma.json").write_text(
-        json.dumps(cronograma_data), encoding="utf-8"
+def test_telemetria_service():
+    cronograma_repo = InMemoryCronogramaRepo(
+        {
+            "redes": [
+                {"tema": "Tema 1", "estado": "completado"},
+                {"tema": "Tema 2", "estado": "pendiente"},
+            ]
+        }
     )
-
-    plugins_dir = tmp_path / "plugins"
-    plugins_dir.mkdir()
+    plugin_con_memoria = MagicMock()
+    plugin_con_memoria.cargar_contexto_reciente.return_value = "contexto"
+    plugin_vacio = MagicMock()
+    plugin_vacio.cargar_contexto_reciente.return_value = ""
 
     service = TelemetriaService(
-        carpeta_schedules=str(schedules_dir),
-        carpeta_plugins=str(plugins_dir),
+        cronograma_repo=cronograma_repo,
+        plugins={"cisco": plugin_con_memoria, "web": plugin_vacio},
     )
 
     stats = service.obtener_estadisticas()
@@ -72,6 +66,7 @@ def test_telemetria_service(tmp_path):
     assert stats["temas_completados"] == 1
     assert stats["porcentaje_global"] == 50.0
     assert "Redes" in stats["materias"]
+    assert stats["plugins_activos"] == 1
 
 
 def test_plugins_service():

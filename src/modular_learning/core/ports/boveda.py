@@ -15,6 +15,17 @@ class BovedaNotasPort(ABC):
         """Guarda un resumen o guía de estudio en formato Markdown dentro de la bóveda."""
 
     @abstractmethod
+    def guardar_nota(
+        self,
+        materia: str,
+        subcarpeta: str,
+        nombre_base: str,
+        contenido: str,
+        ruta_boveda: str | None = None,
+    ) -> str:
+        """Guarda una nota Markdown en <bóveda>/<materia>/<subcarpeta> y retorna su ruta absoluta."""
+
+    @abstractmethod
     def actualizar_indice_materia(
         self, materia: str, tema_sanitizado: str, ruta_boveda: str | None = None
     ) -> bool:

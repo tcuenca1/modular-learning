@@ -17,7 +17,7 @@ def run(container: bootstrap.Container | None = None) -> None:
 
     try:
         # 1. Recopilar datos interactivos del estudiante
-        datos = interaccion.pedir_datos_inicio()
+        datos = interaccion.pedir_datos_inicio(cont.materias_service)
         materia = datos["materia"]
         tema = datos["tema"]
         nivel_profundidad = datos["nivel_profundidad"]

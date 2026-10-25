@@ -165,8 +165,12 @@ class LLM_GeminiAdapter(LLMAdapterBase):
             while intento < max_reintentos:
                 try:
                     mime = archivo_inline.get("mime_type", "application/pdf")
-                    file_bytes = archivo_inline.get("data", b"")
                     ruta = archivo_inline.get("path")
+                    file_bytes = archivo_inline.get("data")
+                    if file_bytes is None and ruta:
+                        with open(ruta, "rb") as f:
+                            file_bytes = f.read()
+                    file_bytes = file_bytes or b""
 
                     if ruta and os.path.exists(ruta) and len(file_bytes) > 4_000_000:
                         uploaded_file = client.files.upload(file=ruta)

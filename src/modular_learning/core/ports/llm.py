@@ -14,7 +14,11 @@ class LLMAdapterBase(ABC):
 
     @abstractmethod
     def generar_texto_con_archivo(self, archivo_inline: dict, prompt: str) -> str:
-        """Envía un archivo multimedia (PDF/imagen) junto con un prompt y retorna la respuesta generada."""
+        """Envía un archivo multimedia (PDF/imagen) junto con un prompt y retorna la respuesta generada.
+
+        `archivo_inline` acepta {"mime_type", "path"} y opcionalmente "data" (bytes); si no se
+        proveen bytes, el adaptador lee el archivo desde "path".
+        """
 
     @abstractmethod
     def generar_json_estructurado(self, prompt: str) -> dict[str, Any]:

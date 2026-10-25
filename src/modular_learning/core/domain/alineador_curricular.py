@@ -1,116 +1,40 @@
-import json
-import os
+"""Lógica de dominio para alinear un material ingestado con la clase más afín del cronograma."""
 
-from modular_learning import settings
+from __future__ import annotations
+
+import json
+import logging
+from typing import Any
+
+from modular_learning.core.domain.json_llm import parsear_json_llm
 from modular_learning.core.ports.llm import LLMPort
 
+logger = logging.getLogger(__name__)
 
-def _encontrar_ruta_cronograma(materia: str) -> str:
-    """Busca y retorna la ruta del archivo cronograma.json de la materia."""
-    carpeta_data = str(settings.ruta_cronogramas())
-    if not os.path.exists(carpeta_data):
-        return ""
+UMBRAL_AFINIDAD = 60
 
-    materia_slug = (
-        "".join(c if c.isalnum() or c in (" ", "_", "-") else "" for c in materia)
-        .strip()
-        .replace(" ", "_")
-        .upper()
+
+def _resultado_por_defecto(clase: int, peso: int, justificacion: str) -> dict[str, Any]:
+    return {
+        "clase_asignada": clase,
+        "peso_afinidad": peso,
+        "justificacion": justificacion,
+        "subtemas_a_incorporar": [],
+        "asignado": None,  # No evaluado: no se modifica ni se registra nada
+    }
+
+
+def _construir_prompt(clases: list[dict[str, Any]], contenido_md: str, nombre_archivo: str) -> str:
+    resumen_clases = "\n".join(
+        f"Clase {idx} (Fecha: {c.get('fecha', 'S/F')}): {c.get('tema', 'Sin tema')} - "
+        f"Contenido: {c.get('contenido', '')}"
+        for idx, c in enumerate(clases, 1)
     )
-    materia_upper = materia.upper().replace(" ", "_")
-
-    posibles_nombres = [
-        f"{materia}_cronograma.json",
-        f"{materia_slug}_cronograma.json",
-        f"{materia_upper}_cronograma.json",
-        f"{materia_slug.lower()}_cronograma.json",
-    ]
-
-    for nombre in posibles_nombres:
-        ruta_prueba = os.path.join(carpeta_data, nombre)
-        if os.path.exists(ruta_prueba):
-            return ruta_prueba
-
-    try:
-        for arch in os.listdir(carpeta_data):
-            if arch.endswith("_cronograma.json") and materia_slug.replace("_", "") in arch.upper().replace("_", ""):
-                return os.path.join(carpeta_data, arch)
-    except Exception:
-        pass
-
-    return ""
-
-
-def asignar_material_a_clase(
-    materia: str,
-    contenido_md: str,
-    nombre_archivo: str = "material_nuevo.md",
-    llm: LLMPort | None = None,
-) -> dict:
-    """
-    Evalúa la afinidad del contenido de un material recién ingestado contra cada clase del cronograma oficial
-    usando el puerto LLMPort, limpia estrictamente la respuesta JSON, y asigna los subtemas y materiales asociados.
-    """
-    if llm is None:
-        raise ValueError("Se requiere una instancia válida de LLMPort para evaluar la afinidad curricular.")
-
-    ruta_cronograma = _encontrar_ruta_cronograma(materia)
-    if not ruta_cronograma or not os.path.exists(ruta_cronograma):
-        print(f"⚠️ [Alineador] No se encontró cronograma para la materia '{materia}'.")
-        return {
-            "clase_asignada": 0,
-            "peso_afinidad": 0,
-            "justificacion": "Cronograma no encontrado",
-            "subtemas_a_incorporar": [],
-        }
-
-    try:
-        with open(ruta_cronograma, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception as e:
-        print(f"⚠️ [Alineador] Error al leer el cronograma: {e}")
-        return {
-            "clase_asignada": 0,
-            "peso_afinidad": 0,
-            "justificacion": f"Error de lectura: {e}",
-            "subtemas_a_incorporar": [],
-        }
-
-    if isinstance(data, list):
-        cronograma_dict = {"clases": data, "material_transversal": []}
-    elif isinstance(data, dict):
-        cronograma_dict = data
-        if "clases" not in cronograma_dict:
-            cronograma_dict["clases"] = []
-        if "material_transversal" not in cronograma_dict:
-            cronograma_dict["material_transversal"] = []
-    else:
-        cronograma_dict = {"clases": [], "material_transversal": []}
-
-    clases = cronograma_dict["clases"]
-    if not clases:
-        return {
-            "clase_asignada": 0,
-            "peso_afinidad": 0,
-            "justificacion": "Cronograma vacío",
-            "subtemas_a_incorporar": [],
-        }
-
-    resumen_clases = []
-    for idx, c in enumerate(clases, 1):
-        fecha = c.get("fecha", "S/F")
-        tema = c.get("tema", "Sin tema")
-        contenido = c.get("contenido", "")
-        resumen_clases.append(f"Clase {idx} (Fecha: {fecha}): {tema} - Contenido: {contenido}")
-
-    resumen_clases_str = "\n".join(resumen_clases)
-    extracto_material = contenido_md[:4000]
-
-    prompt = (
+    return (
         "Eres un Arquitecto de Software y Evaluador Curricular experto. "
         "A continuación tienes la lista completa de clases oficiales del cronograma de la materia y un extracto de los apuntes de un material recién ingestado.\n\n"
-        f"CRONOGRAMA OFICIAL:\n{resumen_clases_str}\n\n"
-        f"EXTRACTO DEL NUEVO MATERIAL ({nombre_archivo}):\n{extracto_material}\n\n"
+        f"CRONOGRAMA OFICIAL:\n{resumen_clases}\n\n"
+        f"EXTRACTO DEL NUEVO MATERIAL ({nombre_archivo}):\n{contenido_md[:4000]}\n\n"
         "TAREA:\n"
         "Evalúa y asigna un peso de afinidad (0 a 100) contra cada clase del cronograma y determina cuál es la clase más afín. "
         "Identifica también los subtemas técnicos o herramientas nuevos que aporta el material.\n"
@@ -123,98 +47,76 @@ def asignar_material_a_clase(
         "}"
     )
 
-    texto_respuesta = ""
+
+def asignar_material_a_clase(
+    clases: list[dict[str, Any]],
+    contenido_md: str,
+    nombre_archivo: str,
+    llm: LLMPort,
+) -> dict[str, Any]:
+    """
+    Evalúa con el LLM la afinidad del material contra cada clase del cronograma.
+
+    Si la afinidad alcanza el umbral, modifica `clases` in situ añadiendo el material y los
+    subtemas a la clase elegida y retorna `asignado=True`. Con afinidad baja retorna
+    `asignado=False` para que el caso de uso lo registre como material transversal, y
+    `asignado=None` si no pudo evaluarse.
+    La persistencia del cronograma es responsabilidad del llamador.
+    """
+    if not clases:
+        return _resultado_por_defecto(0, 0, "Cronograma vacío o inexistente")
+
+    prompt = _construir_prompt(clases, contenido_md, nombre_archivo)
     try:
         texto_respuesta = llm.generar_texto(prompt)
     except Exception:
         try:
-            res_obj = llm.generar_json_estructurado(prompt)
-            texto_respuesta = json.dumps(res_obj)
+            texto_respuesta = json.dumps(llm.generar_json_estructurado(prompt))
         except Exception as err:
-            print(f"⚠️ [Alineador] Error al consultar la IA: {err}")
-            return {
-                "clase_asignada": 1,
-                "peso_afinidad": 50,
-                "justificacion": "Error de comunicación con IA",
-                "subtemas_a_incorporar": [],
-            }
-
-    # TAREA 1: Limpieza estricta de delimitadores Markdown antes de json.loads()
-    texto_limpio = texto_respuesta.strip()
-    if "```json" in texto_limpio:
-        texto_limpio = texto_limpio.split("```json")[1]
-        if "```" in texto_limpio:
-            texto_limpio = texto_limpio.split("```")[0]
-    elif "```" in texto_limpio:
-        texto_limpio = texto_limpio.split("```")[1]
-        if "```" in texto_limpio:
-            texto_limpio = texto_limpio.split("```")[0]
-
-    texto_limpio = texto_limpio.strip()
+            logger.warning("Error al consultar la IA para alinear '%s': %s", nombre_archivo, err)
+            return _resultado_por_defecto(1, 50, "Error de comunicación con IA")
 
     try:
-        resultado_json = json.loads(texto_limpio)
-        if not isinstance(resultado_json, dict):
+        resultado = parsear_json_llm(texto_respuesta)
+        if not isinstance(resultado, dict):
             raise ValueError("El JSON parseado no es un diccionario.")
-    except (json.JSONDecodeError, KeyError, ValueError, Exception) as parse_err:
-        print(
-            f"\033[1;91m❌ [ERROR] Fallo crítico al parsear respuesta JSON de la IA:\033[0m {parse_err}"
-        )
-        print(
-            f"\033[1;93m--- RESPUESTA CRUDA RECIBIDA DE LA IA ---\033[0m\n{texto_respuesta}\n\033[1;93m-----------------------------------------\033[0m"
-        )
-        return {
-            "clase_asignada": 1,
-            "peso_afinidad": 50,
-            "justificacion": f"Error de parseo JSON: {parse_err}",
-            "subtemas_a_incorporar": [],
-        }
+        peso = int(resultado.get("peso_afinidad", 0))
+        clase_num = int(resultado.get("clase_asignada", 1))
+    except (ValueError, TypeError) as parse_err:
+        logger.error("Respuesta de alineación no válida: %s\n%s", parse_err, texto_respuesta)
+        return _resultado_por_defecto(1, 50, f"Error de parseo JSON: {parse_err}")
 
-    # TAREA 2: Logs de depuración visibles
-    peso = int(resultado_json.get("peso_afinidad", 0))
-    clase_num = int(resultado_json.get("clase_asignada", 1))
-    print(f"[DEBUG] IA evaluó Clase {clase_num} con Afinidad: {peso}%")
-
-    if peso < 60:
-        print("[DEBUG] Afinidad muy baja. Se enviará a material transversal.")
-
-    subtemas = resultado_json.get("subtemas_a_incorporar", [])
+    subtemas = resultado.get("subtemas_a_incorporar", [])
     if not isinstance(subtemas, list):
         subtemas = []
 
-    if peso >= 60:
-        indice_clase = clase_num - 1
-        if 0 <= indice_clase < len(clases):
-            clase_target = clases[indice_clase]
-        else:
-            clase_target = clases[0]
+    resultado.update(peso_afinidad=peso, clase_asignada=clase_num, subtemas_a_incorporar=subtemas)
+    resultado["asignado"] = peso >= UMBRAL_AFINIDAD
+    logger.debug("IA evaluó Clase %s con afinidad %s%%", clase_num, peso)
 
-        if "materiales_asociados" not in clase_target:
-            clase_target["materiales_asociados"] = []
-        if nombre_archivo not in clase_target["materiales_asociados"]:
-            clase_target["materiales_asociados"].append(nombre_archivo)
-
-        if "subtemas_adicionales" not in clase_target:
-            clase_target["subtemas_adicionales"] = []
+    if resultado["asignado"]:
+        indice = clase_num - 1
+        clase_target = clases[indice] if 0 <= indice < len(clases) else clases[0]
+        materiales = clase_target.setdefault("materiales_asociados", [])
+        if nombre_archivo not in materiales:
+            materiales.append(nombre_archivo)
+        existentes = clase_target.setdefault("subtemas_adicionales", [])
         for sub in subtemas:
             sub_str = str(sub).strip()
-            if sub_str and sub_str not in clase_target["subtemas_adicionales"]:
-                clase_target["subtemas_adicionales"].append(sub_str)
-    else:
-        transversal_item = {
-            "archivo": nombre_archivo,
-            "justificacion": resultado_json.get("justificacion", ""),
-            "subtemas": subtemas,
-            "peso_afinidad": peso,
-        }
-        cronograma_dict["material_transversal"].append(transversal_item)
+            if sub_str and sub_str not in existentes:
+                existentes.append(sub_str)
 
-    # TAREA 3: Verificación de escritura en disco
-    try:
-        with open(ruta_cronograma, "w", encoding="utf-8") as f:
-            json.dump(cronograma_dict, f, indent=4, ensure_ascii=False)
-        print("[✓] JSON del cronograma actualizado y guardado en disco correctamente.")
-    except Exception as e:
-        print(f"⚠️ [Alineador] Error al guardar el cronograma actualizado: {e}")
+    return resultado
 
-    return resultado_json
+
+def item_material_transversal(nombre_archivo: str, resultado: dict[str, Any]) -> dict[str, Any]:
+    """Construye la entrada de material transversal para un material sin clase afín."""
+    return {
+        "archivo": nombre_archivo,
+        "justificacion": resultado.get("justificacion", ""),
+        "subtemas": resultado.get("subtemas_a_incorporar", []),
+        "peso_afinidad": resultado.get("peso_afinidad", 0),
+    }
+
+
+__all__ = ["UMBRAL_AFINIDAD", "asignar_material_a_clase", "item_material_transversal"]

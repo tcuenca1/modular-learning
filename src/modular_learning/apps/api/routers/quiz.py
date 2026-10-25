@@ -24,13 +24,7 @@ def generar_quiz(
     store: Annotated[SessionStore, Depends(get_session_store)],
 ) -> dict[str, Any]:
     try:
-        from modular_learning.core.application import evaluacion as motor_evaluacion
-        from modular_learning.core.application.evaluacion import _orig_generar_quiz
-
-        if getattr(motor_evaluacion, "generar_quiz", None) is not _orig_generar_quiz:
-            preguntas = motor_evaluacion.generar_quiz()
-        else:
-            preguntas = servicio.generar_quiz()
+        preguntas = servicio.generar_quiz()
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
@@ -41,8 +35,7 @@ def generar_quiz(
 
     # Exponer al cliente las preguntas sin la respuesta correcta
     publicas = [
-        {"enunciado": p.get("enunciado", ""), "opciones": p.get("opciones", [])}
-        for p in preguntas
+        {"enunciado": p.get("enunciado", ""), "opciones": p.get("opciones", [])} for p in preguntas
     ]
     return {"quiz_id": quiz_id, "preguntas": publicas}
 

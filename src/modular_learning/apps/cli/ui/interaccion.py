@@ -3,7 +3,7 @@ import sys
 import questionary
 
 from modular_learning.apps.cli.ui.formateador import imprimir_markdown_bonito
-from modular_learning.infrastructure.persistence import json_repositorios as gestor_archivos
+from modular_learning.core.application.materias import MateriasService
 
 
 def seleccionar_con_flechas(opciones: list[str]) -> str:
@@ -29,7 +29,7 @@ def seleccionar_con_flechas(opciones: list[str]) -> str:
     return seleccion
 
 
-def pedir_datos_inicio() -> dict[str, str]:
+def pedir_datos_inicio(materias_service: MateriasService) -> dict[str, str]:
     """
     Solicita al usuario los datos de inicio seleccionando la materia interactivamente,
     ofreciendo las próximas clases del cronograma JSON si existen, y pidiendo profundidad.
@@ -38,7 +38,7 @@ def pedir_datos_inicio() -> dict[str, str]:
     print(" SISTEMA DE TUTORIA PERSONALIZADO - CLI")
     print("=" * 65)
 
-    materias = gestor_archivos.cargar_materias()
+    materias = materias_service.listar_materias()
     opciones_menu = materias + ["[ + ] Añadir nueva asignatura..."]
 
     print("\nSelecciona la asignatura para la sesion de hoy:")
@@ -49,14 +49,14 @@ def pedir_datos_inicio() -> dict[str, str]:
         while not nueva_mat:
             print("⚠️ El nombre no puede estar vacío.")
             nueva_mat = input("✍️ Ingresa el nombre de la nueva asignatura: ").strip()
-        gestor_archivos.agregar_materia(nueva_mat)
+        materias_service.agregar_materia(nueva_mat)
         materia = nueva_mat
     else:
         materia = seleccion
 
     print(f"✅ Asignatura seleccionada: \033[1;92m{materia}\033[0m\n")
 
-    proximas_clases = gestor_archivos.obtener_proximas_clases(materia)
+    proximas_clases = materias_service.obtener_proximas_clases(materia)
     tema = ""
 
     if proximas_clases:

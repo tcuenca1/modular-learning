@@ -31,7 +31,3 @@ class SessionStore:
 
     def eliminar_quiz(self, quiz_id: str) -> list[dict[str, Any]] | None:
         return self._quizzes.pop(quiz_id, None)
-
-
-# Instancia singleton predeterminada
-session_store = SessionStore()

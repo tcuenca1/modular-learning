@@ -1,9 +1,10 @@
+"""Comando CLI auxiliar: snapshot del código de un proyecto local hacia la memoria de un plugin."""
+
 import os
 
 import questionary
 
-from modular_learning.core.application import plugins as gestor_plugins
-from modular_learning.infrastructure.persistence import json_repositorios as gestor_archivos
+from modular_learning import bootstrap
 
 
 def generar_snapshot_proyecto(ruta_proyecto: str) -> str:
@@ -78,7 +79,8 @@ def run():
     print(" 🔄 ACTUALIZADOR DE CONTEXTO DE PROYECTOS (ml up)")
     print("=" * 65)
 
-    materias = gestor_archivos.cargar_materias()
+    container = bootstrap.get_container()
+    materias = container.materias_service.listar_materias()
     seleccion = questionary.select(
         "Selecciona la asignatura a actualizar:",
         choices=materias,
@@ -95,7 +97,7 @@ def run():
         print("Operación cancelada.")
         return
 
-    plugin = gestor_plugins.obtener_plugin(seleccion)
+    plugin = container.plugins_service.obtener_plugin(seleccion)
     if not plugin:
         print(
             f"❌ La asignatura '{seleccion}' no tiene un plugin práctico asociado con memoria de código fuente."

@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import json
-import os
 import random
 import re
 from typing import Any
 
-from modular_learning import settings
 from modular_learning.core.ports.llm import LLMPort
 from modular_learning.core.ports.repositorios import CronogramaRepo
 
@@ -50,50 +48,25 @@ def mezclar_opciones(pregunta: dict, rng: random.Random | None = None) -> dict:
 class EvaluacionService:
     """Caso de uso para la generación y calificación de quizzes académicos."""
 
-    def __init__(
-        self,
-        llm: LLMPort,
-        cronograma_repo: CronogramaRepo | None = None,
-        carpeta_schedules: str | None = None,
-    ):
+    def __init__(self, llm: LLMPort, cronograma_repo: CronogramaRepo):
         self.llm = llm
         self.cronograma_repo = cronograma_repo
-        self._carpeta_schedules = carpeta_schedules
-
-    @property
-    def carpeta_schedules(self) -> str:
-        return self._carpeta_schedules or str(settings.ruta_cronogramas())
 
     def obtener_temas_completados(self) -> list[str]:
         """Obtiene la lista de temas completados a través de los cronogramas."""
-        if not os.path.exists(self.carpeta_schedules):
-            raise FileNotFoundError(
-                "La carpeta data/schedules/ no existe. Ingesta un sílabo primero utilizando 'ml es'."
-            )
-
-        archivos = [f for f in os.listdir(self.carpeta_schedules) if f.endswith("_cronograma.json")]
-        if not archivos:
+        cronogramas = self.cronograma_repo.listar_cronogramas()
+        if not cronogramas:
             raise FileNotFoundError(
                 "No se encontraron cronogramas en data/schedules/. Ejecuta 'ml es' para extraer sílabos."
             )
 
         temas_completados: list[str] = []
-        for arch in archivos:
-            ruta = os.path.join(self.carpeta_schedules, arch)
-            try:
-                with open(ruta, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    clases = data.get("clases", []) if isinstance(data, dict) else data
-                    if not isinstance(clases, list):
-                        continue
-                    for clase in clases:
-                        if clase.get("estado", "").lower() == "completado":
-                            tema = clase.get("tema")
-                            if tema and tema not in temas_completados:
-                                temas_completados.append(tema)
-            except Exception:
-                continue
-
+        for clases in cronogramas.values():
+            for clase in clases:
+                if str(clase.get("estado", "")).lower() == "completado":
+                    tema = clase.get("tema")
+                    if tema and tema not in temas_completados:
+                        temas_completados.append(tema)
         return temas_completados
 
     def generar_quiz(self) -> list[dict[str, Any]]:
@@ -168,26 +141,7 @@ Devuelve ÚNICAMENTE el JSON válido, sin bloques markdown de código adicionale
         }
 
 
-_instancia_por_defecto: EvaluacionService | None = None
-
-
-def configurar_servicio_defecto(servicio: EvaluacionService) -> None:
-    global _instancia_por_defecto
-    _instancia_por_defecto = servicio
-
-
-def generar_quiz() -> list[dict[str, Any]]:
-    if _instancia_por_defecto is None:
-        raise RuntimeError("EvaluacionService no ha sido inicializado en el contenedor.")
-    return _instancia_por_defecto.generar_quiz()
-
-
-_orig_generar_quiz = generar_quiz
-
 __all__ = [
     "EvaluacionService",
-    "_orig_generar_quiz",
-    "configurar_servicio_defecto",
-    "generar_quiz",
     "mezclar_opciones",
 ]

@@ -16,5 +16,13 @@ class LectorDocumentosPort(ABC):
     def leer_material_estudio(self, ruta_archivo: str) -> str:
         """Lee el contenido de texto de un archivo de estudio local."""
 
+    @abstractmethod
+    def extraer_texto(self, ruta_archivo: str) -> str:
+        """Extrae el texto plano de un documento (PDF, DOCX, Markdown o TXT)."""
+
+    @abstractmethod
+    def listar_archivos(self, carpeta: str, recursivo: bool = True) -> list[str] | None:
+        """Lista las rutas de archivos de una carpeta; retorna None si la carpeta no existe."""
+
 
 __all__ = ["LectorDocumentosPort"]

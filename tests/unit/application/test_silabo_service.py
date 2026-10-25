@@ -14,10 +14,7 @@ from tests.unit.application.fake_adapters import (
 
 
 @pytest.fixture
-def silabo_env(tmp_path):
-    schedules_dir = tmp_path / "schedules"
-    schedules_dir.mkdir()
-
+def silabo_env():
     cronograma_repo = InMemoryCronogramaRepo()
     materia_repo = InMemoryMateriaRepo(["Redes"])
     lector_docs = InMemoryLectorDocumentosPort()
@@ -36,7 +33,6 @@ def silabo_env(tmp_path):
         cronograma_repo=cronograma_repo,
         materia_repo=materia_repo,
         lector_docs=lector_docs,
-        carpeta_schedules=str(schedules_dir),
     )
 
     return {
@@ -44,7 +40,7 @@ def silabo_env(tmp_path):
         "llm": fake_llm,
         "cronograma": cronograma_repo,
         "materias": materia_repo,
-        "schedules_dir": schedules_dir,
+        "lector": lector_docs,
     }
 
 
@@ -53,9 +49,8 @@ def test_extraer_cronograma(silabo_env, tmp_path):
 
     # Crear archivo de prueba
     archivo_silabo = tmp_path / "SYLLABUS-Internet-de-las-Cosas.md"
-    archivo_silabo.write_text(
-        "4.2 Estructura de la unidad didáctica por temas\nClase 1: Introducción\n4.3 Distribución de horas",
-        encoding="utf-8",
+    silabo_env["lector"].materiales[str(archivo_silabo)] = (
+        "4.2 Estructura de la unidad didáctica por temas\nClase 1: Introducción\n4.3 Distribución de horas"
     )
 
     resultado = service.extraer_cronograma(str(archivo_silabo), "Internet de las Cosas")

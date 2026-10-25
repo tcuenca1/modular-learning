@@ -3,18 +3,23 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from modular_learning.apps.api import main as web_app
+from modular_learning import bootstrap
+from modular_learning.apps.api.dependencies import get_evaluacion_service, get_tutoria_service
+from modular_learning.apps.api.main import create_app
 from modular_learning.core.application import tutoria as servicio_tutoria
+from modular_learning.core.application.evaluacion import EvaluacionService
 
 
 @pytest.fixture
-def client(tmp_path, monkeypatch):
+def app(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)  # Aísla prompts/ y otros del proyecto real
     monkeypatch.setenv("ML_DATA_DIR", str(tmp_path / "data"))
-    web_app.bootstrap.build_container()
-    web_app.SESIONES.clear()
-    web_app.QUIZZES.clear()
-    return TestClient(web_app.app)
+    return create_app(bootstrap.build_container())
+
+
+@pytest.fixture
+def client(app):
+    return TestClient(app)
 
 
 def test_index_sirve_frontend(client):
@@ -36,17 +41,25 @@ def test_stats_sin_datos(client):
     assert r.json()["total_temas"] == 0
 
 
-def test_quiz_no_expone_respuesta_correcta_y_evalua(client, monkeypatch):
+def test_quiz_no_expone_respuesta_correcta_y_evalua(app, client):
     preguntas = [
         {"enunciado": "P1", "opciones": ["A) x", "B) y"], "respuesta_correcta": "A) x"},
         {"enunciado": "P2", "opciones": ["A) x", "B) y"], "respuesta_correcta": "B) y"},
     ]
-    monkeypatch.setattr(web_app.motor_evaluacion, "generar_quiz", lambda: preguntas)
+
+    class EvaluacionFija(EvaluacionService):
+        def generar_quiz(self):
+            return preguntas
+
+    servicio = EvaluacionFija(llm=None, cronograma_repo=None)  # type: ignore[arg-type]
+    app.dependency_overrides[get_evaluacion_service] = lambda: servicio
 
     q = client.get("/api/quiz/generar").json()
     assert all("respuesta_correcta" not in p for p in q["preguntas"])
 
-    r = client.post("/api/quiz/evaluar", json={"quiz_id": q["quiz_id"], "respuestas": ["A) x", "A) x"]})
+    r = client.post(
+        "/api/quiz/evaluar", json={"quiz_id": q["quiz_id"], "respuestas": ["A) x", "A) x"]}
+    )
     body = r.json()
     assert body["aciertos"] == 1 and body["total"] == 2 and body["porcentaje"] == 50
 
@@ -70,7 +83,7 @@ def test_silabo_formato_no_soportado(client):
     assert r.status_code == 400
 
 
-def test_tutoria_flujo_completo(client, monkeypatch):
+def test_tutoria_flujo_completo(app, client):
     sesion = servicio_tutoria.SesionTutoria(
         sesion_id="s1",
         materia="Programacion Web",
@@ -78,16 +91,21 @@ def test_tutoria_flujo_completo(client, monkeypatch):
         nivel_profundidad="INTERMEDIO",
         pasos=[{"titulo": "Paso 1", "descripcion": "d"}],
     )
-    monkeypatch.setattr(web_app.servicio_tutoria, "iniciar_sesion", lambda *a, **k: sesion)
-    monkeypatch.setattr(
-        web_app.servicio_tutoria, "explicar_paso_stream", lambda s, i: iter(["Hola ", "mundo"])
-    )
-    monkeypatch.setattr(web_app.servicio_tutoria, "responder_duda", lambda s, i, d: "resp")
-    monkeypatch.setattr(
-        web_app.servicio_tutoria,
-        "finalizar_sesion",
-        lambda s: {"guia": "# G", "guardado_obsidian": True, "clase_completada": True},
-    )
+
+    class TutoriaFalsa:
+        def iniciar_sesion(self, **_):
+            return sesion
+
+        def explicar_paso_stream(self, s, i):
+            return iter(["Hola ", "mundo"])
+
+        def responder_duda(self, s, i, d):
+            return "resp"
+
+        def finalizar_sesion(self, s):
+            return {"guia": "# G", "guardado_obsidian": True, "clase_completada": True}
+
+    app.dependency_overrides[get_tutoria_service] = TutoriaFalsa
 
     r = client.post(
         "/api/tutoria/iniciar", json={"materia": "Programacion Web", "tema": "HTML"}
@@ -98,7 +116,9 @@ def test_tutoria_flujo_completo(client, monkeypatch):
     with client.stream("GET", f"/api/tutoria/{sid}/paso/0/stream") as s:
         texto = "".join(s.iter_text())
     chunks = [
-        json.loads(linea[6:])["chunk"] for linea in texto.splitlines() if linea.startswith("data: {\"chunk")
+        json.loads(linea[6:])["chunk"]
+        for linea in texto.splitlines()
+        if linea.startswith('data: {"chunk')
     ]
     assert "".join(chunks) == "Hola mundo"
     assert "event: fin" in texto
@@ -136,16 +156,17 @@ def test_config_obtener_y_guardar(client, tmp_path):
     assert res_post.json()["carpeta_material_existe"] is True
 
 
-def test_escanear_material_endpoint(client, tmp_path, monkeypatch):
+def test_escanear_material_endpoint(client, tmp_path):
     carpeta_estudio = tmp_path / "Uni"
     materia_dir = carpeta_estudio / "Seguridad"
     materia_dir.mkdir(parents=True)
     (materia_dir / "tema1.txt").write_text("contenido", encoding="utf-8")
 
-    monkeypatch.setattr(
-        web_app.servicio_config, "carpeta_material", lambda: str(carpeta_estudio)
+    res_config = client.post(
+        "/api/config",
+        json={"carpeta_material": str(carpeta_estudio), "ruta_obsidian": str(tmp_path / "Boveda")},
     )
-    monkeypatch.setattr(web_app.gestor_archivos, "cargar_materias", lambda: ["Seguridad"])
+    assert res_config.status_code == 200
 
     res = client.get("/api/material/escanear?materia=Seguridad")
     assert res.status_code == 200
@@ -160,7 +181,12 @@ def test_motor_evaluacion_mezclar_opciones():
 
     pregunta = {
         "enunciado": "¿Qué es X?",
-        "opciones": ["A) Corta", "B) Esta es la opcion super larga y detallada", "C) Media", "D) Otra"],
+        "opciones": [
+            "A) Corta",
+            "B) Esta es la opcion super larga y detallada",
+            "C) Media",
+            "D) Otra",
+        ],
         "respuesta_correcta": "B) Esta es la opcion super larga y detallada",
     }
     mezclada = mezclar_opciones(pregunta)
@@ -168,4 +194,3 @@ def test_motor_evaluacion_mezclar_opciones():
     # La respuesta correcta debe estar entre las opciones y tener prefijo A-D
     assert mezclada["respuesta_correcta"] in mezclada["opciones"]
     assert any("Esta es la opcion super larga" in o for o in mezclada["opciones"])
-

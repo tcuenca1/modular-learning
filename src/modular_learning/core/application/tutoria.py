@@ -7,6 +7,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
+from modular_learning.core.application.plugins import PluginsService
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
@@ -93,7 +94,7 @@ class TutoriaService:
         boveda_port: BovedaNotasPort,
         lector_docs: LectorDocumentosPort,
         ajustes_port: AjustesPort,
-        plugins_service: Any | None = None,
+        plugins_service: PluginsService | None = None,
     ):
         self.llm = llm
         self.cronograma_repo = cronograma_repo
@@ -161,9 +162,7 @@ DIRECTIVA OBLIGATORIA: En tu respuesta, DEBES hacer referencia explícitamente a
         if self.plugins_service:
             plugin = self.plugins_service.obtener_plugin(sesion.materia)
             if plugin:
-                prompt += (
-                    f"\n\n{plugin.obtener_instrucciones_ia()}\n\n{plugin.generar_ejercicio_base(titulo)}"
-                )
+                prompt += f"\n\n{plugin.obtener_instrucciones_ia()}\n\n{plugin.generar_ejercicio_base(titulo)}"
 
         return prompt
 
@@ -230,58 +229,10 @@ DIRECTIVA OBLIGATORIA: En tu respuesta, DEBES hacer referencia explícitamente a
         return {"guia": guia, "guardado_obsidian": guardado, "clase_completada": completada}
 
 
-_instancia_por_defecto: TutoriaService | None = None
-
-
-def configurar_servicio_defecto(servicio: TutoriaService) -> None:
-    global _instancia_por_defecto
-    _instancia_por_defecto = servicio
-
-
-def iniciar_sesion(
-    sesion_id: str, materia: str, tema: str, nivel_profundidad: str | None
-) -> SesionTutoria:
-    if _instancia_por_defecto is None:
-        raise RuntimeError("TutoriaService no inicializado en el contenedor.")
-    return _instancia_por_defecto.iniciar_sesion(sesion_id, materia, tema, nivel_profundidad)
-
-
-def explicar_paso_stream(sesion: SesionTutoria, indice_paso: int) -> Iterator[str]:
-    if _instancia_por_defecto is None:
-        raise RuntimeError("TutoriaService no inicializado en el contenedor.")
-    return _instancia_por_defecto.explicar_paso_stream(sesion, indice_paso)
-
-
-def responder_duda(sesion: SesionTutoria, indice_paso: int, duda: str) -> str:
-    if _instancia_por_defecto is None:
-        raise RuntimeError("TutoriaService no inicializado en el contenedor.")
-    return _instancia_por_defecto.responder_duda(sesion, indice_paso, duda)
-
-
-def finalizar_sesion(sesion: SesionTutoria) -> dict[str, Any]:
-    if _instancia_por_defecto is None:
-        raise RuntimeError("TutoriaService no inicializado en el contenedor.")
-    return _instancia_por_defecto.finalizar_sesion(sesion)
-
-
-_orig_iniciar_sesion = iniciar_sesion
-_orig_explicar_paso_stream = explicar_paso_stream
-_orig_responder_duda = responder_duda
-_orig_finalizar_sesion = finalizar_sesion
-
 __all__ = [
     "NIVELES_PROFUNDIDAD",
     "SesionTutoria",
     "TutoriaService",
-    "_orig_explicar_paso_stream",
-    "_orig_finalizar_sesion",
-    "_orig_iniciar_sesion",
-    "_orig_responder_duda",
-    "configurar_servicio_defecto",
-    "explicar_paso_stream",
-    "finalizar_sesion",
-    "iniciar_sesion",
     "normalizar_nivel",
     "normalizar_roadmap",
-    "responder_duda",
 ]

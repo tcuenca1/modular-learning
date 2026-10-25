@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import os
 
-from modular_learning import settings
 from modular_learning.core.ports.config import AjustesPort
+from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.plugin_practico import PluginPracticoBase
 
 
@@ -17,14 +17,22 @@ class PluginsService:
         plugins: dict[str, PluginPracticoBase] | None = None,
         ajustes_port: AjustesPort | None = None,
         carpeta_plugins: str | None = None,
+        lector_docs: LectorDocumentosPort | None = None,
     ):
         self._plugins = dict(plugins or {})
         self.ajustes_port = ajustes_port
-        self._carpeta_plugins = carpeta_plugins
+        self.carpeta_plugins = carpeta_plugins
+        self.lector_docs = lector_docs
 
     @property
-    def carpeta_plugins(self) -> str:
-        return self._carpeta_plugins or str(settings.ruta_plugins_memoria())
+    def plugins(self) -> dict[str, PluginPracticoBase]:
+        """Catálogo de plugins registrados (copia)."""
+        return dict(self._plugins)
+
+    def _listar_archivos(self, carpeta: str | None) -> list[str]:
+        if not carpeta or not self.lector_docs:
+            return []
+        return self.lector_docs.listar_archivos(carpeta) or []
 
     def registrar_plugin(self, clave: str, plugin: PluginPracticoBase) -> None:
         """Registra un plugin práctico en el catálogo de plugins activos."""
@@ -81,9 +89,7 @@ class PluginsService:
         ruta_base_uni = (
             self.ajustes_port.carpeta_material() if self.ajustes_port else "C:/Universidad"
         )
-        ruta_boveda = (
-            self.ajustes_port.ruta_boveda() if self.ajustes_port else "obsidian_vault"
-        )
+        ruta_boveda = self.ajustes_port.ruta_boveda() if self.ajustes_port else "obsidian_vault"
 
         rutas_busqueda = [
             os.path.join(ruta_base_uni, "Internet de las Cosas"),
@@ -94,13 +100,12 @@ class PluginsService:
         if "node-red" in seleccion_lower or "todos" in seleccion_lower:
             nodered_plugin = self._plugins.get("nodered")
             if nodered_plugin:
-                archivos_json = []
-                for base in rutas_busqueda:
-                    if os.path.exists(base):
-                        for root, _, files in os.walk(base):
-                            for f in files:
-                                if f.endswith(".json") and "memoria" not in f.lower():
-                                    archivos_json.append(os.path.join(root, f))
+                archivos_json = [
+                    ruta
+                    for base in rutas_busqueda
+                    for ruta in self._listar_archivos(base)
+                    if ruta.endswith(".json") and "memoria" not in os.path.basename(ruta).lower()
+                ]
 
                 if archivos_json and hasattr(nodered_plugin, "analizar_flujo"):
                     for arch in archivos_json[:3]:
@@ -125,14 +130,13 @@ class PluginsService:
             if web_plugin:
                 try:
                     ruta_web = os.path.join(ruta_base_uni, "Programacion Web")
-                    if not os.path.exists(ruta_web):
+                    archivos_web = self._listar_archivos(ruta_web)
+                    if not archivos_web:
                         ruta_web = os.path.join(ruta_boveda, "Programacion Web")
-                    proyectos = []
-                    if os.path.exists(ruta_web):
-                        for root, _, files in os.walk(ruta_web):
-                            for f in files:
-                                if f.endswith((".js", ".html", ".css", ".md")):
-                                    proyectos.append(os.path.join(root, f))
+                        archivos_web = self._listar_archivos(ruta_web)
+                    proyectos = [
+                        f for f in archivos_web if f.endswith((".js", ".html", ".css", ".md"))
+                    ]
                     if proyectos:
                         web_plugin.guardar_contexto_extraido(
                             f"Proyectos detectados: {len(proyectos)} archivos en {ruta_web}"
@@ -150,36 +154,4 @@ class PluginsService:
         return "\n\n".join(resultados)
 
 
-_instancia_por_defecto: PluginsService | None = None
-
-
-def configurar_servicio_defecto(servicio: PluginsService) -> None:
-    global _instancia_por_defecto
-    _instancia_por_defecto = servicio
-
-
-def obtener_plugin(materia: str) -> PluginPracticoBase | None:
-    if _instancia_por_defecto is None:
-        return None
-    return _instancia_por_defecto.obtener_plugin(materia)
-
-
-def procesar_archivo_plugin(ruta: str, tipo_plugin: str) -> str:
-    if _instancia_por_defecto is None:
-        return f"⚠️ PluginsService no inicializado para procesar {tipo_plugin}"
-    return _instancia_por_defecto.procesar_archivo_plugin(ruta, tipo_plugin)
-
-
-def actualizar_plugin(seleccion: str) -> str:
-    if _instancia_por_defecto is None:
-        return f"⚠️ PluginsService no inicializado para actualizar {seleccion}"
-    return _instancia_por_defecto.actualizar_plugin(seleccion)
-
-
-__all__ = [
-    "PluginsService",
-    "actualizar_plugin",
-    "configurar_servicio_defecto",
-    "obtener_plugin",
-    "procesar_archivo_plugin",
-]
+__all__ = ["PluginsService"]

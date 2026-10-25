@@ -68,6 +68,27 @@ forbidden_modules = [
     "halo",
     "fastapi",
     "google",
+    "modular_learning.settings",
+    "modular_learning.bootstrap",
+    "pypdf",
+    "docx",
+    "dotenv",
+]
+
+[[tool.importlinter.contracts]]
+name = "El dominio no depende de los casos de uso"
+type = "forbidden"
+source_modules = ["modular_learning.core.domain"]
+forbidden_modules = ["modular_learning.core.application"]
+
+[[tool.importlinter.contracts]]
+name = "Infraestructura solo depende de los puertos del core"
+type = "forbidden"
+source_modules = ["modular_learning.infrastructure"]
+forbidden_modules = [
+    "modular_learning.apps",
+    "modular_learning.bootstrap",
+    "modular_learning.core.application",
 ]
 
 [tool.ruff]

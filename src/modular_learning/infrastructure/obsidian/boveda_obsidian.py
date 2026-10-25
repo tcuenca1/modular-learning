@@ -6,22 +6,40 @@ import os
 from datetime import datetime
 
 from modular_learning.core.ports.boveda import BovedaNotasPort
+from modular_learning.core.ports.config import AjustesPort
 
 
 class BovedaObsidianAdapter(BovedaNotasPort):
     """Implementación del puerto BovedaNotasPort para Obsidian."""
 
-    def __init__(self, ruta_boveda_defecto: str | None = None):
+    def __init__(self, ruta_boveda_defecto: str | None = None, ajustes: AjustesPort | None = None):
         self._ruta_boveda_defecto = ruta_boveda_defecto
+        self._ajustes = ajustes
 
     def _resolver_ruta_boveda(self, ruta_boveda: str | None) -> str:
         if ruta_boveda:
             return ruta_boveda
         if self._ruta_boveda_defecto:
             return self._ruta_boveda_defecto
-        from modular_learning.core.application import configuracion as servicio_config
+        if self._ajustes:
+            return self._ajustes.ruta_boveda()
+        raise ValueError("No hay una ruta de bóveda de Obsidian configurada.")
 
-        return servicio_config.ruta_boveda()
+    def guardar_nota(
+        self,
+        materia: str,
+        subcarpeta: str,
+        nombre_base: str,
+        contenido: str,
+        ruta_boveda: str | None = None,
+    ) -> str:
+        """Escribe la nota Markdown tal cual en <bóveda>/<materia>/<subcarpeta>/."""
+        carpeta = os.path.join(self._resolver_ruta_boveda(ruta_boveda), materia, subcarpeta)
+        os.makedirs(carpeta, exist_ok=True)
+        ruta = os.path.join(carpeta, f"{nombre_base}.md")
+        with open(ruta, "w", encoding="utf-8") as f:
+            f.write(contenido)
+        return os.path.abspath(ruta)
 
     def guardar_resumen(
         self, materia: str, tema: str, contenido: str, ruta_boveda: str | None = None
@@ -102,10 +120,4 @@ tags: [{materia_sin_espacios}, repaso, tutor_ia]
             return False
 
 
-def guardar_resumen_obsidian(materia: str, tema: str, contenido: str, ruta_boveda: str) -> bool:
-    """Función de compatibilidad para guardar el resumen en Obsidian."""
-    adapter = BovedaObsidianAdapter(ruta_boveda)
-    return adapter.guardar_resumen(materia, tema, contenido, ruta_boveda)
-
-
-__all__ = ["BovedaObsidianAdapter", "guardar_resumen_obsidian"]
+__all__ = ["BovedaObsidianAdapter"]

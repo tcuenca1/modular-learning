@@ -3,70 +3,24 @@
 from __future__ import annotations
 
 import json
-import os
+import logging
+from typing import Any
 
-from modular_learning import settings
+from modular_learning.core.domain.json_llm import parsear_json_llm
 from modular_learning.core.ports.llm import LLMPort
 
-
-def _encontrar_ruta_cronograma(materia: str) -> str:
-    """Busca y retorna la ruta del archivo cronograma.json de la materia."""
-    carpeta_data = str(settings.ruta_cronogramas())
-    if not os.path.exists(carpeta_data):
-        return ""
-
-    materia_slug = (
-        "".join(c if c.isalnum() or c in (" ", "_", "-") else "" for c in materia)
-        .strip()
-        .replace(" ", "_")
-        .upper()
-    )
-    materia_upper = materia.upper().replace(" ", "_")
-
-    posibles_nombres = [
-        f"{materia}_cronograma.json",
-        f"{materia_slug}_cronograma.json",
-        f"{materia_upper}_cronograma.json",
-        f"{materia_slug.lower()}_cronograma.json",
-    ]
-
-    for nombre in posibles_nombres:
-        ruta_prueba = os.path.join(carpeta_data, nombre)
-        if os.path.exists(ruta_prueba):
-            return ruta_prueba
-
-    try:
-        for arch in os.listdir(carpeta_data):
-            if arch.endswith("_cronograma.json") and materia_slug.replace("_", "") in arch.upper().replace("_", ""):
-                return os.path.join(carpeta_data, arch)
-    except Exception:
-        pass
-
-    return ""
+logger = logging.getLogger(__name__)
 
 
-def extraer_y_fusionar_subtemas(materia: str, contenido_md: str, llm: LLMPort) -> int:
+def extraer_y_fusionar_subtemas(
+    cronograma_data: list[dict[str, Any]], contenido_md: str, llm: LLMPort
+) -> int:
     """
     Envía el cronograma oficial y los apuntes a la IA para extraer conceptos/subtemas técnicos
-    no incluidos en el cronograma, y los fusiona en el archivo JSON de la materia.
-    Retorna la cantidad de nuevos subtemas inyectados.
+    no incluidos en el cronograma, y los fusiona in situ en `cronograma_data`.
+    Retorna la cantidad de nuevos subtemas inyectados; la persistencia corre por cuenta del llamador.
     """
-    if llm is None:
-        raise ValueError("Se requiere una instancia válida de LLMPort.")
-
-    ruta_cronograma = _encontrar_ruta_cronograma(materia)
-    if not ruta_cronograma or not os.path.exists(ruta_cronograma):
-        print(f"⚠️ [Sincronizador] No se encontró cronograma para la materia '{materia}'.")
-        return 0
-
-    try:
-        with open(ruta_cronograma, "r", encoding="utf-8") as f:
-            cronograma_data = json.load(f)
-    except Exception as e:
-        print(f"⚠️ [Sincronizador] Error al leer el cronograma: {e}")
-        return 0
-
-    if not isinstance(cronograma_data, list):
+    if not cronograma_data:
         return 0
 
     cronograma_str = json.dumps(cronograma_data, indent=2, ensure_ascii=False)
@@ -85,14 +39,9 @@ def extraer_y_fusionar_subtemas(materia: str, contenido_md: str, llm: LLMPort) -
         resultado_json = llm.generar_json_estructurado(prompt)
     except Exception:
         try:
-            texto_resp = llm.generar_texto(prompt)
-            texto_limpio = texto_resp.strip()
-            texto_limpio = texto_limpio.removeprefix("```json")
-            texto_limpio = texto_limpio.removeprefix("```")
-            texto_limpio = texto_limpio.removesuffix("```")
-            resultado_json = json.loads(texto_limpio.strip())
+            resultado_json = parsear_json_llm(llm.generar_texto(prompt))
         except Exception as e:
-            print(f"⚠️ [Sincronizador] No se pudo parsear la respuesta de la IA como JSON: {e}")
+            logger.warning("No se pudo parsear la respuesta de la IA como JSON: %s", e)
             return 0
 
     if not isinstance(resultado_json, list):
@@ -135,13 +84,6 @@ def extraer_y_fusionar_subtemas(materia: str, contenido_md: str, llm: LLMPort) -
                 if sub_str and sub_str not in clase_target["subtemas_adicionales"]:
                     clase_target["subtemas_adicionales"].append(sub_str)
                     subtemas_nuevos_totales += 1
-
-    if subtemas_nuevos_totales > 0:
-        try:
-            with open(ruta_cronograma, "w", encoding="utf-8") as f:
-                json.dump(cronograma_data, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            print(f"⚠️ [Sincronizador] Error al guardar el cronograma actualizado: {e}")
 
     return subtemas_nuevos_totales
 

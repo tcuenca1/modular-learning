@@ -6,53 +6,19 @@ from dataclasses import dataclass
 from typing import Any
 
 from modular_learning import settings as global_settings
-from modular_learning.core.application.configuracion import (
-    ConfiguracionService,
-)
-from modular_learning.core.application.configuracion import (
-    configurar_servicio_defecto as configurar_configuracion_defecto,
-)
-from modular_learning.core.application.evaluacion import (
-    EvaluacionService,
-)
-from modular_learning.core.application.evaluacion import (
-    configurar_servicio_defecto as configurar_evaluacion_defecto,
-)
-from modular_learning.core.application.ingesta import (
-    IngestaService,
-)
-from modular_learning.core.application.ingesta import (
-    configurar_servicio_defecto as configurar_ingesta_defecto,
-)
+from modular_learning.core.application.configuracion import ConfiguracionService
+from modular_learning.core.application.evaluacion import EvaluacionService
+from modular_learning.core.application.ingesta import IngestaService
 from modular_learning.core.application.materias import MateriasService
-from modular_learning.core.application.plugins import (
-    PluginsService,
-)
-from modular_learning.core.application.plugins import (
-    configurar_servicio_defecto as configurar_plugins_defecto,
-)
-from modular_learning.core.application.silabo import (
-    SilaboService,
-)
-from modular_learning.core.application.silabo import (
-    configurar_servicio_defecto as configurar_silabo_defecto,
-)
-from modular_learning.core.application.telemetria import (
-    TelemetriaService,
-)
-from modular_learning.core.application.telemetria import (
-    configurar_servicio_defecto as configurar_telemetria_defecto,
-)
-from modular_learning.core.application.tutoria import (
-    TutoriaService,
-)
-from modular_learning.core.application.tutoria import (
-    configurar_servicio_defecto as configurar_tutoria_defecto,
-)
+from modular_learning.core.application.plugins import PluginsService
+from modular_learning.core.application.silabo import SilaboService
+from modular_learning.core.application.telemetria import TelemetriaService
+from modular_learning.core.application.tutoria import TutoriaService
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.llm import LLMPort
+from modular_learning.core.ports.plugin_practico import PluginPracticoBase
 from modular_learning.core.ports.repositorios import (
     CronogramaRepo,
     MateriaRepo,
@@ -86,7 +52,7 @@ class Container:
     boveda_port: BovedaNotasPort
     lector_docs: LectorDocumentosPort
     ajustes_repo: AjustesPort
-    plugins_dict: dict[str, Any]
+    plugins_dict: dict[str, PluginPracticoBase]
 
     # Servicios de aplicación
     tutoria_service: TutoriaService
@@ -111,18 +77,23 @@ def build_container(settings: Any | None = None) -> Container:
     cronograma_repo = JsonCronogramaRepo()
     materia_repo = JsonMateriaRepo()
     registro_repo = JsonRegistroMaterialesRepo()
-    boveda_port = BovedaObsidianAdapter()
-    lector_docs = LectorDocumentosLocal()
     ajustes_repo = JsonAjustesRepo()
+    boveda_port = BovedaObsidianAdapter(ajustes=ajustes_repo)
+    lector_docs = LectorDocumentosLocal()
 
-    plugins_dict = {
+    plugins_dict: dict[str, PluginPracticoBase] = {
         "cisco": CiscoPlugin(),
         "nodered": NodeRedPlugin(),
         "web": WebPlugin(),
     }
 
     # 2. Instanciación e inyección en servicios de aplicación
-    plugins_service = PluginsService(plugins=plugins_dict, ajustes_port=ajustes_repo)
+    plugins_service = PluginsService(
+        plugins=plugins_dict,
+        ajustes_port=ajustes_repo,
+        carpeta_plugins=str(global_settings.ruta_plugins_memoria()),
+        lector_docs=lector_docs,
+    )
 
     tutoria_service = TutoriaService(
         llm=llm,
@@ -157,6 +128,7 @@ def build_container(settings: Any | None = None) -> Container:
 
     telemetria_service = TelemetriaService(
         cronograma_repo=cronograma_repo,
+        plugins=plugins_dict,
     )
 
     configuracion_service = ConfiguracionService(
@@ -167,15 +139,6 @@ def build_container(settings: Any | None = None) -> Container:
         materia_repo=materia_repo,
         cronograma_repo=cronograma_repo,
     )
-
-    # 3. Registrar instancias de compatibilidad en módulos de aplicación
-    configurar_tutoria_defecto(tutoria_service)
-    configurar_evaluacion_defecto(evaluacion_service)
-    configurar_silabo_defecto(silabo_service)
-    configurar_ingesta_defecto(ingesta_service)
-    configurar_plugins_defecto(plugins_service)
-    configurar_telemetria_defecto(telemetria_service)
-    configurar_configuracion_defecto(configuracion_service)
 
     container = Container(
         settings=resolved_settings,

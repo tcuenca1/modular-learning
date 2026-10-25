@@ -5,9 +5,6 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from pypdf import PdfReader
-
-from modular_learning import settings
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.llm import LLMPort
 from modular_learning.core.ports.repositorios import CronogramaRepo, MateriaRepo
@@ -24,33 +21,15 @@ class SilaboService:
         cronograma_repo: CronogramaRepo,
         materia_repo: MateriaRepo,
         lector_docs: LectorDocumentosPort,
-        carpeta_schedules: str | None = None,
     ):
         self.llm = llm
         self.cronograma_repo = cronograma_repo
         self.materia_repo = materia_repo
         self.lector_docs = lector_docs
-        self._carpeta_schedules = carpeta_schedules
-
-    @property
-    def carpeta_schedules(self) -> str:
-        return self._carpeta_schedules or str(settings.ruta_cronogramas())
 
     def extraer_texto_local(self, ruta_archivo: str) -> str:
         """Extrae el contenido textual de un archivo local (PDF, Markdown o TXT)."""
-        ext = os.path.splitext(ruta_archivo)[1].lower()
-        if ext == ".pdf":
-            try:
-                reader = PdfReader(ruta_archivo)
-                return "\n".join(t for t in (p.extract_text() for p in reader.pages) if t)
-            except Exception as e:
-                raise RuntimeError(f"No se pudo extraer texto del PDF con pypdf: {e}") from e
-        try:
-            with open(ruta_archivo, encoding="utf-8") as f:
-                return f.read()
-        except UnicodeDecodeError:
-            with open(ruta_archivo, encoding="latin-1") as f:
-                return f.read()
+        return self.lector_docs.extraer_texto(ruta_archivo)
 
     def delimitar_seccion_temas(self, texto: str) -> str:
         """Delimita el texto para analizar únicamente la Sección 4.2 del sílabo."""
@@ -93,9 +72,7 @@ class SilaboService:
     def sugerir_nombre_materia(self, nombre_archivo: str) -> str:
         """Sugiere el nombre de la asignatura a partir del nombre del archivo."""
         base = os.path.splitext(os.path.basename(nombre_archivo))[0]
-        sugerido = (
-            base.replace("SYLLABUS", "").replace("syllabus", "").replace("-", "").strip()
-        )
+        sugerido = base.replace("SYLLABUS", "").replace("syllabus", "").replace("-", "").strip()
         return sugerido or base
 
     def slug_materia(self, nombre_materia: str) -> str:
@@ -143,13 +120,13 @@ class SilaboService:
         """Guarda el cronograma en el repositorio y registra la materia."""
         cronograma_norm = self.normalizar_cronograma(datos)
         clases = cronograma_norm.get("clases", [])
-        self.cronograma_repo.guardar_cronograma(nombre_materia, clases)
+        ruta = self.cronograma_repo.guardar_cronograma(nombre_materia, clases)
         self.materia_repo.agregar_materia(nombre_materia)
-
-        ruta = os.path.join(self.carpeta_schedules, f"{self.slug_materia(nombre_materia)}_cronograma.json")
         return ruta
 
-    def procesar_archivo_individual(self, ruta_archivo: str, nombre_materia: str | None = None) -> dict[str, Any]:
+    def procesar_archivo_individual(
+        self, ruta_archivo: str, nombre_materia: str | None = None
+    ) -> dict[str, Any]:
         """Procesa un archivo de sílabo individual extrayendo y persistiendo su cronograma."""
         if not nombre_materia:
             nombre_materia = self.sugerir_nombre_materia(ruta_archivo)
@@ -166,47 +143,11 @@ class SilaboService:
 
     def escanear_directorio_silabos(self, ruta_carpeta: str) -> list[str]:
         """Retorna todos los archivos compatibles (.pdf, .md, .txt) dentro de una carpeta."""
-        if not os.path.isdir(ruta_carpeta):
-            return []
-        return [
-            os.path.join(ruta_carpeta, f)
-            for f in os.listdir(ruta_carpeta)
-            if os.path.isfile(os.path.join(ruta_carpeta, f))
-            and f.lower().endswith(EXTENSIONES_SILABO)
-        ]
-
-
-_instancia_por_defecto: SilaboService | None = None
-
-
-def configurar_servicio_defecto(servicio: SilaboService) -> None:
-    global _instancia_por_defecto
-    _instancia_por_defecto = servicio
-
-
-def extraer_cronograma(ruta_archivo: str, nombre_materia: str) -> dict:
-    if _instancia_por_defecto is None:
-        raise RuntimeError("SilaboService no inicializado en el contenedor.")
-    return _instancia_por_defecto.extraer_cronograma(ruta_archivo, nombre_materia)
-
-
-def guardar_cronograma(nombre_materia: str, datos: dict | list) -> str:
-    if _instancia_por_defecto is None:
-        raise RuntimeError("SilaboService no inicializado en el contenedor.")
-    return _instancia_por_defecto.guardar_cronograma(nombre_materia, datos)
-
-
-def sugerir_nombre_materia(nombre_archivo: str) -> str:
-    base = os.path.splitext(os.path.basename(nombre_archivo))[0]
-    sugerido = base.replace("SYLLABUS", "").replace("syllabus", "").replace("-", "").strip()
-    return sugerido or base
+        archivos = self.lector_docs.listar_archivos(ruta_carpeta, recursivo=False) or []
+        return [ruta for ruta in archivos if ruta.lower().endswith(EXTENSIONES_SILABO)]
 
 
 __all__ = [
     "EXTENSIONES_SILABO",
     "SilaboService",
-    "configurar_servicio_defecto",
-    "extraer_cronograma",
-    "guardar_cronograma",
-    "sugerir_nombre_materia",
 ]

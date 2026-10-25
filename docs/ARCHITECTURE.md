@@ -114,24 +114,18 @@ La función `build_container(settings: Settings | None = None) -> Container` act
 
 ## 🔒 Control de Fronteras Arquitectónicas (Import Linter)
 
-El aislamiento del núcleo está blindado mediante un contrato estricto verificado en CI y pre-commit con `import-linter`:
+El aislamiento de las capas está blindado mediante contratos verificados en CI y pre-commit con `import-linter` (ver `pyproject.toml`):
 
-```ini
-[[tool.importlinter.contracts]]
-name = "Core es agnóstico"
-type = "forbidden"
-source_modules = ["modular_learning.core"]
-forbidden_modules = [
-    "modular_learning.infrastructure",
-    "modular_learning.apps",
-    "typer",
-    "rich",
-    "questionary",
-    "halo",
-    "fastapi",
-    "google",
-]
-```
+| Contrato | Regla |
+| :--- | :--- |
+| **Core es agnóstico** | `core` no importa `infrastructure`, `apps`, `bootstrap`, `settings` ni librerías externas de I/O o UI (`typer`, `rich`, `questionary`, `halo`, `fastapi`, `google`, `pypdf`, `docx`, `dotenv`). |
+| **El dominio no depende de los casos de uso** | `core.domain` no importa `core.application`. |
+| **Infraestructura solo depende de los puertos** | `infrastructure` no importa `apps`, `bootstrap` ni `core.application`. |
+
+Reglas complementarias:
+
+- El núcleo no realiza I/O directo (archivos, carpetas, `print`): todo acceso a disco pasa por un puerto (`CronogramaRepo`, `LectorDocumentosPort`, `BovedaNotasPort`, …).
+- No existen instancias globales de servicios: el único punto de ensamblaje es `bootstrap.build_container()`. La API los obtiene vía `Depends` y los tests sustituyen dependencias con `app.dependency_overrides` o adaptadores en memoria.
 
 ---
 

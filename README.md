@@ -45,7 +45,7 @@ src/modular_learning/
 
 > 📖 **Para una descripción detallada, diagrama de componentes y contratos de arquitectura, consulta [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).**
 
-El desacoplamiento del núcleo está blindado mediante `import-linter`. La capa `core` no puede importar de `infrastructure`, `apps`, `fastapi`, `typer` ni `google`.
+El desacoplamiento está blindado mediante contratos de `import-linter`: la capa `core` no puede importar de `infrastructure`, `apps`, `bootstrap`, `settings` ni de librerías externas (`fastapi`, `typer`, `google`, `pypdf`, `docx`…), el dominio no depende de los casos de uso y la infraestructura solo depende de los puertos.
 
 ---
 

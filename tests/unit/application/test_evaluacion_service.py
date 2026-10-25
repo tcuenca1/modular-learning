@@ -2,31 +2,26 @@
 
 from __future__ import annotations
 
-import json
-
 import pytest
 
 from modular_learning.core.application.evaluacion import (
     EvaluacionService,
     mezclar_opciones,
 )
-from tests.unit.application.fake_adapters import FakeLLM
+from tests.unit.application.fake_adapters import FakeLLM, InMemoryCronogramaRepo
 
 
 @pytest.fixture
-def evaluacion_env(tmp_path):
-    schedules_dir = tmp_path / "schedules"
-    schedules_dir.mkdir()
-
-    # Crear cronograma con 1 clase completada
-    cronograma_data = {
-        "clases": [
-            {"tema": "Arquitectura TCP/IP", "estado": "completado"},
-            {"tema": "Modelo OSI", "estado": "pendiente"},
-        ]
-    }
-    archivo_cronograma = schedules_dir / "redes_cronograma.json"
-    archivo_cronograma.write_text(json.dumps(cronograma_data), encoding="utf-8")
+def evaluacion_env():
+    # Cronograma con 1 clase completada
+    cronograma_repo = InMemoryCronogramaRepo(
+        {
+            "redes": [
+                {"tema": "Arquitectura TCP/IP", "estado": "completado"},
+                {"tema": "Modelo OSI", "estado": "pendiente"},
+            ]
+        }
+    )
 
     fake_llm = FakeLLM(
         json_default={
@@ -40,12 +35,9 @@ def evaluacion_env(tmp_path):
         }
     )
 
-    service = EvaluacionService(
-        llm=fake_llm,
-        carpeta_schedules=str(schedules_dir),
-    )
+    service = EvaluacionService(llm=fake_llm, cronograma_repo=cronograma_repo)
 
-    return {"service": service, "llm": fake_llm, "schedules_dir": schedules_dir}
+    return {"service": service, "llm": fake_llm}
 
 
 def test_generar_quiz_exitoso(evaluacion_env):
@@ -60,23 +52,19 @@ def test_generar_quiz_exitoso(evaluacion_env):
     assert "Internet" in p["respuesta_correcta"]
 
 
-def test_generar_quiz_sin_temas_completados(tmp_path):
-    schedules_dir = tmp_path / "schedules"
-    schedules_dir.mkdir()
-
+def test_generar_quiz_sin_temas_completados():
     # Cronograma sin clases completadas
-    cronograma_data = {"clases": [{"tema": "Tema 1", "estado": "pendiente"}]}
-    archivo = schedules_dir / "materia_cronograma.json"
-    archivo.write_text(json.dumps(cronograma_data), encoding="utf-8")
-
-    service = EvaluacionService(llm=FakeLLM(), carpeta_schedules=str(schedules_dir))
+    cronograma_repo = InMemoryCronogramaRepo(
+        {"materia": [{"tema": "Tema 1", "estado": "pendiente"}]}
+    )
+    service = EvaluacionService(llm=FakeLLM(), cronograma_repo=cronograma_repo)
 
     with pytest.raises(ValueError, match="No hay temas marcados con estado 'completado'"):
         service.generar_quiz()
 
 
 def test_evaluar_respuestas():
-    service = EvaluacionService(llm=FakeLLM())
+    service = EvaluacionService(llm=FakeLLM(), cronograma_repo=InMemoryCronogramaRepo())
     preguntas = [
         {
             "enunciado": "P1",
@@ -96,6 +84,12 @@ def test_evaluar_respuestas():
     assert resultado["porcentaje"] == 50
     assert resultado["detalle"][0]["correcto"] is True
     assert resultado["detalle"][1]["correcto"] is False
+
+
+def test_generar_quiz_sin_cronogramas():
+    service = EvaluacionService(llm=FakeLLM(), cronograma_repo=InMemoryCronogramaRepo())
+    with pytest.raises(FileNotFoundError):
+        service.generar_quiz()
 
 
 def test_mezclar_opciones():

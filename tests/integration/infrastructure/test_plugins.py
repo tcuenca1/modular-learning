@@ -64,7 +64,10 @@ def test_nodered_plugin_analizar_flujo_invalido(mocker):
 
 
 def test_gestor_plugins_procesar_archivo_iot(mocker):
-    from modular_learning.core.application import plugins as gestor_plugins
+    from modular_learning.core.application.plugins import PluginsService
+    from modular_learning.infrastructure.plugins.nodered import NodeRedPlugin
+
+    gestor_plugins = PluginsService(plugins={"nodered": NodeRedPlugin()})
 
     mock_flow_data = '[{"id": "1", "type": "mqtt in", "topic": "home/living/temp"}]'
     mocker.patch("os.path.exists", return_value=True)

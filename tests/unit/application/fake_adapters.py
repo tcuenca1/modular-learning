@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from typing import Any
 
@@ -26,7 +27,9 @@ class FakeLLM(LLMPort):
         stream_chunks: list[str] | None = None,
     ) -> None:
         self.texto_default = texto_default
-        self.json_default = json_default or {"pasos": [{"titulo": "Paso 1", "descripcion": "Desc 1"}]}
+        self.json_default = json_default or {
+            "pasos": [{"titulo": "Paso 1", "descripcion": "Desc 1"}]
+        }
         self.stream_chunks = stream_chunks or ["Chunk 1 ", "Chunk 2"]
         self.llamadas_texto: list[dict[str, Any]] = []
         self.llamadas_json: list[str] = []
@@ -56,6 +59,7 @@ class InMemoryCronogramaRepo(CronogramaRepo):
 
     def __init__(self, datos_iniciales: dict[str, list[dict[str, Any]]] | None = None) -> None:
         self.cronogramas: dict[str, list[dict[str, Any]]] = dict(datos_iniciales or {})
+        self.transversal: dict[str, list[dict[str, Any]]] = {}
 
     def obtener_proximas_clases(self, materia: str) -> list[dict[str, Any]]:
         clases = self.cronogramas.get(materia, [])
@@ -79,8 +83,15 @@ class InMemoryCronogramaRepo(CronogramaRepo):
     def obtener_cronograma(self, materia: str) -> list[dict[str, Any]] | None:
         return self.cronogramas.get(materia)
 
-    def guardar_cronograma(self, materia: str, clases: list[dict[str, Any]]) -> None:
+    def guardar_cronograma(self, materia: str, clases: list[dict[str, Any]]) -> str:
         self.cronogramas[materia] = list(clases)
+        return f"memoria://{materia.replace(' ', '_')}_cronograma.json"
+
+    def listar_cronogramas(self) -> dict[str, list[dict[str, Any]]]:
+        return dict(self.cronogramas)
+
+    def agregar_material_transversal(self, materia: str, item: dict[str, Any]) -> None:
+        self.transversal.setdefault(materia, []).append(item)
 
 
 class InMemoryMateriaRepo(MateriaRepo):
@@ -115,6 +126,7 @@ class InMemoryBovedaPort(BovedaNotasPort):
 
     def __init__(self) -> None:
         self.resumenes: dict[tuple[str, str], str] = {}
+        self.notas: dict[str, str] = {}
         self.indices_actualizados: list[tuple[str, str]] = []
 
     def guardar_resumen(
@@ -122,6 +134,18 @@ class InMemoryBovedaPort(BovedaNotasPort):
     ) -> bool:
         self.resumenes[(materia, tema)] = contenido
         return True
+
+    def guardar_nota(
+        self,
+        materia: str,
+        subcarpeta: str,
+        nombre_base: str,
+        contenido: str,
+        ruta_boveda: str | None = None,
+    ) -> str:
+        ruta = f"{ruta_boveda or 'memoria://boveda'}/{materia}/{subcarpeta}/{nombre_base}.md"
+        self.notas[ruta] = contenido
+        return ruta
 
     def actualizar_indice_materia(
         self, materia: str, tema_sanitizado: str, ruta_boveda: str | None = None
@@ -148,6 +172,16 @@ class InMemoryLectorDocumentosPort(LectorDocumentosPort):
 
     def leer_material_estudio(self, ruta_archivo: str) -> str:
         return self.materiales.get(ruta_archivo, "Contenido simulado de material.")
+
+    def extraer_texto(self, ruta_archivo: str) -> str:
+        return self.materiales.get(ruta_archivo, "Contenido simulado de material.")
+
+    def listar_archivos(self, carpeta: str, recursivo: bool = True) -> list[str] | None:
+        prefijo = carpeta.rstrip("/\\") + os.sep
+        encontrados = [r for r in self.materiales if r.startswith(prefijo)]
+        if not recursivo:
+            encontrados = [r for r in encontrados if os.sep not in r[len(prefijo) :]]
+        return sorted(encontrados) if encontrados else None
 
 
 class InMemoryAjustesPort(AjustesPort):

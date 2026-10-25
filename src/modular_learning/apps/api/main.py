@@ -24,46 +24,26 @@ from modular_learning.apps.api.routers import (
     stats,
     tutoria,
 )
-from modular_learning.apps.api.session_store import session_store
-from modular_learning.core.application import (
-    configuracion as servicio_config,
-)
-from modular_learning.core.application import (
-    evaluacion as motor_evaluacion,
-)
-from modular_learning.core.application import (
-    ingesta as servicio_ingesta,
-)
-from modular_learning.core.application import (
-    plugins as gestor_plugins,
-)
-from modular_learning.core.application import (
-    silabo as servicio_silabo,
-)
-from modular_learning.core.application import (
-    telemetria,
-)
-from modular_learning.core.application import (
-    tutoria as servicio_tutoria,
-)
-from modular_learning.infrastructure.persistence import json_repositorios as gestor_archivos
+from modular_learning.apps.api.session_store import SessionStore
 
 load_dotenv()
 
 RUTA_ESTATICOS = Path(__file__).parent / "static"
 
-# Compatibilidad con accesos directos al almacén de sesiones y quizzes
-SESIONES = session_store._sesiones
-QUIZZES = session_store._quizzes
 
+def create_app(
+    container: bootstrap.Container | None = None,
+    session_store: SessionStore | None = None,
+) -> FastAPI:
+    """Crea y configura la aplicación FastAPI con dependencias inyectadas en app.state.
 
-def create_app(container: bootstrap.Container | None = None) -> FastAPI:
-    """Crea y configura la aplicación FastAPI con dependencias inyectadas en app.state."""
+    Si no se provee contenedor, se resuelve de forma perezosa con `bootstrap.get_container()`.
+    """
     app = FastAPI(title="Modular Learning Web", version="2.0.0")
 
     # Inyección del contenedor IoC y almacén de sesiones en el estado de la aplicación
     app.state.container = container
-    app.state.session_store = session_store
+    app.state.session_store = session_store or SessionStore()
 
     # Registro de routers
     app.include_router(config.router)
@@ -144,22 +124,7 @@ def run() -> None:
     uvicorn.run("modular_learning.apps.api.main:app", host=host, port=port, reload=False)
 
 
-__all__ = [
-    "QUIZZES",
-    "SESIONES",
-    "app",
-    "bootstrap",
-    "create_app",
-    "gestor_archivos",
-    "gestor_plugins",
-    "motor_evaluacion",
-    "run",
-    "servicio_config",
-    "servicio_ingesta",
-    "servicio_silabo",
-    "servicio_tutoria",
-    "telemetria",
-]
+__all__ = ["app", "create_app", "run"]
 
 
 if __name__ == "__main__":

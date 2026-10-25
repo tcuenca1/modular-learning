@@ -26,8 +26,16 @@ class CronogramaRepo(ABC):
         """Retorna la lista completa de clases del cronograma de la materia."""
 
     @abstractmethod
-    def guardar_cronograma(self, materia: str, clases: list[dict[str, Any]]) -> None:
-        """Guarda o actualiza la lista completa de clases del cronograma."""
+    def guardar_cronograma(self, materia: str, clases: list[dict[str, Any]]) -> str:
+        """Guarda o actualiza la lista completa de clases y retorna la ubicación persistida."""
+
+    @abstractmethod
+    def listar_cronogramas(self) -> dict[str, list[dict[str, Any]]]:
+        """Retorna todos los cronogramas registrados como {materia: clases}."""
+
+    @abstractmethod
+    def agregar_material_transversal(self, materia: str, item: dict[str, Any]) -> None:
+        """Registra un material sin clase afín en la sección transversal del cronograma."""
 
 
 class MateriaRepo(ABC):

@@ -13,13 +13,6 @@ from modular_learning.core.ports.repositorios import (
     MateriaRepo,
     RegistroMaterialesRepo,
 )
-from modular_learning.infrastructure.documents.lector_documentos import (
-    leer_material_estudio,
-    leer_prompt,
-)
-from modular_learning.infrastructure.obsidian.boveda_obsidian import (
-    guardar_resumen_obsidian,
-)
 
 
 class JsonMateriaRepo(MateriaRepo):
@@ -111,7 +104,9 @@ class JsonCronogramaRepo(CronogramaRepo):
 
         try:
             for arch in os.listdir(carpeta):
-                if arch.endswith("_cronograma.json") and materia_slug.replace("_", "") in arch.upper().replace("_", ""):
+                if arch.endswith("_cronograma.json") and materia_slug.replace(
+                    "_", ""
+                ) in arch.upper().replace("_", ""):
                     return os.path.join(carpeta, arch)
         except Exception:
             pass
@@ -135,7 +130,7 @@ class JsonCronogramaRepo(CronogramaRepo):
             print(f"⚠️ Error al leer cronograma de {materia}: {e}")
             return None
 
-    def guardar_cronograma(self, materia: str, clases: list[dict[str, Any]]) -> None:
+    def guardar_cronograma(self, materia: str, clases: list[dict[str, Any]]) -> str:
         ruta = self._encontrar_ruta_cronograma(materia)
         if not ruta:
             materia_slug = (
@@ -163,6 +158,40 @@ class JsonCronogramaRepo(CronogramaRepo):
                 json.dump(data_orig, f, indent=4, ensure_ascii=False)
             else:
                 json.dump(clases, f, indent=4, ensure_ascii=False)
+        return ruta
+
+    def listar_cronogramas(self) -> dict[str, list[dict[str, Any]]]:
+        carpeta = self.carpeta_schedules
+        if not os.path.isdir(carpeta):
+            return {}
+        cronogramas: dict[str, list[dict[str, Any]]] = {}
+        for arch in sorted(os.listdir(carpeta)):
+            if not arch.endswith("_cronograma.json"):
+                continue
+            materia = arch.removesuffix("_cronograma.json").replace("_", " ")
+            try:
+                with open(os.path.join(carpeta, arch), "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                continue
+            clases = (
+                data.get("clases", data.get("cronograma", [])) if isinstance(data, dict) else data
+            )
+            if isinstance(clases, list):
+                cronogramas[materia] = clases
+        return cronogramas
+
+    def agregar_material_transversal(self, materia: str, item: dict[str, Any]) -> None:
+        ruta = self._encontrar_ruta_cronograma(materia)
+        if not ruta:
+            return
+        with open(ruta, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, list):
+            data = {"clases": data}
+        data.setdefault("material_transversal", []).append(item)
+        with open(ruta, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
 
     def obtener_proximas_clases(self, materia: str) -> list[dict[str, Any]]:
         clases = self.obtener_cronograma(materia)
@@ -314,55 +343,8 @@ class JsonRegistroMaterialesRepo(RegistroMaterialesRepo):
             print(f"⚠️ No se pudo guardar el registro de material: {e}")
 
 
-# Instancias globales por defecto para compatibilidad
-_materia_repo = JsonMateriaRepo()
-_cronograma_repo = JsonCronogramaRepo()
-_registro_repo = JsonRegistroMaterialesRepo()
-
-
-# Funciones de conveniencia de módulo (compatibilidad retroactiva)
-def cargar_materias(archivo_materias: str | None = None) -> list[str]:
-    repo = JsonMateriaRepo(archivo_materias) if archivo_materias else _materia_repo
-    return repo.cargar_materias()
-
-
-def agregar_materia(nueva_materia: str, archivo_materias: str | None = None) -> None:
-    repo = JsonMateriaRepo(archivo_materias) if archivo_materias else _materia_repo
-    repo.agregar_materia(nueva_materia)
-
-
-def obtener_proximas_clases(materia: str) -> list[dict[str, Any]]:
-    return _cronograma_repo.obtener_proximas_clases(materia)
-
-
-def obtener_detalle_clase(materia: str, tema: str) -> dict[str, Any]:
-    return _cronograma_repo.obtener_detalle_clase(materia, tema)
-
-
-def marcar_clase_completada(materia: str, tema_exacto: str) -> bool:
-    return _cronograma_repo.marcar_clase_completada(materia, tema_exacto)
-
-
-def verificar_material_ingestado(nombre_archivo: str) -> bool:
-    return _registro_repo.verificar_material_ingestado(nombre_archivo)
-
-
-def registrar_material(nombre_archivo: str, materia: str) -> None:
-    _registro_repo.registrar_material(nombre_archivo, materia)
-
-
 __all__ = [
     "JsonCronogramaRepo",
     "JsonMateriaRepo",
     "JsonRegistroMaterialesRepo",
-    "agregar_materia",
-    "cargar_materias",
-    "guardar_resumen_obsidian",
-    "leer_material_estudio",
-    "leer_prompt",
-    "marcar_clase_completada",
-    "obtener_detalle_clase",
-    "obtener_proximas_clases",
-    "registrar_material",
-    "verificar_material_ingestado",
 ]

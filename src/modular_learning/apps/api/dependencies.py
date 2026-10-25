@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 
-from modular_learning.apps.api.session_store import SessionStore, session_store
+from modular_learning.apps.api.session_store import SessionStore
 from modular_learning.bootstrap import Container
 from modular_learning.bootstrap import get_container as default_get_container
 from modular_learning.core.application.configuracion import ConfiguracionService
@@ -28,11 +28,8 @@ def get_container(request: Request) -> Container:
 
 
 def get_session_store(request: Request) -> SessionStore:
-    """Obtiene el almacén de sesiones desde request.app.state o el fallback global."""
-    store = getattr(request.app.state, "session_store", None)
-    if store is None:
-        store = session_store
-    return store
+    """Obtiene el almacén de sesiones registrado en request.app.state."""
+    return request.app.state.session_store
 
 
 ContainerDep = Annotated[Container, Depends(get_container)]
