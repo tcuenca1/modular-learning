@@ -20,12 +20,19 @@ export interface MateriasResponse {
 export interface ClaseCronograma {
   clase?: number | string
   semana?: number | string
+  /** dd/mm/aaaa */
+  fecha?: string
   tema: string
   estado?: string
   contenido?: string
   materiales_asociados?: string[]
   subtemas_adicionales?: string[]
   [key: string]: unknown
+}
+
+export interface CronogramasResponse {
+  /** Clave: nombre derivado del archivo de cronograma (cruzar con `clave()`) */
+  cronogramas: Record<string, ClaseCronograma[]>
 }
 
 export interface ProximasClasesResponse {
@@ -124,6 +131,8 @@ export interface IniciarTutoriaRequest {
   materia: string
   tema: string
   nivel_profundidad?: string
+  /** Pregunta de repaso fallada que motiva la sesión de refuerzo */
+  enfoque?: string
 }
 
 export interface PasoRoadmap {
@@ -139,6 +148,8 @@ export interface SesionTutoriaResponse {
   pasos: PasoRoadmap[]
   materiales_asociados: string[]
   subtemas_adicionales: string[]
+  enfoque: string | null
+  fallos_previos: string[]
 }
 
 export interface ResolverDudaRequest {
@@ -160,6 +171,8 @@ export interface FinalizarTutoriaResponse {
 export interface PreguntaQuiz {
   enunciado: string
   opciones: string[]
+  materia: string
+  tema: string
 }
 
 export interface GenerarQuizResponse {
@@ -176,6 +189,9 @@ export interface DetalleEvaluacion {
   correcto: boolean
   respuesta_correcta: string
   elegida: string
+  materia: string
+  tema: string
+  explicacion: string
 }
 
 export interface EvaluarQuizResponse {
@@ -183,4 +199,25 @@ export interface EvaluarQuizResponse {
   total: number
   porcentaje: number
   detalle: DetalleEvaluacion[]
+}
+
+// Repaso espaciado
+export interface ResumenRepaso {
+  pendientes_hoy: number
+  total: number
+  dominadas: number
+}
+
+export interface EventoHistorial {
+  tipo: 'tutoria' | 'repaso'
+  fecha: string
+  materia: string
+  tema: string
+  aciertos?: number
+  total?: number
+  falladas?: number
+}
+
+export interface HistorialResponse {
+  eventos: EventoHistorial[]
 }

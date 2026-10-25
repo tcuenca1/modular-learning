@@ -1,4 +1,5 @@
 /** Utilidades compartidas para cruzar asignaturas, cronogramas y fechas de clase. */
+import type { ClaseCronograma } from '@/api/types'
 
 export const DIA_MS = 86_400_000
 
@@ -35,10 +36,48 @@ export function describirFecha(fecha: Date | undefined, hoy: Date): string {
   return `fue hace ${-dias} días`
 }
 
-export function enlaceTutoria(materia: string, tema?: string): string {
+/** Enlace a la tutoría; `enfoque` es la pregunta de repaso fallada que se quiere reforzar. */
+export function enlaceTutoria(materia: string, tema?: string, enfoque?: string): string {
   const q = new URLSearchParams({ materia })
   if (tema) q.set('tema', tema)
+  if (enfoque) q.set('enfoque', enfoque)
   return `/tutoria?${q.toString()}`
 }
 
 export const formatoCorto = new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short' })
+
+export interface ClaseFechada {
+  materia: string
+  clase: ClaseCronograma
+  fecha: Date
+  completada: boolean
+}
+
+export function esCompletada(clase: ClaseCronograma): boolean {
+  return String(clase.estado ?? '').toLowerCase().startsWith('complet')
+}
+
+/** Clave de un día del calendario local, para agrupar clases por fecha. */
+export function claveDia(fecha: Date): string {
+  return `${fecha.getFullYear()}-${fecha.getMonth()}-${fecha.getDate()}`
+}
+
+/**
+ * Aplana los cronogramas en clases con fecha, ordenadas por día. Los nombres derivados del
+ * archivo se sustituyen por el nombre del catálogo cuando coinciden con `clave()`.
+ */
+export function clasesConFecha(
+  cronogramas: Record<string, ClaseCronograma[]>,
+  catalogo: string[]
+): ClaseFechada[] {
+  const porClave = new Map(catalogo.map((n) => [clave(n), n]))
+  const lista: ClaseFechada[] = []
+  for (const [nombre, clases] of Object.entries(cronogramas)) {
+    const materia = porClave.get(clave(nombre)) ?? nombre
+    for (const clase of clases) {
+      const fecha = parsearFecha(clase.fecha)
+      if (fecha) lista.push({ materia, clase, fecha: inicioDelDia(fecha), completada: esCompletada(clase) })
+    }
+  }
+  return lista.sort((a, b) => a.fecha.getTime() - b.fecha.getTime() || a.materia.localeCompare(b.materia))
+}

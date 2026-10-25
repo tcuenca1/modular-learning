@@ -2,6 +2,7 @@ import type {
   ActualizarPluginResponse,
   ClaseCronograma,
   Configuracion,
+  CronogramasResponse,
   EscaneoResponse,
   EvaluarQuizRequest,
   EvaluarQuizResponse,
@@ -10,6 +11,7 @@ import type {
   GenerarQuizResponse,
   GuardarConfig,
   GuardarSilaboResponse,
+  HistorialResponse,
   IngestarResponse,
   IniciarTutoriaRequest,
   MateriasResponse,
@@ -17,6 +19,7 @@ import type {
   ProximasClasesResponse,
   ResolverDudaRequest,
   ResolverDudaResponse,
+  ResumenRepaso,
   SesionTutoriaResponse,
   StatsResponse,
 } from './types'
@@ -73,6 +76,11 @@ export const api = {
   async getProximasClases(materia: string): Promise<ProximasClasesResponse> {
     const res = await fetch(`${BASE_URL}/api/materias/${encodeURIComponent(materia)}/clases`)
     return handleResponse<ProximasClasesResponse>(res)
+  },
+
+  async getCronogramas(): Promise<CronogramasResponse> {
+    const res = await fetch(`${BASE_URL}/api/materias/cronogramas`)
+    return handleResponse<CronogramasResponse>(res)
   },
 
   // Stats
@@ -187,5 +195,25 @@ export const api = {
       body: JSON.stringify(data),
     })
     return handleResponse<EvaluarQuizResponse>(res)
+  },
+
+  // Repaso espaciado
+  async getResumenRepaso(): Promise<ResumenRepaso> {
+    const res = await fetch(`${BASE_URL}/api/repaso/resumen`)
+    return handleResponse<ResumenRepaso>(res)
+  },
+
+  /** Quiz con las preguntas vencidas; se corrige con `evaluarQuiz`. */
+  async repasoPendiente(): Promise<GenerarQuizResponse> {
+    const res = await fetch(`${BASE_URL}/api/repaso/pendientes`)
+    return handleResponse<GenerarQuizResponse>(res)
+  },
+
+  async getHistorial(materia?: string, tema?: string): Promise<HistorialResponse> {
+    const q = new URLSearchParams()
+    if (materia) q.set('materia', materia)
+    if (tema) q.set('tema', tema)
+    const res = await fetch(`${BASE_URL}/api/repaso/historial?${q.toString()}`)
+    return handleResponse<HistorialResponse>(res)
   },
 }
