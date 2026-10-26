@@ -18,6 +18,15 @@ queda en el commit).
   funciona pero no se siente como una descarga. Generarlo en el servidor (por ejemplo con
   Playwright/Chromium detrás de un puerto `ExportadorPdfPort`) y servirlo como archivo.
 
+## Despliegue (Render + Neon)
+
+- **Recarga lenta en la nube.** Con el servidor despierto, una recarga normal tarda 2–3 s en
+  mostrar todo. Cada lectura es un viaje a Neon y una pantalla como Hoy hace muchas (además,
+  buscar un cronograma lista todos antes de leer uno). Solución prevista: caché en memoria en
+  `AlmacenPostgres` (leer una vez, escribir en caché y en Postgres a la vez; es seguro con un
+  solo servidor) y medir antes y después. Aparte, el primer acceso tras 15 min sin uso tarda
+  30–60 s porque Render y Neon se duermen en el plan gratuito; eso no se arregla con código.
+
 ## Frontend
 
 - **Tests del frontend.** No hay ninguno. Empezar por la lógica pura de `lib/` (`clave`,
