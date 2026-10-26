@@ -9,9 +9,10 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-# Raíz del paquete (src/modular_learning) y raíz del repositorio (ml-cli)
+# Raíz del paquete (backend/src/modular_learning) y raíz del repositorio, donde viven data/
+# y la bóveda por defecto (compartidas con el frontend, fuera de backend/)
 PACKAGE_ROOT = Path(__file__).resolve().parent
-REPO_ROOT = PACKAGE_ROOT.parent.parent
+REPO_ROOT = PACKAGE_ROOT.parents[2]
 
 
 def ruta_data() -> Path:

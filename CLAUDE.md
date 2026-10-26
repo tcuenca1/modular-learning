@@ -4,30 +4,30 @@ Guía para trabajar en **Modular Learning**: tutor académico con IA (Gemini) qu
 
 ## Comandos
 
-Usar siempre el intérprete del venv con `python -m`. Varios `.exe` de `venv/Scripts/` apuntan a la ruta antigua `ml-cli` y fallan en silencio.
+El repositorio tiene `backend/` (Python: `pyproject.toml`, `src/`, `tests/`) y `frontend/` como carpetas hermanas; `data/`, `venv/` y `.env` quedan en la raíz. Todos los comandos se lanzan desde la raíz. Usar siempre el intérprete del venv con `python -m`. Varios `.exe` de `venv/Scripts/` apuntan a la ruta antigua `ml-cli` y fallan en silencio.
 
 ```bash
-venv/Scripts/python.exe -m pytest -q                 # tests (unit + integración)
-venv/Scripts/ruff.exe check src tests                # lint (también lo corre CI)
-venv/Scripts/ruff.exe format <archivos tocados>      # formato (pre-commit usa ruff-format)
-venv/Scripts/lint-imports.exe                        # contratos de arquitectura
-venv/Scripts/python.exe -m pip install -e ".[all]"   # reinstalar el paquete si cambia pyproject
+venv/Scripts/python.exe -m pytest -q backend                       # tests (unit + integración)
+venv/Scripts/ruff.exe check backend                                # lint (también lo corre CI)
+venv/Scripts/ruff.exe format <archivos tocados>                    # formato (pre-commit usa ruff-format)
+venv/Scripts/lint-imports.exe --config backend/pyproject.toml      # contratos de arquitectura
+venv/Scripts/python.exe -m pip install -e "./backend[all]"         # reinstalar si cambia pyproject
 ```
 
 Frontend (`frontend/`, React 19 + Tailwind v4 + Vite):
 
 ```bash
-npm run build      # tsc -b && vite build → genera src/modular_learning/apps/api/static/
+npm run build      # tsc -b && vite build → genera backend/src/modular_learning/apps/api/static/
 npm run lint       # oxlint
 npm run dev        # Vite en :5173 (proxy a la API en :8000)
 ```
 
-Servidor web: `.claude/launch.json` → configuración `ml-web` en el puerto 8000. Sirve el build compilado en `apps/api/static`, así que después de editar `frontend/src` hay que ejecutar `npm run build`.
+Servidor web: `.claude/launch.json` → configuración `ml-web` en el puerto 8000. Sirve el build compilado en `apps/api/static`, que **no se versiona**: después de editar `frontend/src` o de un `git pull` que lo cambie hay que ejecutar `npm run build`. El servidor no recarga Python solo: tras cambiar el backend hay que reiniciarlo (o lanzarlo con `--reload`).
 
 ## Arquitectura hexagonal (no negociable)
 
 ```
-src/modular_learning/
+backend/src/modular_learning/
 ├── core/domain/        lógica pura (alineación curricular, parseo JSON del LLM)
 ├── core/ports/         ABCs: LLMPort, CronogramaRepo, MateriaRepo, RegistroMaterialesRepo,
 │                       LectorDocumentosPort, BovedaNotasPort, AjustesPort, PluginPracticoBase
@@ -38,18 +38,18 @@ src/modular_learning/
 └── settings.py         rutas de datos (ML_DATA_DIR); solo lo usan infraestructura y bootstrap
 ```
 
-Reglas que hacen cumplir `import-linter` (ver `pyproject.toml`) y la revisión:
+Reglas que hacen cumplir `import-linter` (ver `backend/pyproject.toml`) y la revisión:
 
 - `core` no hace I/O: nada de `open`, `os.walk`, `print`, `settings`, `pypdf`, `docx` ni `dotenv`. Si un caso de uso necesita disco, se añade un método al puerto y se implementa en el adaptador.
 - `core.domain` no importa `core.application`; `infrastructure` no importa `apps`, `bootstrap` ni `core.application`.
 - Nada de instancias globales de servicios ni funciones de módulo "de compatibilidad". La API obtiene los servicios con `Depends(get_*_service)` desde `apps/api/dependencies.py`.
-- Un puerto nuevo o un método nuevo de un puerto implica actualizar también el fake de `tests/unit/application/fake_adapters.py`.
+- Un puerto nuevo o un método nuevo de un puerto implica actualizar también el fake de `backend/tests/unit/application/fake_adapters.py`.
 
 ## Tests
 
 - Casos de uso: tests unitarios con los fakes en memoria de `fake_adapters.py`; nunca usar el disco ni el LLM real.
 - API: `create_app(bootstrap.build_container())` con `ML_DATA_DIR` apuntando a `tmp_path`; sustituir servicios con `app.dependency_overrides[get_x_service]`.
-- Adaptadores de disco: tests de integración en `tests/integration/infrastructure/` con `tmp_path`.
+- Adaptadores de disco: tests de integración en `backend/tests/integration/infrastructure/` con `tmp_path`.
 
 ## Convenciones
 

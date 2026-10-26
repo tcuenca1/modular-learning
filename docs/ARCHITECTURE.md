@@ -114,7 +114,7 @@ La función `build_container(settings: Settings | None = None) -> Container` act
 
 ## 🔒 Control de Fronteras Arquitectónicas (Import Linter)
 
-El aislamiento de las capas está blindado mediante contratos verificados en CI y pre-commit con `import-linter` (ver `pyproject.toml`):
+El aislamiento de las capas está blindado mediante contratos verificados en CI y pre-commit con `import-linter` (ver `backend/pyproject.toml`):
 
 | Contrato | Regla |
 | :--- | :--- |
@@ -131,14 +131,14 @@ Reglas complementarias:
 
 ## 📦 Comandos de Instalación
 
-El empaquetado modular en `pyproject.toml` permite instalar únicamente las dependencias requeridas según el entorno:
+El empaquetado modular en `backend/pyproject.toml` (comandos desde la raíz del repositorio) permite instalar únicamente las dependencias requeridas según el entorno:
 
 | Comando | Descripción |
 |---|---|
-| `pip install -e ".[cli]"` | Instala la consola CLI (`typer`, `rich`, `questionary`, `halo`, `google-genai`). |
-| `pip install -e ".[web]"` | Instala el backend web (`fastapi`, `uvicorn`, `python-multipart`, `sse-starlette`). |
-| `pip install -e ".[dev]"` | Instala herramientas de calidad (`pytest`, `ruff`, `import-linter`, `pre-commit`). |
-| `pip install -e ".[all]"` | Instala el stack completo (CLI + Web + Herramientas de Desarrollo). |
+| `pip install -e "./backend[cli]"` | Instala la consola CLI (`typer`, `rich`, `questionary`, `halo`, `google-genai`). |
+| `pip install -e "./backend[web]"` | Instala el backend web (`fastapi`, `uvicorn`, `python-multipart`, `sse-starlette`). |
+| `pip install -e "./backend[dev]"` | Instala herramientas de calidad (`pytest`, `ruff`, `import-linter`, `pre-commit`). |
+| `pip install -e "./backend[all]"` | Instala el stack completo (CLI + Web + Herramientas de Desarrollo). |
 
 ---
 
@@ -149,7 +149,7 @@ El empaquetado modular en `pyproject.toml` permite instalar únicamente las depe
 python -m venv venv
 .\venv\Scripts\activate   # Windows
 source venv/bin/activate  # Linux / macOS
-pip install -e ".[all]"
+pip install -e "./backend[all]"
 ```
 
 ### 2. Configuración del Frontend
@@ -161,7 +161,7 @@ npm run dev               # Servidor de desarrollo con proxy a la API (http://lo
 
 ### 3. Ejecución de la API y Frontend Compilado
 ```bash
-# Compilar el bundle React hacia src/modular_learning/apps/api/static
+# Compilar el bundle React hacia backend/src/modular_learning/apps/api/static (no versionado)
 cd frontend && npm run build
 cd ..
 
@@ -172,13 +172,13 @@ ml-web                    # Servidor en http://127.0.0.1:8000
 ### 4. Batería de Pruebas y Validación de Calidad
 ```bash
 # Linter de código Python
-ruff check src tests
+ruff check backend
 
 # Validación de contratos de arquitectura hexagonal
-lint-imports
+lint-imports --config backend/pyproject.toml
 
 # Suite de pruebas unitarias e integración
-pytest -q
+pytest -q backend
 
 # Linter y build del frontend React
 cd frontend

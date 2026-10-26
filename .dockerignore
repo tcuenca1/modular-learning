@@ -19,3 +19,4 @@ session-*.md
 *.egg-info/
 frontend/node_modules/
 frontend/dist/
+backend/src/modular_learning/apps/api/static/

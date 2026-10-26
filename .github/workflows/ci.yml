@@ -24,20 +24,21 @@ jobs:
         with:
           python-version: "3.12"
           cache: "pip"
+          cache-dependency-path: backend/pyproject.toml
 
       - name: Instalar dependencias completas
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[all]"
+          pip install -e "./backend[all]"
 
       - name: Verificar estilo y calidad de código (Ruff)
-        run: ruff check src tests
+        run: ruff check backend
 
       - name: Validar contratos de arquitectura hexagonal (Import Linter)
-        run: lint-imports
+        run: lint-imports --config backend/pyproject.toml
 
       - name: Ejecutar suite de pruebas (Pytest)
-        run: pytest -q
+        run: pytest -q backend
 
   frontend:
     name: Frontend (Linter y Compilación Vite)

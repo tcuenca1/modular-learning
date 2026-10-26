@@ -51,6 +51,9 @@ where = ["src"]
 "modular_learning.core" = ["prompts/*.md"]
 "modular_learning.apps.api" = ["static/**/*"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.importlinter]
 root_package = "modular_learning"
 include_external_packages = true

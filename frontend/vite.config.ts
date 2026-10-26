@@ -20,7 +20,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: path.resolve(import.meta.dirname, '../src/modular_learning/apps/api/static'),
+    outDir: path.resolve(import.meta.dirname, '../backend/src/modular_learning/apps/api/static'),
     emptyOutDir: true,
   },
 })

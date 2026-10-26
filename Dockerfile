@@ -24,14 +24,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar manifiestos de empaquetado y código fuente de Python
-COPY pyproject.toml README.md ./
-COPY src/ ./src/
+COPY backend/pyproject.toml backend/README.md ./backend/
+COPY backend/src/ ./backend/src/
 
 # Copiar el bundle web compilado desde la etapa frontend-builder
-COPY --from=frontend-builder /app/src/modular_learning/apps/api/static ./src/modular_learning/apps/api/static
+COPY --from=frontend-builder /app/backend/src/modular_learning/apps/api/static ./backend/src/modular_learning/apps/api/static
 
 # Instalar la aplicación con el grupo de dependencias web
-RUN pip install --no-cache-dir ".[web]"
+RUN pip install --no-cache-dir "./backend[web]"
 
 # Copiar datos iniciales y esquemas por defecto
 COPY data/ ./data/

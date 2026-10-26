@@ -21,8 +21,8 @@ session-*.md
 frontend/node_modules/
 frontend/dist/
 
-# API Static Assets
-src/modular_learning/apps/api/static/
+# Build del frontend: lo genera `npm run build`, el CI o Docker; nunca se versiona
+backend/src/modular_learning/apps/api/static/
 
 # Datos locales y excepciones para ejemplos anonimizados
 data/*

@@ -23,10 +23,20 @@ El proyecto está diseñado bajo una **Arquitectura Hexagonal estricta** (Puerto
 
 ## 🏛️ Arquitectura del Sistema
 
-El proyecto sigue una **Arquitectura Hexagonal (Puertos y Adaptadores)** con Inversión de Control (IoC):
+El repositorio separa las dos piezas en carpetas hermanas; `data/` (tus cronogramas y ajustes) queda en la raíz porque la comparten la CLI y la web:
 
 ```
-src/modular_learning/
+modular-learning/
+├── backend/                # Python: pyproject.toml, src/ y tests/
+├── frontend/               # React 19 + Tailwind v4 + Vite
+├── data/                   # Datos locales del usuario (data/examples: ejemplo anonimizado)
+└── docs/
+```
+
+El backend sigue una **Arquitectura Hexagonal (Puertos y Adaptadores)** con Inversión de Control (IoC):
+
+```
+backend/src/modular_learning/
 ├── core/                   # Núcleo de Negocio Agnóstico (sin dependencias externas)
 │   ├── domain/             # Entidades, alineador curricular y algoritmos
 │   ├── ports/              # Contratos abstractos (LLMPort, Repos, Boveda, Documentos)
@@ -74,20 +84,20 @@ ML_DATA_DIR=data
 
 ### 3. Grupos de Instalación Opcionales
 
-Puedes instalar únicamente los componentes que necesites utilizando las opciones de `pyproject.toml`:
+Puedes instalar únicamente los componentes que necesites utilizando las opciones de `backend/pyproject.toml` (desde la raíz del repositorio):
 
 ```bash
 # Solo herramientas de consola (CLI):
-pip install -e ".[cli]"
+pip install -e "./backend[cli]"
 
 # Solo servidor web y backend API:
-pip install -e ".[web]"
+pip install -e "./backend[web]"
 
 # Solo herramientas de desarrollo, pruebas y linters:
-pip install -e ".[dev]"
+pip install -e "./backend[dev]"
 
 # Instalación completa (Recomendado para desarrollo integral):
-pip install -e ".[all]"
+pip install -e "./backend[all]"
 ```
 
 ---
@@ -111,7 +121,8 @@ ml up             # Actualiza la memoria técnica de plugins prácticos
 
 Para ejecutar la aplicación web en modo producción:
 ```bash
-# 1. Compilar el frontend React:
+# 1. Compilar el frontend React (genera backend/src/modular_learning/apps/api/static/,
+#    que no se versiona: repítelo después de cada git pull que cambie el frontend):
 cd frontend
 npm ci
 npm run build
@@ -136,13 +147,13 @@ El proyecto cuenta con integración continua (CI) en GitHub Actions y validacion
 
 ```bash
 # Linter de código Python con autofix
-ruff check src tests
+ruff check backend
 
 # Validación de contratos de arquitectura hexagonal
-lint-imports
+lint-imports --config backend/pyproject.toml
 
 # Ejecución de la suite completa de pruebas unitarias e integración
-pytest -q
+pytest -q backend
 
 # Linter del cliente web
 cd frontend && npm run lint && cd ..
