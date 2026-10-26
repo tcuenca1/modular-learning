@@ -26,6 +26,16 @@ queda en el commit).
   `AlmacenPostgres` (leer una vez, escribir en caché y en Postgres a la vez; es seguro con un
   solo servidor) y medir antes y después. Aparte, el primer acceso tras 15 min sin uso tarda
   30–60 s porque Render y Neon se duermen en el plan gratuito; eso no se arregla con código.
+- **Material nuevo en la nube.** El servidor de Render no ve las carpetas de este equipo: en la
+  nube la carpeta de material es `/app/data/material` (vacía) y Configuración rechaza rutas
+  como `C:\Users\…\OneDrive…\6. SEXTO` porque valida que existan en el servidor. Hoy solo
+  funciona subir archivos sueltos desde Material. Opciones a decidir:
+  - **Modo híbrido:** ejecutar la app local con la misma `DATABASE_URL` para ingerir desde las
+    carpetas y la bóveda de Obsidian de este equipo, y que la nube vea el resultado. Requiere
+    que los ajustes (rutas) sean de cada equipo y no se compartan en Postgres.
+  - **Leer de OneDrive** con Microsoft Graph, ya que el material está allí.
+  - Como mínimo, en la nube ocultar el escaneo de carpetas y explicar por qué, en lugar de
+    mostrar una ruta del servidor.
 
 ## Frontend
 
