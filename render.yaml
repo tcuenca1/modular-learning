@@ -1,0 +1,21 @@
+# Blueprint de Render: servicio web gratuito con el Dockerfile; los datos viven en Postgres
+# (Neon, DATABASE_URL) porque el disco del plan gratuito se borra en cada reinicio.
+services:
+  - type: web
+    name: modular-learning
+    runtime: docker
+    plan: free
+    branch: refactor/monorepo-hexagonal
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/salud
+    autoDeploy: true
+    envVars:
+      # Se piden al crear el servicio; no se guardan en el repositorio
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ML_USUARIO
+        sync: false
+      - key: ML_CONTRASENA
+        sync: false

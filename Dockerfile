@@ -30,10 +30,11 @@ COPY backend/src/ ./backend/src/
 # Copiar el bundle web compilado desde la etapa frontend-builder
 COPY --from=frontend-builder /app/backend/src/modular_learning/apps/api/static ./backend/src/modular_learning/apps/api/static
 
-# Instalar la aplicación con el grupo de dependencias web
-RUN pip install --no-cache-dir "./backend[web]"
+# Instalar la aplicación con la web y el almacén en Postgres (activo si hay DATABASE_URL)
+RUN pip install --no-cache-dir "./backend[web,nube]"
 
-# Datos iniciales: se copian al volumen persistente solo en el primer arranque (deploy/arranque.sh)
+# Datos iniciales para el modo archivos (sin DATABASE_URL): deploy/arranque.sh los copia a
+# ML_DATA_DIR si está vacía
 COPY data/ ./semilla/
 COPY deploy/arranque.sh /usr/local/bin/arranque
 RUN sed -i 's/\r$//' /usr/local/bin/arranque && chmod +x /usr/local/bin/arranque
@@ -53,5 +54,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -f http://127.0.0.1:${PORT:-8000}/api/salud || exit 1
 
-# Sembrar el volumen de datos si hace falta y lanzar el servidor FastAPI
+# Preparar la carpeta de datos y lanzar el servidor FastAPI
 CMD ["arranque"]
