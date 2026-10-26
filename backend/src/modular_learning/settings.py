@@ -63,6 +63,11 @@ def ruta_repaso() -> Path:
     return ruta_data() / "repaso"
 
 
+def ruta_guias() -> Path:
+    """Retorna la carpeta de guías de estudio offline."""
+    return ruta_data() / "guias"
+
+
 def ruta_vectordb() -> Path:
     """Retorna la ruta a la base de datos vectorial de embeddings."""
     return ruta_data() / "vectordb"

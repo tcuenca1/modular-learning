@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from modular_learning import bootstrap
 from modular_learning.apps.api.routers import (
     config,
+    guias,
     material,
     materias,
     plugins,
@@ -52,6 +53,7 @@ def create_app(
     app.include_router(tutoria.router)
     app.include_router(quiz.router)
     app.include_router(repaso.router)
+    app.include_router(guias.router)
     app.include_router(stats.router)
     app.include_router(silabo.router)
     app.include_router(material.router)

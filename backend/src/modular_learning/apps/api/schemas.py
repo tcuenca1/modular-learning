@@ -23,6 +23,21 @@ class Duda(BaseModel):
     duda: str = Field(min_length=1)
 
 
+class NuevaGuia(BaseModel):
+    materia: str = Field(min_length=1)
+    temas: list[str] = Field(min_length=1)
+
+
+class ResultadoClaseGuia(BaseModel):
+    indice: int = Field(ge=0)
+    resultado: str
+    dudas: str = ""
+
+
+class RevisionGuia(BaseModel):
+    resultados: list[ResultadoClaseGuia]
+
+
 class RespuestaQuiz(BaseModel):
     quiz_id: str
     respuestas: list[str]

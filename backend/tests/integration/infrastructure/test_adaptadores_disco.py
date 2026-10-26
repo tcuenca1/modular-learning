@@ -100,3 +100,21 @@ def test_repos_de_repaso_persisten_tarjetas_e_historial(tmp_path):
     assert [e["tipo"] for e in historial.listar()] == ["repaso", "tutoria"]
     assert len(historial.listar(materia="redes", tema="vlan")) == 1
     assert historial.listar(materia="Redes", tema="MQTT") == []
+
+
+def test_repo_de_guias_persiste_y_ordena(tmp_path):
+    from modular_learning.core.domain.guia_offline import ClaseGuia, GuiaOffline
+    from modular_learning.infrastructure.persistence.json_guias import JsonGuiasRepo
+
+    ruta = str(tmp_path / "guias" / "guias.json")
+    repo = JsonGuiasRepo(ruta)
+    assert repo.listar() == [] and repo.obtener("x") is None
+
+    antigua = GuiaOffline("a", "Redes", "completa", "2026-10-20T08:00:00", [ClaseGuia("VLAN")])
+    nueva = GuiaOffline("b", "IoT", "sintesis", "2026-10-26T08:00:00", [ClaseGuia("MQTT", "", "c")])
+    repo.guardar(antigua)
+    repo.guardar(nueva)
+
+    releida = JsonGuiasRepo(ruta)
+    assert [g.id for g in releida.listar()] == ["b", "a"]
+    assert releida.obtener("b") == nueva

@@ -6,10 +6,12 @@ import os
 from collections.abc import Iterator
 from typing import Any
 
+from modular_learning.core.domain.guia_offline import GuiaOffline
 from modular_learning.core.domain.repaso_espaciado import Tarjeta
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
+from modular_learning.core.ports.guias import GuiasRepo
 from modular_learning.core.ports.llm import LLMPort
 from modular_learning.core.ports.repaso import HistorialRepo, TarjetasRepo
 from modular_learning.core.ports.repositorios import (
@@ -165,6 +167,10 @@ class InMemoryLectorDocumentosPort(LectorDocumentosPort):
             "02_explicacion_tema.md": "Explica tema: {tema}. Nivel: {nivel_profundidad}. Contexto: {contexto_roadmap}",
             "03_resumen_evaluacion.md": "Resume {materia}. Contenido: {contenido_apuntes}",
             "04_extraccion_silabo.md": "Extrae cronograma para {materia}:\n{contenido_texto}",
+            "06_guia_offline.md": (
+                "Guía de {tema} ({materia}). Objetivo: {objetivo}. Contenido: {contenido}. "
+                "Subtemas: {subtemas}. Extensión: {extension}. Marcador: {marcador}"
+            ),
             **(plantillas or {}),
         }
         self.materiales: dict[str, str] = {}
@@ -258,3 +264,19 @@ class InMemoryHistorialRepo(HistorialRepo):
             if (materia is None or e.get("materia") == materia)
             and (tema is None or e.get("tema") == tema)
         ]
+
+
+class InMemoryGuiasRepo(GuiasRepo):
+    """Guías de estudio offline en memoria."""
+
+    def __init__(self) -> None:
+        self.guias: dict[str, GuiaOffline] = {}
+
+    def listar(self) -> list[GuiaOffline]:
+        return sorted(self.guias.values(), key=lambda g: g.creada, reverse=True)
+
+    def obtener(self, guia_id: str) -> GuiaOffline | None:
+        return self.guias.get(guia_id)
+
+    def guardar(self, guia: GuiaOffline) -> None:
+        self.guias[guia.id] = guia

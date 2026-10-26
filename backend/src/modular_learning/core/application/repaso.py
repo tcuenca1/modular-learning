@@ -101,6 +101,21 @@ class RepasoService:
             evento["enfoque"] = enfoque
         self.historial_repo.registrar(evento)
 
+    def registrar_estudio_offline(
+        self, materia: str, tema: str, resultado: str, dudas: str = ""
+    ) -> None:
+        """Anota en el historial una clase estudiada con una guía offline y cómo le fue."""
+        evento: dict[str, Any] = {
+            "fecha": datetime.now().isoformat(timespec="seconds"),
+            "tipo": "guia",
+            "materia": materia,
+            "tema": tema,
+            "resultado": resultado,
+        }
+        if dudas:
+            evento["dudas"] = dudas
+        self.historial_repo.registrar(evento)
+
     # ------------------------------------------------------------------ consultas
     def pendientes(self, hoy: date | None = None) -> list[Tarjeta]:
         """Tarjetas cuya próxima revisión ya llegó, las más atrasadas primero."""

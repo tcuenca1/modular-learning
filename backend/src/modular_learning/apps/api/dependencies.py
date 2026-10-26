@@ -11,6 +11,7 @@ from modular_learning.bootstrap import Container
 from modular_learning.bootstrap import get_container as default_get_container
 from modular_learning.core.application.configuracion import ConfiguracionService
 from modular_learning.core.application.evaluacion import EvaluacionService
+from modular_learning.core.application.guias import GuiaOfflineService
 from modular_learning.core.application.ingesta import IngestaService
 from modular_learning.core.application.materias import MateriasService
 from modular_learning.core.application.plugins import PluginsService
@@ -71,3 +72,7 @@ def get_materias_service(cont: ContainerDep) -> MateriasService:
 
 def get_repaso_service(cont: ContainerDep) -> RepasoService:
     return cont.repaso_service
+
+
+def get_guias_service(cont: ContainerDep) -> GuiaOfflineService:
+    return cont.guias_service

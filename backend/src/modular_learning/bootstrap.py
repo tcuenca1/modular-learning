@@ -8,6 +8,7 @@ from typing import Any
 from modular_learning import settings as global_settings
 from modular_learning.core.application.configuracion import ConfiguracionService
 from modular_learning.core.application.evaluacion import EvaluacionService
+from modular_learning.core.application.guias import GuiaOfflineService
 from modular_learning.core.application.ingesta import IngestaService
 from modular_learning.core.application.materias import MateriasService
 from modular_learning.core.application.plugins import PluginsService
@@ -18,6 +19,7 @@ from modular_learning.core.application.tutoria import TutoriaService
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
+from modular_learning.core.ports.guias import GuiasRepo
 from modular_learning.core.ports.llm import LLMPort
 from modular_learning.core.ports.plugin_practico import PluginPracticoBase
 from modular_learning.core.ports.repaso import HistorialRepo, TarjetasRepo
@@ -30,6 +32,7 @@ from modular_learning.infrastructure.documents.lector_documentos import LectorDo
 from modular_learning.infrastructure.llm.gemini_adapter import LLM_GeminiAdapter
 from modular_learning.infrastructure.obsidian.boveda_obsidian import BovedaObsidianAdapter
 from modular_learning.infrastructure.persistence.json_ajustes import JsonAjustesRepo
+from modular_learning.infrastructure.persistence.json_guias import JsonGuiasRepo
 from modular_learning.infrastructure.persistence.json_repaso import (
     JsonHistorialRepo,
     JsonTarjetasRepo,
@@ -60,6 +63,7 @@ class Container:
     ajustes_repo: AjustesPort
     tarjetas_repo: TarjetasRepo
     historial_repo: HistorialRepo
+    guias_repo: GuiasRepo
     plugins_dict: dict[str, PluginPracticoBase]
 
     # Servicios de aplicación
@@ -72,6 +76,7 @@ class Container:
     configuracion_service: ConfiguracionService
     materias_service: MateriasService
     repaso_service: RepasoService
+    guias_service: GuiaOfflineService
 
 
 _global_container: Container | None = None
@@ -91,6 +96,7 @@ def build_container(settings: Any | None = None) -> Container:
     lector_docs = LectorDocumentosLocal()
     tarjetas_repo = JsonTarjetasRepo()
     historial_repo = JsonHistorialRepo()
+    guias_repo = JsonGuiasRepo()
 
     plugins_dict: dict[str, PluginPracticoBase] = {
         "cisco": CiscoPlugin(),
@@ -159,6 +165,14 @@ def build_container(settings: Any | None = None) -> Container:
         cronograma_repo=cronograma_repo,
     )
 
+    guias_service = GuiaOfflineService(
+        llm=llm,
+        cronograma_repo=cronograma_repo,
+        lector_docs=lector_docs,
+        guias_repo=guias_repo,
+        repaso=repaso_service,
+    )
+
     container = Container(
         settings=resolved_settings,
         llm=llm,
@@ -170,6 +184,7 @@ def build_container(settings: Any | None = None) -> Container:
         ajustes_repo=ajustes_repo,
         tarjetas_repo=tarjetas_repo,
         historial_repo=historial_repo,
+        guias_repo=guias_repo,
         plugins_dict=plugins_dict,
         tutoria_service=tutoria_service,
         evaluacion_service=evaluacion_service,
@@ -180,6 +195,7 @@ def build_container(settings: Any | None = None) -> Container:
         configuracion_service=configuracion_service,
         materias_service=materias_service,
         repaso_service=repaso_service,
+        guias_service=guias_service,
     )
 
     global _global_container

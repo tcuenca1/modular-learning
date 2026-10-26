@@ -250,3 +250,50 @@ def test_cronogramas_para_calendario(client, tmp_path):
     )
     datos = client.get("/api/materias/cronogramas").json()["cronogramas"]
     assert datos == {"Redes": [{"fecha": "27/10/2026", "tema": "VLAN"}]}
+
+
+def test_guia_offline_flujo_completo(app, client, tmp_path):
+    from modular_learning.apps.api.dependencies import get_guias_service
+    from modular_learning.core.application.guias import GuiaOfflineService
+    from modular_learning.core.domain.guia_offline import MARCADOR_RESPUESTAS
+    from modular_learning.infrastructure.persistence.json_guias import JsonGuiasRepo
+    from tests.unit.application.fake_adapters import (
+        FakeLLM,
+        InMemoryCronogramaRepo,
+        InMemoryLectorDocumentosPort,
+    )
+
+    cronograma = InMemoryCronogramaRepo(
+        {"Redes": [{"tema": "VLAN", "estado": "pendiente"}, {"tema": "STP", "estado": "pendiente"}]}
+    )
+    servicio = GuiaOfflineService(
+        llm=FakeLLM(texto_default=f"## Explicación\nx\n{MARCADOR_RESPUESTAS}\n1. y"),
+        cronograma_repo=cronograma,
+        lector_docs=InMemoryLectorDocumentosPort(),
+        guias_repo=JsonGuiasRepo(str(tmp_path / "guias.json")),
+    )
+    app.dependency_overrides[get_guias_service] = lambda: servicio
+
+    assert client.post("/api/guias", json={"materia": "Redes", "temas": ["X"]}).status_code == 400
+    guia = client.post("/api/guias", json={"materia": "Redes", "temas": ["VLAN", "STP"]}).json()
+    assert guia["completa"] is False and len(guia["clases"]) == 2
+
+    for i in range(2):
+        clase = client.post(f"/api/guias/{guia['id']}/clases/{i}").json()
+        assert clase["respuestas"] == "1. y"
+    pendientes = client.get("/api/guias/pendientes").json()["guias"]
+    assert [g["id"] for g in pendientes] == [guia["id"]]
+    assert client.get(f"/api/guias/{guia['id']}").json()["clases"][1]["contenido"]
+
+    r = client.post(
+        f"/api/guias/{guia['id']}/revision",
+        json={
+            "resultados": [
+                {"indice": 0, "resultado": "entendida"},
+                {"indice": 1, "resultado": "pendiente"},
+            ]
+        },
+    )
+    assert r.json()["completadas"] == ["VLAN"]
+    assert client.get("/api/guias/pendientes").json()["guias"] == []
+    assert client.get("/api/guias/nope").status_code == 404
