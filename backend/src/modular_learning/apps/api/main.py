@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from modular_learning import bootstrap
+from modular_learning.apps.api.acceso import AccesoBasico, parametros_acceso
 from modular_learning.apps.api.routers import (
     config,
     guias,
@@ -46,6 +47,16 @@ def create_app(
     # Inyección del contenedor IoC y almacén de sesiones en el estado de la aplicación
     app.state.container = container
     app.state.session_store = session_store or SessionStore()
+
+    # En la nube toda la web pide usuario y contraseña (ver apps/api/acceso.py)
+    acceso = parametros_acceso()
+    if acceso is not None:
+        app.add_middleware(AccesoBasico, **acceso)
+
+    @app.get("/api/salud", include_in_schema=False)
+    def salud() -> dict[str, bool]:
+        """Comprobación de vida para el healthcheck de la plataforma; no requiere acceso."""
+        return {"ok": True}
 
     # Registro de routers
     app.include_router(config.router)

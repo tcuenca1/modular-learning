@@ -297,3 +297,34 @@ def test_guia_offline_flujo_completo(app, client, tmp_path):
     assert r.json()["completadas"] == ["VLAN"]
     assert client.get("/api/guias/pendientes").json()["guias"] == []
     assert client.get("/api/guias/nope").status_code == 404
+
+
+def test_acceso_desactivado_en_local(client, monkeypatch):
+    monkeypatch.delenv("ML_REQUIERE_ACCESO", raising=False)
+    assert client.get("/api/materias").status_code == 200
+    assert client.get("/api/salud").json() == {"ok": True}
+
+
+def _cliente_con_acceso(tmp_path, monkeypatch, contrasena):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("ML_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ML_REQUIERE_ACCESO", "1")
+    monkeypatch.setenv("ML_USUARIO", "ana")
+    monkeypatch.setenv("ML_CONTRASENA", contrasena)
+    return TestClient(create_app(bootstrap.build_container()))
+
+
+def test_acceso_exige_usuario_y_contrasena(tmp_path, monkeypatch):
+    client = _cliente_con_acceso(tmp_path, monkeypatch, "clave-larga")
+
+    r = client.get("/api/materias")
+    assert r.status_code == 401 and "Basic" in r.headers["www-authenticate"]
+    assert client.get("/", auth=("ana", "otra")).status_code == 401
+    assert client.get("/api/materias", auth=("ana", "clave-larga")).status_code == 200
+    assert client.get("/api/salud").status_code == 200
+
+
+def test_acceso_sin_contrasena_configurada_no_queda_abierto(tmp_path, monkeypatch):
+    client = _cliente_con_acceso(tmp_path, monkeypatch, "")
+    assert client.get("/api/materias", auth=("ana", "")).status_code == 503
+    assert client.get("/api/salud").status_code == 200

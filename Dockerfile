@@ -33,21 +33,25 @@ COPY --from=frontend-builder /app/backend/src/modular_learning/apps/api/static .
 # Instalar la aplicación con el grupo de dependencias web
 RUN pip install --no-cache-dir "./backend[web]"
 
-# Copiar datos iniciales y esquemas por defecto
-COPY data/ ./data/
+# Datos iniciales: se copian al volumen persistente solo en el primer arranque (deploy/arranque.sh)
+COPY data/ ./semilla/
+COPY deploy/arranque.sh /usr/local/bin/arranque
+RUN sed -i 's/\r$//' /usr/local/bin/arranque && chmod +x /usr/local/bin/arranque
 
-# Variables de entorno para despliegue en la nube
+# Variables de entorno para despliegue en la nube; ML_REQUIERE_ACCESO activa el usuario y
+# la contraseña (ML_USUARIO, ML_CONTRASENA), que se definen en la plataforma
 ENV PYTHONUNBUFFERED=1 \
     WEB_HOST=0.0.0.0 \
     WEB_PORT=8000 \
-    ML_DATA_DIR=/app/data
+    ML_DATA_DIR=/app/data \
+    ML_REQUIERE_ACCESO=1
 
 # Puerto por defecto
 EXPOSE 8000
 
 # Comprobación de salud HTTP automática
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://127.0.0.1:${PORT:-8000}/api/config || exit 1
+    CMD curl -f http://127.0.0.1:${PORT:-8000}/api/salud || exit 1
 
-# Lanzar servidor FastAPI
-CMD ["ml-web"]
+# Sembrar el volumen de datos si hace falta y lanzar el servidor FastAPI
+CMD ["arranque"]

@@ -1,0 +1,9 @@
+# Despliegue en Railway: imagen del Dockerfile y volumen persistente montado en /app/data
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/api/salud"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
