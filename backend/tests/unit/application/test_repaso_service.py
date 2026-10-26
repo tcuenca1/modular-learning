@@ -181,7 +181,7 @@ def test_tutoria_de_refuerzo_incluye_la_pregunta_fallada_y_fallos_previos():
     assert sesion.fallos_previos == [PREGUNTAS[0]["enunciado"]]
     assert "¿Por qué falla X?" in llm.llamadas_json[0]
     prompt = servicio.construir_prompt_explicacion(sesion, 0)
-    assert "PREGUNTAS DE REPASO QUE EL ESTUDIANTE FALLÓ" in prompt
+    assert "PUNTOS QUE EL ESTUDIANTE NO DOMINA DE ESTE TEMA" in prompt
     assert PREGUNTAS[0]["enunciado"] in prompt
 
 

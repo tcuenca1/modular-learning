@@ -120,7 +120,8 @@ class TutoriaService:
     ) -> SesionTutoria:
         """Genera el roadmap con el LLM y construye la sesión inicial.
 
-        Con `enfoque` (una pregunta de repaso fallada) la ruta se orienta a corregir ese error.
+        Con `enfoque` (una pregunta de repaso fallada o una duda anotada al estudiar con una guía
+        offline) la ruta se orienta a aclarar ese punto.
         """
         nivel = normalizar_nivel(nivel_profundidad)
         detalle = self.cronograma_repo.obtener_detalle_clase(materia, tema)
@@ -130,9 +131,10 @@ class TutoriaService:
         objetivo = f"Estudiar y dominar a fondo el tema dentro de la asignatura {materia}"
         if enfoque:
             objetivo = (
-                f"Reforzar el tema dentro de la asignatura {materia}. En un repaso fallé esta "
-                f"pregunta: «{enfoque}». Construye la ruta para entender exactamente el concepto "
-                "que me hizo fallar, empezando por la causa más probable del error."
+                f"Reforzar el tema dentro de la asignatura {materia}. No domino este punto (una "
+                f"pregunta de repaso que fallé o una duda que anoté al estudiar): «{enfoque}». "
+                "Construye la ruta para entender exactamente ese punto, empezando por la causa "
+                "más probable de la confusión."
             )
         if fallos:
             objetivo += ". Otras preguntas de este tema que fallé antes: " + " | ".join(fallos)
@@ -191,11 +193,11 @@ DIRECTIVA OBLIGATORIA: En tu respuesta, DEBES hacer referencia explícitamente a
             listado = "\n".join(f"- {f}" for f in fallidas)
             prompt += f"""
 
-PREGUNTAS DE REPASO QUE EL ESTUDIANTE FALLÓ SOBRE ESTE TEMA:
+PUNTOS QUE EL ESTUDIANTE NO DOMINA DE ESTE TEMA (preguntas de repaso que falló o dudas que anotó):
 {listado}
 
-DIRECTIVA: Cuando el paso actual tenga relación con estas preguntas, aclara explícitamente el error
-conceptual que lleva a fallarlas, sin limitarte a dar la respuesta.
+DIRECTIVA: Cuando el paso actual tenga relación con estos puntos, aclara explícitamente el error
+conceptual o la duda, sin limitarte a dar la respuesta.
 """
 
         if self.plugins_service:
