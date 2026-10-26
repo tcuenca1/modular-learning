@@ -25,8 +25,9 @@ class LLM_GeminiAdapter(LLMAdapterBase):
 
     def __init__(self):
         self.modelo_nombre = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+        # El cliente se crea en la primera llamada: sin clave la app arranca igual y solo
+        # fallan las funciones que consultan a Gemini, con un mensaje claro
         self._cliente: genai.Client | None = None
-        self._configurar()
 
     def _configurar(self) -> genai.Client:
         if self._cliente is not None:

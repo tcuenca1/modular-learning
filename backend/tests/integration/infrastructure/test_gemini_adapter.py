@@ -1,3 +1,4 @@
+import pytest
 from google.genai import types
 
 from modular_learning.infrastructure.llm.gemini_adapter import LLM_GeminiAdapter
@@ -56,3 +57,11 @@ def test_parsear_json_limpieza_claves_y_bloques_markdown():
     assert "subtemas" in resultado
     assert resultado["pasos"][0]["titulo"] == "Paso 1"
     assert resultado["subtemas"] == ["a", "b"]
+
+
+def test_sin_clave_se_puede_construir_y_falla_al_consultar(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    adapter = LLM_GeminiAdapter()
+
+    with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
+        adapter.generar_texto("Hola")
