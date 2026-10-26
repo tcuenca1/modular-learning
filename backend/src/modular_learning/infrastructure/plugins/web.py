@@ -1,52 +1,38 @@
-import json
-import os
-
-from modular_learning import settings
 from modular_learning.core.ports.plugin_practico import PluginPracticoBase
+from modular_learning.infrastructure.persistence.almacen import DocumentoJson
 
 
 class WebPlugin(PluginPracticoBase):
     """Adaptador práctico para Desarrollo y Programación Web."""
 
     def __init__(self):
-        self.ruta_memoria = str(settings.ruta_plugins_memoria() / "web_memoria.json")
+        self._memoria = DocumentoJson("plugins/web_memoria.json")
 
     def guardar_contexto_extraido(self, metadatos: str) -> None:
         metadatos = metadatos.strip()
         if not metadatos:
             return
 
-        historial = []
-        os.makedirs(os.path.dirname(self.ruta_memoria), exist_ok=True)
-        if os.path.exists(self.ruta_memoria):
-            try:
-                with open(self.ruta_memoria, "r", encoding="utf-8") as f:
-                    contenido = json.load(f)
-                    if isinstance(contenido, list):
-                        historial = contenido
-            except Exception:
-                historial = []
+        historial = self._memoria.leer([])
+        if not isinstance(historial, list):
+            historial = []
 
         historial.append(metadatos)
         historial = historial[-3:]
 
         try:
-            with open(self.ruta_memoria, "w", encoding="utf-8") as f:
-                json.dump(historial, f, indent=4, ensure_ascii=False)
+            self._memoria.escribir(historial, sangria=4)
         except Exception as e:
             print(f"⚠️ No se pudo guardar la memoria del plugin Web: {e}")
 
     def cargar_contexto_reciente(self) -> str:
-        if not os.path.exists(self.ruta_memoria):
-            return ""
         try:
-            with open(self.ruta_memoria, "r", encoding="utf-8") as f:
-                historial = json.load(f)
-            if isinstance(historial, list) and historial:
-                return historial[-1]
-            return ""
+            historial = self._memoria.leer([])
         except Exception:
             return ""
+        if isinstance(historial, list) and historial:
+            return historial[-1]
+        return ""
 
     def obtener_instrucciones_ia(self) -> str:
         contexto_extra = self.cargar_contexto_reciente()

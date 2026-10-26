@@ -29,6 +29,10 @@ web = [
     "uvicorn[standard]>=0.29.0",
     "python-multipart>=0.0.9",
 ]
+# Despliegue en la nube: datos en Postgres (DATABASE_URL) en lugar de archivos
+nube = [
+    "psycopg[binary,pool]>=3.2",
+]
 dev = [
     "pytest",
     "pytest-mock",
@@ -38,7 +42,7 @@ dev = [
     "pre-commit",
 ]
 all = [
-    "modular-learning[cli,web,dev]",
+    "modular-learning[cli,web,nube,dev]",
 ]
 
 [project.scripts]

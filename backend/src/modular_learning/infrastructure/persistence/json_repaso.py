@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import json
-import os
 import unicodedata
 from typing import Any
 
-from modular_learning import settings
 from modular_learning.core.domain.repaso_espaciado import Tarjeta
 from modular_learning.core.ports.repaso import HistorialRepo, TarjetasRepo
+from modular_learning.infrastructure.persistence.almacen import AlmacenDocumentos, DocumentoJson
 
 
 def _normalizar(texto: str) -> str:
@@ -17,34 +15,14 @@ def _normalizar(texto: str) -> str:
     return " ".join(sin_tildes.lower().split())
 
 
-def _leer_json(ruta: str, defecto: Any) -> Any:
-    try:
-        with open(ruta, encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, json.JSONDecodeError):
-        return defecto
-
-
-def _escribir_json(ruta: str, datos: Any) -> None:
-    os.makedirs(os.path.dirname(ruta), exist_ok=True)
-    temporal = f"{ruta}.tmp"
-    with open(temporal, "w", encoding="utf-8") as f:
-        json.dump(datos, f, indent=2, ensure_ascii=False)
-    os.replace(temporal, ruta)
-
-
 class JsonTarjetasRepo(TarjetasRepo):
-    """Tarjetas en data/repaso/tarjetas.json como {id: tarjeta}."""
+    """Tarjetas en repaso/tarjetas.json como {id: tarjeta}."""
 
-    def __init__(self, ruta_archivo: str | None = None):
-        self._ruta_archivo = ruta_archivo
-
-    @property
-    def ruta_archivo(self) -> str:
-        return self._ruta_archivo or str(settings.ruta_repaso() / "tarjetas.json")
+    def __init__(self, ruta_archivo: str | None = None, almacen: AlmacenDocumentos | None = None):
+        self._documento = DocumentoJson("repaso/tarjetas.json", ruta_archivo, almacen)
 
     def _cargar(self) -> dict[str, dict[str, Any]]:
-        datos = _leer_json(self.ruta_archivo, {})
+        datos = self._documento.leer({})
         return datos if isinstance(datos, dict) else {}
 
     def listar(self) -> list[Tarjeta]:
@@ -57,27 +35,23 @@ class JsonTarjetasRepo(TarjetasRepo):
     def guardar(self, tarjeta: Tarjeta) -> None:
         datos = self._cargar()
         datos[tarjeta.id] = tarjeta.a_dict()
-        _escribir_json(self.ruta_archivo, datos)
+        self._documento.escribir(datos)
 
 
 class JsonHistorialRepo(HistorialRepo):
-    """Eventos de estudio en data/repaso/historial.json como lista cronológica."""
+    """Eventos de estudio en repaso/historial.json como lista cronológica."""
 
-    def __init__(self, ruta_archivo: str | None = None):
-        self._ruta_archivo = ruta_archivo
-
-    @property
-    def ruta_archivo(self) -> str:
-        return self._ruta_archivo or str(settings.ruta_repaso() / "historial.json")
+    def __init__(self, ruta_archivo: str | None = None, almacen: AlmacenDocumentos | None = None):
+        self._documento = DocumentoJson("repaso/historial.json", ruta_archivo, almacen)
 
     def _cargar(self) -> list[dict[str, Any]]:
-        datos = _leer_json(self.ruta_archivo, [])
+        datos = self._documento.leer([])
         return datos if isinstance(datos, list) else []
 
     def registrar(self, evento: dict[str, Any]) -> None:
         eventos = self._cargar()
         eventos.append(evento)
-        _escribir_json(self.ruta_archivo, eventos)
+        self._documento.escribir(eventos)
 
     def listar(self, materia: str | None = None, tema: str | None = None) -> list[dict[str, Any]]:
         materia_n = _normalizar(materia) if materia else None

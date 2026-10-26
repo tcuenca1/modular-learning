@@ -4,24 +4,19 @@ from __future__ import annotations
 
 from typing import Any
 
-from modular_learning import settings
 from modular_learning.core.domain.guia_offline import GuiaOffline
 from modular_learning.core.ports.guias import GuiasRepo
-from modular_learning.infrastructure.persistence.json_repaso import _escribir_json, _leer_json
+from modular_learning.infrastructure.persistence.almacen import AlmacenDocumentos, DocumentoJson
 
 
 class JsonGuiasRepo(GuiasRepo):
-    """Guías en data/guias/guias.json como {id: guía}."""
+    """Guías en guias/guias.json como {id: guía}."""
 
-    def __init__(self, ruta_archivo: str | None = None):
-        self._ruta_archivo = ruta_archivo
-
-    @property
-    def ruta_archivo(self) -> str:
-        return self._ruta_archivo or str(settings.ruta_guias() / "guias.json")
+    def __init__(self, ruta_archivo: str | None = None, almacen: AlmacenDocumentos | None = None):
+        self._documento = DocumentoJson("guias/guias.json", ruta_archivo, almacen)
 
     def _cargar(self) -> dict[str, dict[str, Any]]:
-        datos = _leer_json(self.ruta_archivo, {})
+        datos = self._documento.leer({})
         return datos if isinstance(datos, dict) else {}
 
     def listar(self) -> list[GuiaOffline]:
@@ -35,7 +30,7 @@ class JsonGuiasRepo(GuiasRepo):
     def guardar(self, guia: GuiaOffline) -> None:
         datos = self._cargar()
         datos[guia.id] = guia.a_dict()
-        _escribir_json(self.ruta_archivo, datos)
+        self._documento.escribir(datos)
 
 
 __all__ = ["JsonGuiasRepo"]

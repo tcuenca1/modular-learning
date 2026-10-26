@@ -2,34 +2,25 @@
 
 from __future__ import annotations
 
-import json
 import os
 from typing import Any
 
-from modular_learning import settings
 from modular_learning.core.ports.config import AjustesPort
+from modular_learning.infrastructure.persistence.almacen import AlmacenDocumentos, DocumentoJson
 
 DEFAULT_CARPETA_MATERIAL = "C:/Universidad"
 DEFAULT_OBSIDIAN = "obsidian_vault"
 
 
 class JsonAjustesRepo(AjustesPort):
-    """Implementación del puerto AjustesPort persistiendo en data/config/ajustes.json."""
+    """Implementación del puerto AjustesPort persistiendo en config/ajustes.json."""
 
-    def __init__(self, ruta_archivo: str | None = None):
-        self._ruta_archivo = ruta_archivo
-
-    @property
-    def ruta_archivo(self) -> str:
-        return self._ruta_archivo or str(settings.ruta_ajustes())
+    def __init__(self, ruta_archivo: str | None = None, almacen: AlmacenDocumentos | None = None):
+        self._documento = DocumentoJson("config/ajustes.json", ruta_archivo, almacen)
 
     def _leer(self) -> dict[str, Any]:
-        try:
-            with open(self.ruta_archivo, encoding="utf-8") as f:
-                datos = json.load(f)
-            return datos if isinstance(datos, dict) else {}
-        except (OSError, json.JSONDecodeError):
-            return {}
+        datos = self._documento.leer({})
+        return datos if isinstance(datos, dict) else {}
 
     def esta_configurado(self) -> bool:
         datos = self._leer()
@@ -68,14 +59,7 @@ class JsonAjustesRepo(AjustesPort):
         except OSError as e:
             raise ValueError(f"No se pudo crear la bóveda de Obsidian en {boveda}: {e}") from e
 
-        os.makedirs(os.path.dirname(self.ruta_archivo), exist_ok=True)
-        with open(self.ruta_archivo, "w", encoding="utf-8") as f:
-            json.dump(
-                {"carpeta_material": material, "ruta_obsidian": boveda},
-                f,
-                indent=4,
-                ensure_ascii=False,
-            )
+        self._documento.escribir({"carpeta_material": material, "ruta_obsidian": boveda}, sangria=4)
         return self.obtener_ajustes()
 
 

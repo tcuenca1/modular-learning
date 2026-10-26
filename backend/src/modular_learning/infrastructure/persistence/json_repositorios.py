@@ -3,20 +3,27 @@
 from __future__ import annotations
 
 import json
-import os
 from datetime import datetime
 from typing import Any, ClassVar
 
-from modular_learning import settings
 from modular_learning.core.ports.repositorios import (
     CronogramaRepo,
     MateriaRepo,
     RegistroMaterialesRepo,
 )
+from modular_learning.infrastructure.persistence.almacen import (
+    AlmacenArchivos,
+    AlmacenDocumentos,
+    DocumentoJson,
+    almacen_en,
+    almacen_por_defecto,
+)
+
+SUFIJO_CRONOGRAMA = "_cronograma.json"
 
 
 class JsonMateriaRepo(MateriaRepo):
-    """Implementación de MateriaRepo basada en un archivo de texto data/config/materias.txt."""
+    """Implementación de MateriaRepo basada en el documento de texto config/materias.txt."""
 
     MATERIAS_INICIALES: ClassVar[list[str]] = [
         "Seguridad de la Informacion",
@@ -26,31 +33,30 @@ class JsonMateriaRepo(MateriaRepo):
         "Tecnologias de Conmutacion I",
     ]
 
-    def __init__(self, ruta_archivo: str | None = None):
-        self._ruta_archivo = ruta_archivo
+    def __init__(self, ruta_archivo: str | None = None, almacen: AlmacenDocumentos | None = None):
+        explicito = almacen_en(ruta_archivo)
+        self._almacen, self.clave = explicito if explicito else (almacen, "config/materias.txt")
 
     @property
-    def ruta_archivo(self) -> str:
-        return self._ruta_archivo or str(settings.ruta_materias())
+    def almacen(self) -> AlmacenDocumentos:
+        return self._almacen or almacen_por_defecto()
+
+    def _escribir(self, materias: list[str]) -> None:
+        try:
+            self.almacen.escribir(self.clave, "\n".join(materias))
+        except Exception as e:
+            print(f"⚠️ No se pudo guardar la lista de materias: {e}")
 
     def cargar_materias(self) -> list[str]:
-        archivo = self.ruta_archivo
-        os.makedirs(os.path.dirname(archivo), exist_ok=True)
-
-        if not os.path.exists(archivo):
-            try:
-                with open(archivo, "w", encoding="utf-8") as f:
-                    f.write("\n".join(self.MATERIAS_INICIALES))
-            except Exception:
-                pass
-            return list(self.MATERIAS_INICIALES)
-
         try:
-            with open(archivo, "r", encoding="utf-8") as f:
-                materias = [line.strip() for line in f if line.strip()]
-            return materias if materias else list(self.MATERIAS_INICIALES)
+            texto = self.almacen.leer(self.clave)
         except Exception:
             return list(self.MATERIAS_INICIALES)
+        if texto is None:
+            self._escribir(self.MATERIAS_INICIALES)
+            return list(self.MATERIAS_INICIALES)
+        materias = [linea.strip() for linea in texto.splitlines() if linea.strip()]
+        return materias if materias else list(self.MATERIAS_INICIALES)
 
     def agregar_materia(self, nueva_materia: str) -> None:
         nueva_materia = nueva_materia.strip()
@@ -59,67 +65,78 @@ class JsonMateriaRepo(MateriaRepo):
         materias = self.cargar_materias()
         if nueva_materia not in materias:
             materias.append(nueva_materia)
-            try:
-                os.makedirs(os.path.dirname(self.ruta_archivo), exist_ok=True)
-                with open(self.ruta_archivo, "w", encoding="utf-8") as f:
-                    f.write("\n".join(materias))
-            except Exception as e:
-                print(f"⚠️ No se pudo guardar la nueva materia en disco: {e}")
+            self._escribir(materias)
 
 
 class JsonCronogramaRepo(CronogramaRepo):
-    """Implementación de CronogramaRepo leyendo archivos en data/schedules/."""
+    """Implementación de CronogramaRepo con un documento `<MATERIA>_cronograma.json` por materia."""
 
-    def __init__(self, carpeta_schedules: str | None = None):
-        self._carpeta_schedules = carpeta_schedules
+    def __init__(
+        self, carpeta_schedules: str | None = None, almacen: AlmacenDocumentos | None = None
+    ):
+        if carpeta_schedules:
+            self._almacen: AlmacenDocumentos | None = AlmacenArchivos(carpeta_schedules)
+            self.prefijo = ""
+        else:
+            self._almacen = almacen
+            self.prefijo = "schedules/"
 
     @property
-    def carpeta_schedules(self) -> str:
-        return self._carpeta_schedules or str(settings.ruta_cronogramas())
+    def almacen(self) -> AlmacenDocumentos:
+        return self._almacen or almacen_por_defecto()
 
-    def _encontrar_ruta_cronograma(self, materia: str) -> str | None:
-        carpeta = self.carpeta_schedules
-        if not os.path.exists(carpeta):
-            return None
+    def _nombres(self) -> list[str]:
+        """Nombres de documento (sin prefijo) de todos los cronogramas."""
+        return [
+            clave[len(self.prefijo) :]
+            for clave in self.almacen.listar(self.prefijo)
+            if clave.endswith(SUFIJO_CRONOGRAMA) and "/" not in clave[len(self.prefijo) :]
+        ]
 
-        materia_slug = (
+    @staticmethod
+    def _slug(materia: str) -> str:
+        return (
             "".join(c if c.isalnum() or c in (" ", "_", "-") else "" for c in materia)
             .strip()
             .replace(" ", "_")
-            .upper()
         )
+
+    def _encontrar_clave_cronograma(self, materia: str) -> str | None:
+        nombres = self._nombres()
+        if not nombres:
+            return None
+
+        materia_slug = self._slug(materia).upper()
         materia_upper = materia.upper().replace(" ", "_")
-
         posibles_nombres = [
-            f"{materia}_cronograma.json",
-            f"{materia_slug}_cronograma.json",
-            f"{materia_upper}_cronograma.json",
-            f"{materia_slug.lower()}_cronograma.json",
+            f"{materia}{SUFIJO_CRONOGRAMA}",
+            f"{materia_slug}{SUFIJO_CRONOGRAMA}",
+            f"{materia_upper}{SUFIJO_CRONOGRAMA}",
+            f"{materia_slug.lower()}{SUFIJO_CRONOGRAMA}",
         ]
-
         for nombre in posibles_nombres:
-            ruta_prueba = os.path.join(carpeta, nombre)
-            if os.path.exists(ruta_prueba):
-                return ruta_prueba
+            if nombre in nombres:
+                return self.prefijo + nombre
 
-        try:
-            for arch in os.listdir(carpeta):
-                if arch.endswith("_cronograma.json") and materia_slug.replace(
-                    "_", ""
-                ) in arch.upper().replace("_", ""):
-                    return os.path.join(carpeta, arch)
-        except Exception:
-            pass
-
+        buscado = materia_slug.replace("_", "")
+        for nombre in nombres:
+            if buscado in nombre.upper().replace("_", ""):
+                return self.prefijo + nombre
         return None
 
+    def _leer(self, clave: str) -> Any:
+        texto = self.almacen.leer(clave)
+        return json.loads(texto) if texto is not None else None
+
+    def _escribir(self, clave: str, datos: Any) -> None:
+        self.almacen.escribir(clave, json.dumps(datos, indent=4, ensure_ascii=False))
+
     def obtener_cronograma(self, materia: str) -> list[dict[str, Any]] | None:
-        ruta = self._encontrar_ruta_cronograma(materia)
-        if not ruta or not os.path.exists(ruta):
+        clave = self._encontrar_clave_cronograma(materia)
+        if not clave:
             return None
         try:
-            with open(ruta, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            data = self._leer(clave)
             if isinstance(data, list):
                 return data
             if isinstance(data, dict):
@@ -131,47 +148,29 @@ class JsonCronogramaRepo(CronogramaRepo):
             return None
 
     def guardar_cronograma(self, materia: str, clases: list[dict[str, Any]]) -> str:
-        ruta = self._encontrar_ruta_cronograma(materia)
-        if not ruta:
-            materia_slug = (
-                "".join(c if c.isalnum() or c in (" ", "_", "-") else "" for c in materia)
-                .strip()
-                .replace(" ", "_")
-            )
-            os.makedirs(self.carpeta_schedules, exist_ok=True)
-            ruta = os.path.join(self.carpeta_schedules, f"{materia_slug}_cronograma.json")
+        clave = self._encontrar_clave_cronograma(materia) or (
+            f"{self.prefijo}{self._slug(materia)}{SUFIJO_CRONOGRAMA}"
+        )
 
-        es_dict = False
-        data_orig = {}
-        if os.path.exists(ruta):
-            try:
-                with open(ruta, "r", encoding="utf-8") as f:
-                    data_orig = json.load(f)
-                if isinstance(data_orig, dict):
-                    es_dict = True
-            except Exception:
-                pass
+        data_orig: Any = None
+        try:
+            data_orig = self._leer(clave)
+        except Exception:
+            pass
 
-        with open(ruta, "w", encoding="utf-8") as f:
-            if es_dict:
-                data_orig["clases"] = clases
-                json.dump(data_orig, f, indent=4, ensure_ascii=False)
-            else:
-                json.dump(clases, f, indent=4, ensure_ascii=False)
-        return ruta
+        if isinstance(data_orig, dict):
+            data_orig["clases"] = clases
+            self._escribir(clave, data_orig)
+        else:
+            self._escribir(clave, clases)
+        return clave
 
     def listar_cronogramas(self) -> dict[str, list[dict[str, Any]]]:
-        carpeta = self.carpeta_schedules
-        if not os.path.isdir(carpeta):
-            return {}
         cronogramas: dict[str, list[dict[str, Any]]] = {}
-        for arch in sorted(os.listdir(carpeta)):
-            if not arch.endswith("_cronograma.json"):
-                continue
-            materia = arch.removesuffix("_cronograma.json").replace("_", " ")
+        for nombre in sorted(self._nombres()):
+            materia = nombre.removesuffix(SUFIJO_CRONOGRAMA).replace("_", " ")
             try:
-                with open(os.path.join(carpeta, arch), "r", encoding="utf-8") as f:
-                    data = json.load(f)
+                data = self._leer(self.prefijo + nombre)
             except Exception:
                 continue
             clases = (
@@ -182,16 +181,14 @@ class JsonCronogramaRepo(CronogramaRepo):
         return cronogramas
 
     def agregar_material_transversal(self, materia: str, item: dict[str, Any]) -> None:
-        ruta = self._encontrar_ruta_cronograma(materia)
-        if not ruta:
+        clave = self._encontrar_clave_cronograma(materia)
+        if not clave:
             return
-        with open(ruta, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        data = self._leer(clave)
         if isinstance(data, list):
             data = {"clases": data}
         data.setdefault("material_transversal", []).append(item)
-        with open(ruta, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
+        self._escribir(clave, data)
 
     def obtener_proximas_clases(self, materia: str) -> list[dict[str, Any]]:
         clases = self.obtener_cronograma(materia)
@@ -228,13 +225,12 @@ class JsonCronogramaRepo(CronogramaRepo):
         return {"subtemas_adicionales": [], "materiales_asociados": []}
 
     def marcar_clase_completada(self, materia: str, tema_exacto: str) -> bool:
-        ruta = self._encontrar_ruta_cronograma(materia)
-        if not ruta or not os.path.exists(ruta):
+        clave = self._encontrar_clave_cronograma(materia)
+        if not clave:
             return False
 
         try:
-            with open(ruta, "r", encoding="utf-8") as f:
-                data = json.load(f)
+            data = self._leer(clave)
 
             if isinstance(data, list):
                 clases = data
@@ -262,12 +258,11 @@ class JsonCronogramaRepo(CronogramaRepo):
                     actualizado = True
 
             if actualizado:
-                with open(ruta, "w", encoding="utf-8") as f:
-                    if es_lista:
-                        json.dump(clases, f, indent=4, ensure_ascii=False)
-                    else:
-                        data["clases"] = clases
-                        json.dump(data, f, indent=4, ensure_ascii=False)
+                if es_lista:
+                    self._escribir(clave, clases)
+                else:
+                    data["clases"] = clases
+                    self._escribir(clave, data)
                 return True
 
             return False
@@ -277,53 +272,43 @@ class JsonCronogramaRepo(CronogramaRepo):
 
 
 class JsonRegistroMaterialesRepo(RegistroMaterialesRepo):
-    """Implementación de RegistroMaterialesRepo persistiendo en JSON."""
+    """Implementación de RegistroMaterialesRepo persistiendo en config/registro_materiales.json."""
 
-    def __init__(self, ruta_archivo: str | None = None):
-        self._ruta_archivo = ruta_archivo
-
-    @property
-    def ruta_archivo(self) -> str:
-        return self._ruta_archivo or str(settings.ruta_registro_materiales())
+    def __init__(self, ruta_archivo: str | None = None, almacen: AlmacenDocumentos | None = None):
+        self._documento = DocumentoJson("config/registro_materiales.json", ruta_archivo, almacen)
 
     def verificar_material_ingestado(self, nombre_archivo: str) -> bool:
-        if not os.path.exists(self.ruta_archivo):
-            return False
         try:
-            with open(self.ruta_archivo, "r", encoding="utf-8") as f:
-                registro = json.load(f)
-            if isinstance(registro, list):
-                return any(
-                    item.get("nombre", "").lower() == nombre_archivo.lower() for item in registro
-                )
-            elif isinstance(registro, dict):
-                return nombre_archivo in registro or nombre_archivo.lower() in [
-                    k.lower() for k in registro
-                ]
-            return False
+            registro = self._documento.leer(None)
         except Exception:
             return False
+        if isinstance(registro, list):
+            return any(
+                item.get("nombre", "").lower() == nombre_archivo.lower() for item in registro
+            )
+        if isinstance(registro, dict):
+            return nombre_archivo in registro or nombre_archivo.lower() in [
+                k.lower() for k in registro
+            ]
+        return False
 
     def registrar_material(self, nombre_archivo: str, materia: str) -> None:
-        os.makedirs(os.path.dirname(self.ruta_archivo), exist_ok=True)
-        registro = []
-        if os.path.exists(self.ruta_archivo):
-            try:
-                with open(self.ruta_archivo, "r", encoding="utf-8") as f:
-                    contenido = json.load(f)
-                    if isinstance(contenido, list):
-                        registro = contenido
-                    elif isinstance(contenido, dict):
-                        registro = [
-                            {
-                                "nombre": k,
-                                "materia": v.get("materia", ""),
-                                "fecha": v.get("fecha", ""),
-                            }
-                            for k, v in contenido.items()
-                        ]
-            except Exception:
-                registro = []
+        registro: list[dict[str, Any]] = []
+        try:
+            contenido = self._documento.leer(None)
+            if isinstance(contenido, list):
+                registro = contenido
+            elif isinstance(contenido, dict):
+                registro = [
+                    {
+                        "nombre": k,
+                        "materia": v.get("materia", ""),
+                        "fecha": v.get("fecha", ""),
+                    }
+                    for k, v in contenido.items()
+                ]
+        except Exception:
+            registro = []
 
         nombre_lower = nombre_archivo.lower()
         registro = [r for r in registro if r.get("nombre", "").lower() != nombre_lower]
@@ -337,8 +322,7 @@ class JsonRegistroMaterialesRepo(RegistroMaterialesRepo):
         )
 
         try:
-            with open(self.ruta_archivo, "w", encoding="utf-8") as f:
-                json.dump(registro, f, indent=4, ensure_ascii=False)
+            self._documento.escribir(registro, sangria=4)
         except Exception as e:
             print(f"⚠️ No se pudo guardar el registro de material: {e}")
 

@@ -63,4 +63,5 @@ def guardar_silabo(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
-    return {"ruta": os.path.abspath(ruta), "materias": materias_srv.listar_materias()}
+    # Clave del cronograma en el almacén de datos (archivo local o documento en Postgres)
+    return {"ruta": ruta, "materias": materias_srv.listar_materias()}
