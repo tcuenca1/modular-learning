@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom'
 import {
   BookMarked,
   CalendarDays,
+  FileDown,
   GraduationCap,
   Layers,
   LineChart,
@@ -30,6 +31,7 @@ const GRUPOS: { titulo: string; items: ItemNav[] }[] = [
       { nombre: 'Calendario', ruta: '/calendario', icono: CalendarDays },
       { nombre: 'Tutoría', ruta: '/tutoria', icono: GraduationCap },
       { nombre: 'Repaso', ruta: '/repaso', icono: Repeat2 },
+      { nombre: 'Guía offline', ruta: '/guia', icono: FileDown },
       { nombre: 'Progreso', ruta: '/progreso', icono: LineChart },
     ],
   },

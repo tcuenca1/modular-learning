@@ -81,3 +81,20 @@ export function clasesConFecha(
   }
   return lista.sort((a, b) => a.fecha.getTime() - b.fecha.getTime() || a.materia.localeCompare(b.materia))
 }
+
+export interface MateriaConCronograma {
+  materia: string
+  clases: ClaseCronograma[]
+}
+
+/** Asignaturas con cronograma, con el nombre del catálogo cuando coincide con `clave()`. */
+export function materiasConCronograma(
+  cronogramas: Record<string, ClaseCronograma[]>,
+  catalogo: string[]
+): MateriaConCronograma[] {
+  const porClave = new Map(catalogo.map((n) => [clave(n), n]))
+  return Object.entries(cronogramas)
+    .filter(([, clases]) => clases.length > 0)
+    .map(([nombre, clases]) => ({ materia: porClave.get(clave(nombre)) ?? nombre, clases }))
+    .sort((a, b) => a.materia.localeCompare(b.materia))
+}

@@ -1,6 +1,7 @@
 import type {
   ActualizarPluginResponse,
   ClaseCronograma,
+  ClaseGuia,
   Configuracion,
   CronogramasResponse,
   EscaneoResponse,
@@ -11,15 +12,19 @@ import type {
   GenerarQuizResponse,
   GuardarConfig,
   GuardarSilaboResponse,
+  Guia,
   HistorialResponse,
   IngestarResponse,
   IniciarTutoriaRequest,
+  ListaGuiasResponse,
   MateriasResponse,
   PluginsResponse,
   ProximasClasesResponse,
   ResolverDudaRequest,
   ResolverDudaResponse,
   ResumenRepaso,
+  RevisionGuiaRequest,
+  RevisionGuiaResponse,
   SesionTutoriaResponse,
   StatsResponse,
 } from './types'
@@ -215,5 +220,47 @@ export const api = {
     if (tema) q.set('tema', tema)
     const res = await fetch(`${BASE_URL}/api/repaso/historial?${q.toString()}`)
     return handleResponse<HistorialResponse>(res)
+  },
+
+  // Guías offline
+  async listarGuias(): Promise<ListaGuiasResponse> {
+    const res = await fetch(`${BASE_URL}/api/guias`)
+    return handleResponse<ListaGuiasResponse>(res)
+  },
+
+  async getGuiasPendientes(): Promise<ListaGuiasResponse> {
+    const res = await fetch(`${BASE_URL}/api/guias/pendientes`)
+    return handleResponse<ListaGuiasResponse>(res)
+  },
+
+  async getGuia(id: string): Promise<Guia> {
+    const res = await fetch(`${BASE_URL}/api/guias/${encodeURIComponent(id)}`)
+    return handleResponse<Guia>(res)
+  },
+
+  /** Registra la guía con sus clases; el contenido se genera después, clase a clase. */
+  async crearGuia(materia: string, temas: string[]): Promise<Guia> {
+    const res = await fetch(`${BASE_URL}/api/guias`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ materia, temas }),
+    })
+    return handleResponse<Guia>(res)
+  },
+
+  async generarClaseGuia(id: string, indice: number): Promise<ClaseGuia> {
+    const res = await fetch(`${BASE_URL}/api/guias/${encodeURIComponent(id)}/clases/${indice}`, {
+      method: 'POST',
+    })
+    return handleResponse<ClaseGuia>(res)
+  },
+
+  async registrarRevisionGuia(id: string, data: RevisionGuiaRequest): Promise<RevisionGuiaResponse> {
+    const res = await fetch(`${BASE_URL}/api/guias/${encodeURIComponent(id)}/revision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    return handleResponse<RevisionGuiaResponse>(res)
   },
 }

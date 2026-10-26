@@ -5,6 +5,7 @@ import { api } from '@/api/client'
 import type {
   ClaseCronograma,
   EscaneoMaterial,
+  GuiaResumen,
   MateriaStat,
   ResumenRepaso,
   StatsResponse,
@@ -68,6 +69,7 @@ export function HoyView() {
   const [errorEscaneo, setErrorEscaneo] = useState(false)
   const [resumen, setResumen] = useState<ResumenRepaso | null>(null)
   const [clasesDeHoy, setClasesDeHoy] = useState<ClaseFechada[]>([])
+  const [guiasPorConfirmar, setGuiasPorConfirmar] = useState<GuiaResumen[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -98,6 +100,10 @@ export function HoyView() {
       .getResumenRepaso()
       .then((r) => activo && setResumen(r))
       .catch(() => activo && setResumen(null))
+    api
+      .getGuiasPendientes()
+      .then((r) => activo && setGuiasPorConfirmar(r.guias))
+      .catch(() => undefined)
     Promise.all([api.getCronogramas(), api.getMaterias()])
       .then(([{ cronogramas }, { materias }]) => {
         if (!activo) return
@@ -139,6 +145,23 @@ export function HoyView() {
 
   return (
     <div className="space-y-12">
+      {/* Guías offline que aún no se confirmaron: lo primero al volver */}
+      {guiasPorConfirmar.map((g) => (
+        <Link
+          key={g.id}
+          to={`/guia/${g.id}/revision`}
+          className="group flex flex-col gap-1 border-l-4 border-marcador bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 dark:bg-slate-900"
+        >
+          <span className="text-sm text-slate-700 dark:text-slate-300">
+            <span className="font-medium text-slate-900 dark:text-slate-100">¿Cómo te fue con tu guía offline?</span>{' '}
+            {g.materia} · {g.temas.length === 1 ? g.temas[0] : `${g.temas.length} clases`}
+          </span>
+          <span className="shrink-0 text-sm text-indigo-700 group-hover:underline group-hover:underline-offset-4 dark:text-indigo-300">
+            Confirmar →
+          </span>
+        </Link>
+      ))}
+
       {/* Lo que toca hoy */}
       <section>
         <p className="cifra text-xs text-slate-500 dark:text-slate-400">

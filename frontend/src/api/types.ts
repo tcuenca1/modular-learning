@@ -209,15 +209,64 @@ export interface ResumenRepaso {
 }
 
 export interface EventoHistorial {
-  tipo: 'tutoria' | 'repaso'
+  tipo: 'tutoria' | 'repaso' | 'guia'
   fecha: string
   materia: string
   tema: string
   aciertos?: number
   total?: number
   falladas?: number
+  /** Solo en guías offline */
+  resultado?: ResultadoClaseGuia
+  dudas?: string
 }
 
 export interface HistorialResponse {
   eventos: EventoHistorial[]
+}
+
+// Guías de estudio offline
+export type ExtensionGuia = 'completa' | 'estandar' | 'sintesis'
+export type ResultadoClaseGuia = 'entendida' | 'con_dudas' | 'pendiente'
+
+export interface ClaseGuia {
+  tema: string
+  /** dd/mm/aaaa */
+  fecha: string
+  contenido: string
+  /** Respuestas de la autoevaluación, que van al final del documento */
+  respuestas: string
+  resultado: ResultadoClaseGuia | null
+  dudas: string
+}
+
+export interface Guia {
+  id: string
+  materia: string
+  extension: ExtensionGuia
+  creada: string
+  revisada: string | null
+  completa: boolean
+  pendiente_de_confirmar: boolean
+  clases: ClaseGuia[]
+}
+
+/** Guía sin el contenido de las clases, para listados */
+export interface GuiaResumen extends Omit<Guia, 'clases'> {
+  temas: string[]
+}
+
+export interface ListaGuiasResponse {
+  guias: GuiaResumen[]
+}
+
+export interface RevisionGuiaRequest {
+  resultados: { indice: number; resultado: ResultadoClaseGuia; dudas?: string }[]
+}
+
+export interface RevisionGuiaResponse {
+  materia: string
+  completadas: string[]
+  pendientes: string[]
+  dudas: { tema: string; dudas: string }[]
 }

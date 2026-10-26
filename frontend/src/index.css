@@ -296,3 +296,103 @@
     letter-spacing: -0.02em;
   }
 }
+
+/*
+ * Guía offline para imprimir o guardar como PDF (GuiaImprimirView): papel claro siempre,
+ * aunque el sistema esté en modo oscuro, en A5 para leerla cómodamente en el móvil.
+ */
+@layer components {
+  .hoja-fondo {
+    color-scheme: light;
+    background-color: var(--color-slate-200);
+  }
+  .hoja {
+    color: var(--color-slate-900);
+  }
+  .pagina {
+    background-color: white;
+    padding: 12mm 11mm;
+    border-radius: 2px;
+    box-shadow: var(--shadow-lg);
+  }
+  .pagina + .pagina {
+    margin-top: 1.5rem;
+  }
+  .renglones {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0 1.7rem,
+      var(--color-slate-200) 1.7rem calc(1.7rem + 1px)
+    );
+  }
+
+  /* Los estilos de lectura en oscuro no aplican sobre el papel */
+  .hoja .prose {
+    color: var(--color-slate-800);
+  }
+  .hoja .prose h1,
+  .hoja .prose h2,
+  .hoja .prose h3,
+  .hoja .prose h4,
+  .hoja .prose strong {
+    color: var(--color-slate-950);
+  }
+  .hoja .prose a {
+    color: var(--color-indigo-700);
+  }
+  .hoja .prose blockquote {
+    color: var(--color-slate-600);
+  }
+  .hoja .prose :not(pre) > code {
+    background: var(--color-slate-100);
+    border-color: var(--color-slate-200);
+  }
+  .hoja .prose hr,
+  .hoja .prose th,
+  .hoja .prose td {
+    border-color: var(--color-slate-200);
+  }
+}
+
+@media print {
+  @page {
+    size: A5;
+    margin: 13mm 11mm 15mm;
+  }
+  html,
+  body,
+  .hoja-fondo {
+    background: white !important;
+  }
+  .no-imprimir {
+    display: none !important;
+  }
+  .hoja {
+    max-width: none;
+    padding: 0;
+  }
+  .pagina {
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  .pagina + .pagina {
+    margin-top: 0;
+  }
+  .salto {
+    break-before: page;
+  }
+  .hoja .prose h2,
+  .hoja .prose h3 {
+    break-after: avoid;
+  }
+  .hoja pre,
+  .hoja table,
+  .hoja .katex-display,
+  .mis-dudas {
+    break-inside: avoid;
+  }
+  .prose {
+    font-size: 10pt;
+  }
+}

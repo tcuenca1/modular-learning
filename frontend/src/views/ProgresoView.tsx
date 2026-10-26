@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { api } from '@/api/client'
-import type { ClaseCronograma, EventoHistorial, MateriaStat, StatsResponse } from '@/api/types'
+import type {
+  ClaseCronograma,
+  EventoHistorial,
+  MateriaStat,
+  ResultadoClaseGuia,
+  StatsResponse,
+} from '@/api/types'
 import {
   clave,
   describirFecha,
@@ -61,6 +67,18 @@ function ClasesPendientes({ materia, hoy }: { materia: string; hoy: Date }) {
   )
 }
 
+const ETIQUETA_TIPO: Record<EventoHistorial['tipo'], string> = {
+  tutoria: 'Tutoría',
+  repaso: 'Repaso',
+  guia: 'Guía',
+}
+
+const ETIQUETA_RESULTADO: Record<ResultadoClaseGuia, string> = {
+  entendida: 'vista',
+  con_dudas: 'con dudas',
+  pendiente: 'pendiente',
+}
+
 /** Últimos eventos de estudio de la asignatura: tutorías terminadas y repasos. */
 function HistorialBreve({ materia }: { materia: string }) {
   const [eventos, setEventos] = useState<EventoHistorial[] | null>(null)
@@ -88,11 +106,15 @@ function HistorialBreve({ materia }: { materia: string }) {
             <li key={i} className="grid grid-cols-[3.5rem_3.75rem_minmax(0,1fr)_auto] items-baseline gap-2 text-sm sm:grid-cols-[4.5rem_4.5rem_minmax(0,1fr)_auto] sm:gap-3">
               <span className="cifra text-xs text-slate-500">{fecha ? formatoCorto.format(fecha) : '—'}</span>
               <span className="text-xs text-slate-600 dark:text-slate-400">
-                {e.tipo === 'tutoria' ? 'Tutoría' : 'Repaso'}
+                {ETIQUETA_TIPO[e.tipo]}
               </span>
               <span className="truncate text-slate-700 dark:text-slate-300">{e.tema || '—'}</span>
               <span className="cifra text-right text-xs text-slate-600 dark:text-slate-400">
-                {e.tipo === 'repaso' && e.total !== undefined ? `${e.aciertos ?? 0}/${e.total}` : ''}
+                {e.tipo === 'repaso' && e.total !== undefined
+                  ? `${e.aciertos ?? 0}/${e.total}`
+                  : e.tipo === 'guia' && e.resultado
+                    ? ETIQUETA_RESULTADO[e.resultado]
+                    : ''}
               </span>
             </li>
           )
