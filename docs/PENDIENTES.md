@@ -16,6 +16,50 @@ queda en el commit).
   funciona pero no se siente como una descarga. Generarlo en el servidor (por ejemplo con
   Playwright/Chromium detrás de un puerto `ExportadorPdfPort`) y servirlo como archivo.
 
+- **Clases con el mismo tema reciben el mismo contenido (bug).** La guía offline y la tutoría
+  buscan el detalle de la clase por su tema (`CronogramaRepo.obtener_detalle_clase(materia,
+  tema)`), y el repositorio devuelve la primera clase que coincide. Si dos clases de días
+  distintos comparten tema, ambas se generan con el objetivo y contenido de la primera. Además,
+  `GuiaOfflineService.crear` agrupa las clases elegidas por tema. Arreglo: identificar la clase
+  por su posición o fecha en el cronograma (no por el tema) en guías, tutoría y
+  `marcar_clase_completada`, que hoy marca todas las clases con ese tema.
+
+## Datos que introduce el usuario
+
+- **Todo debe poder deshacerse.** Si el usuario se equivoca al añadir algo, debe poder
+  eliminarlo o corregirlo. Materia y cronograma van a la par: eliminar una materia elimina su
+  cronograma y viceversa (con confirmación). Revisar todos los puntos de entrada: materias,
+  cronogramas y sus clases (editar, borrar, cambiar estado), material ingestado (registro y
+  nota), guías offline, revisión de una guía (deshacer la confirmación), tarjetas de repaso y
+  ajustes.
+- **Normalizar los nombres de las materias.** Hoy conviven "Ingenieria de Software II" en el
+  catálogo, "INGENIERIA_DE_SOFTWARE_II" en el archivo del cronograma y "Ingenieria De Software
+  Ii" en las estadísticas, y la web los cruza con `clave()`. Definir un identificador único
+  por materia (slug) y un nombre para mostrar, aplicarlo al crear y migrar los datos actuales.
+
+## Plugins prácticos
+
+Hoy Node-RED analiza los `.json` de flujos de una carpeta; Cisco extrae líneas con palabras
+clave de las notas de la bóveda. Estrategias por plugin, a decidir:
+
+- **Cisco Packet Tracer.** Los `.pkt`/`.pka` son binarios cifrados y no hay forma fiable de
+  leerlos fuera de Packet Tracer. Opciones:
+  1. *Configuraciones exportadas* (recomendada): por cada actividad, guardar en una carpeta el
+     `show running-config` de cada equipo (texto). El plugin extrae VLAN, interfaces,
+     enrutamiento, ACL… y el tutor razona sobre la configuración real.
+  2. *Enunciado de la actividad*: el PDF o captura de las instrucciones, ingerido como material.
+  3. *Registro de comandos*: un `.txt` por actividad con los comandos usados; el más simple,
+     pero pierde la topología.
+- **Programación (web y otras).** Asociar a la asignatura la carpeta de proyectos. El plugin
+  lee lo que describe el proyecto sin mandar todo el código: `README`, `package.json` /
+  `pyproject.toml`, estructura de carpetas, rutas y modelos principales, y el `git log` si es
+  un repositorio. Ignorar `node_modules`, `dist`, `.venv` y secretos (`.env`). El tutor puede
+  así explicar con ejemplos del propio proyecto y detectar qué temas del sílabo ya se aplican.
+- **Node-RED.** Mantener la lectura de flujos `.json` y añadir el resumen por flujo (nodos,
+  tópicos MQTT, funciones) para elegir cuál usar en una tutoría.
+- **General.** Cada plugin declara qué carpeta lee y qué extrae, configurable por asignatura
+  en lugar de rutas fijas (Cisco hoy lee `obsidian_vault/Tecnologias de Conmutacion I`).
+
 ## Despliegue (Render + Neon)
 
 - **Recarga lenta en la nube.** Con el servidor despierto, una recarga normal tarda 2–3 s en
