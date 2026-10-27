@@ -14,16 +14,6 @@ function fechaCorta(valor: string): string {
   return f ? formatoCorto.format(f) : ''
 }
 
-/** Recuadro con renglones para anotar dudas a mano o en el lector de PDF. */
-function MisDudas() {
-  return (
-    <div className="mis-dudas mt-8 rounded border border-slate-300 p-4">
-      <p className="font-display text-sm italic text-slate-600">Mis dudas</p>
-      <div className="renglones mt-2 h-36" />
-    </div>
-  )
-}
-
 /**
  * Guía lista para imprimir o guardar como PDF desde el navegador: A5 (cómodo en el móvil),
  * siempre en claro aunque el sistema esté en modo oscuro, una clase por página.
@@ -117,7 +107,7 @@ export function GuiaImprimirView() {
             <p className="font-display italic text-slate-500">Cómo usarla</p>
             <ol className="list-decimal space-y-1 pl-5">
               <li>Lee cada clase en orden y responde su autoevaluación sin mirar las respuestas.</li>
-              <li>Anota en «Mis dudas» lo que no te quede claro.</li>
+              <li>Apunta en el teléfono lo que no te quede claro.</li>
               <li>Comprueba tus respuestas al final del documento.</li>
               <li>Al volver, abre Modular Learning y confirma qué clases entendiste.</li>
             </ol>
@@ -132,7 +122,6 @@ export function GuiaImprimirView() {
             </p>
             <h1 className="mt-2 mb-6 text-2xl leading-tight text-slate-950">{c.tema}</h1>
             <Markdown>{c.contenido}</Markdown>
-            <MisDudas />
           </section>
         ))}
 

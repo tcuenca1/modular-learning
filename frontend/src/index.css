@@ -318,13 +318,6 @@
   .pagina + .pagina {
     margin-top: 1.5rem;
   }
-  .renglones {
-    background-image: repeating-linear-gradient(
-      to bottom,
-      transparent 0 1.7rem,
-      var(--color-slate-200) 1.7rem calc(1.7rem + 1px)
-    );
-  }
 
   /* Los estilos de lectura en oscuro no aplican sobre el papel */
   .hoja .prose {
@@ -388,8 +381,7 @@
   }
   .hoja pre,
   .hoja table,
-  .hoja .katex-display,
-  .mis-dudas {
+  .hoja .katex-display {
     break-inside: avoid;
   }
   .prose {

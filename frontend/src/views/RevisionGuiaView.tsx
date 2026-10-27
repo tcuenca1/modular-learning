@@ -203,7 +203,7 @@ export function RevisionGuiaView() {
                   value={r.dudas}
                   onChange={(e) => responder(i, { dudas: e.target.value })}
                   rows={3}
-                  placeholder="¿Qué no te quedó claro? Cópialo de tu recuadro «Mis dudas»."
+                  placeholder="¿Qué no te quedó claro?"
                   className="w-full rounded-md border border-slate-300 bg-white p-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                 />
               )}

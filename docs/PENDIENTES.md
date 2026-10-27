@@ -12,8 +12,6 @@ queda en el commit).
 - **Fase 2: reparto según el tiempo disponible.** Indicar cuánto tiempo hay ("4 horas") y
   ajustar la extensión de cada clase a ese presupuesto, en lugar de depender solo del número
   de clases.
-- **Quitar el recuadro «Mis dudas» del PDF.** La guía se lee en el teléfono, no se imprime ni
-  se escribe sobre ella; las dudas se anotan al confirmar la guía en la app.
 - **Descarga directa del PDF.** Hoy se genera con «Guardar como PDF» del navegador, que
   funciona pero no se siente como una descarga. Generarlo en el servidor (por ejemplo con
   Playwright/Chromium detrás de un puerto `ExportadorPdfPort`) y servirlo como archivo.
