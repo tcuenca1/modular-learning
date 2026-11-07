@@ -33,6 +33,36 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P9. Corregir la regresión de carga de P8
+
+- **Commit:** d843806 `fix(web): P9 corregir regresion de carga al renombrar o guardar silabo`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/views/HoyView.tsx
+  - frontend/src/views/MaterialView.tsx
+  - frontend/src/views/SilabosView.tsx
+
+### Qué hice
+En `SilabosView.tsx` se añadió un contador de estado `recarga` como dependencia del efecto que obtiene el cronograma y parciales, incrementándolo en `cargarCatalogo`. Con ello, las operaciones que conservan la materia activa (renombrar, crear asignatura o subir nuevo sílabo) fuerzan la recarga de clases sin quedarse indefinidamente en estado cargando.
+En `MaterialView.tsx` se activó `setCargandoProyectos(true)` en el evento `onChange` del selector de asignaturas y en los botones manuales de refresco, restableciendo el indicador visual de carga durante el cambio de materia sin generar llamadas síncronas de `setState` dentro de los efectos.
+Se eliminaron las líneas en blanco sobrantes en `HoyView.tsx` y se aseguró el salto de línea final en `SilabosView.tsx`.
+
+### Cómo lo verifiqué
+- pytest: 129 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 avisos y 0 errores en 36 archivos (oxlint); tsc -b y vite build ok; 21 tests passed (3 suites)
+- Tests nuevos: ninguno
+- Prueba manual: Se levantó la API apuntando `ML_DATA_DIR` a una copia aislada de `data/examples` y se probaron los tres flujos requeridos: (1) renombrar la materia activa ('redes-y-comunicaciones' a 'Redes y Telecomunicaciones') verificando que el cronograma y clases responden con HTTP 200 y se actualizan; (2) crear una asignatura ('Fisica Cuantica') verificando la persistencia en el catálogo; (3) guardar un sílabo nuevo para la asignatura activa con dos clases verificando su persistencia en disco y su posterior lectura sin bloqueo de carga. En `MaterialView`, al cambiar el filtro de materia en el selector se activa inmediatamente el indicador de carga y se oculta al resolver la promesa.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+<!-- lo rellena Claude -->
+
+---
+
 ## P8. Avisos de oxlint
 
 - **Commit:** 306c5ac `refactor(web): P8 corregir avisos de oxlint`
