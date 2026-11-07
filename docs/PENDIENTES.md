@@ -29,8 +29,16 @@ Lee `CLAUDE.md` antes de empezar. Además:
    nunca `tmp_path` ni el LLM real.
 6. **No toques `data/`** (son los datos reales del usuario) **ni `.env`**. Para probar a mano,
    copia `data/examples` a otra carpeta y apunta `ML_DATA_DIR` a ella. No hagas push.
-7. **No marques nada como hecho si no cumple todos sus criterios.** Al terminar una tarea,
-   bórrala de este archivo en el mismo commit. Si la dejas a medias, escribe debajo qué falta.
+7. **No marques nada como hecho si no cumple todos sus criterios.** Si la dejas a medias,
+   escribe debajo qué falta. **No borres tareas de este archivo:** las borra Claude cuando
+   aprueba la revisión.
+8. **Informe en `docs/CAMBIOS_AGY.md`.** Por cada tarea añade una entrada con la plantilla de
+   ese archivo (commit, archivos, qué hiciste, cómo lo verificaste con la salida real de los
+   comandos, dudas). Va en un commit aparte justo después del de la tarea:
+   `docs: P1 informe en CAMBIOS_AGY`.
+9. **Documentación:** si la tarea cambia un comportamiento descrito en `README.md`,
+   `docs/DESPLIEGUE.md` o `CLAUDE.md`, actualiza ese párrafo en el mismo commit de la tarea.
+   No reescribas `docs/ARCHITECTURE.md` ni añadas documentos nuevos.
 
 ## Tareas (en orden de prioridad)
 
