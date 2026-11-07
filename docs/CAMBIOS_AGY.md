@@ -33,6 +33,36 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P7. `en_nube` con una variable explicita
+
+- **Commit:** caa8c4e `feat(api): P7 usar variable ML_EN_NUBE explicita`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/apps/api/routers/config.py
+  - backend/tests/integration/api/test_api.py
+  - docs/DESPLIEGUE.md
+  - render.yaml
+
+### Qué hice
+Se modificó `apps/api/routers/config.py` para determinar `en_nube` exclusivamente comprobando `os.getenv("ML_EN_NUBE") == "1"`, en lugar de inferirlo de `RENDER` o `DATABASE_URL`. De este modo, el uso en modo híbrido (app local conectada a Neon) no oculta erróneamente el escaneo de carpetas locales.
+Se agregó `ML_EN_NUBE: "1"` a las variables de entorno de `render.yaml` y se documentó su propósito y uso en `docs/DESPLIEGUE.md`.
+
+### Cómo lo verifiqué
+- pytest: 129 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 kept, 0 broken
+- Tests nuevos:
+  - backend/tests/integration/api/test_api.py::test_config_en_nube_con_variable
+- Prueba manual: Llamadas a `GET /api/config` con `ML_EN_NUBE` ausente, con valor `"1"` y con valor `"0"`.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+<!-- lo rellena Claude -->
+
+---
+
 ## P6. Tema claro con el sistema en oscuro
 
 - **Commit:** 92f0de2 `fix(web): P6 tema claro funcional con sistema en oscuro`
