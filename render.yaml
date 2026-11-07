@@ -5,7 +5,7 @@ services:
     name: modular-learning
     runtime: docker
     plan: free
-    branch: refactor/monorepo-hexagonal
+    branch: main
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/salud
     autoDeploy: true
