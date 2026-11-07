@@ -62,7 +62,7 @@ Se corrigieron los 12 avisos reportados por `oxlint` sin alterar el comportamien
 ninguno
 
 ### Revisión de Claude
-<!-- lo rellena Claude -->
+**Cambios pedidos → P9.** Los avisos están corregidos y `ThemeToggle`/`PluginsView` están bien, pero `SilabosView` introduce una regresión: `cargarCatalogo` hace `setCargandoClases(true)` aunque `destino` sea la materia ya activa (renombrar, crear asignatura, guardar un sílabo de la materia activa). Como `materiaActiva` no cambia, el efecto no se vuelve a ejecutar y el panel queda en «cargando» para siempre. En `MaterialView`, al cambiar de materia ya no se activa `cargandoProyectos`, y el efecto duplica el cuerpo de `cargarProyectos`/`cargarRegistrados`. La «prueba manual» fue solo lint y build: en un refactor de efectos hay que abrir la vista.
 
 ---
 
@@ -92,7 +92,7 @@ Se agregó `ML_EN_NUBE: "1"` a las variables de entorno de `render.yaml` y se do
 ninguno
 
 ### Revisión de Claude
-<!-- lo rellena Claude -->
+**Aprobada.** Tras el push, comprobar en Render que `ML_EN_NUBE=1` aparece en el entorno del servicio (lo aplica la sincronización del Blueprint).
 
 ---
 
@@ -127,7 +127,7 @@ Se crearon pruebas unitarias para `theme.ts` y para comprobar la ausencia de `@m
 ninguno
 
 ### Revisión de Claude
-<!-- lo rellena Claude -->
+**Aprobada.** Bien visto que `html.dark .prose` gana en especificidad a `.hoja .prose` y por eso había que añadir `html.dark .hoja …`. La comprobación fue leyendo el CSS, no en el navegador; lo doy por bueno porque el razonamiento es correcto.
 
 ---
 
@@ -156,7 +156,7 @@ Se añadió la opción `--simular` para previsualizar los cambios sin escribir e
 ninguno
 
 ### Revisión de Claude
-*(Pendiente de revisión)*
+**Cambios pedidos → P10.** El test de idempotencia es bueno. Falta: (1) si la clave con slug ya existe, el renombrado la sobrescribe con el archivo antiguo y borra este: pérdida de datos en Neon; (2) `asignar_ids` devuelve `bool`, así que el script imprime «nuevos IDs: True»; (3) `ruff check scripts` da 5 errores y el archivo está formateado a 88 columnas en vez de 100.
 
 ---
 
@@ -192,7 +192,7 @@ Los consumidores de frontend (`CalendarioView`, `HoyView`, `GuiaView`, `lib/asig
 ninguno
 
 ### Revisión de Claude
-*(Pendiente de revisión)*
+**Aprobada.** El frontend cruza con `clave()`, que ignora guiones, así que no hacía falta tocar vistas. Queda un consumidor en el backend que no incluí en la tarea: `TelemetriaService` publica `slug.title()` («Ingenieria-De-Software-Ii» en `ml stats`). Va como P11.
 
 ---
 
@@ -221,7 +221,7 @@ Si cualquiera de las clases no existe, se lanza `ValueError` enumerando explíci
 ninguno
 
 ### Revisión de Claude
-*(Pendiente de revisión)*
+**Aprobada.** El bucle de abajo podría reutilizar los conjuntos de arriba, pero no es un fallo.
 
 ---
 
@@ -256,7 +256,7 @@ En `GuiaOfflineService.deshacer_revision`, se borran únicamente los eventos con
 ninguno
 
 ### Revisión de Claude
-*(Pendiente de revisión)*
+**Aprobada.** Limitaciones aceptadas: las guías revisadas antes de este cambio no tienen `guia_id` en sus eventos, así que al deshacerlas sus eventos se quedan en el historial; y si dos guías marcan la misma clase, deshacer la primera la devuelve a `pendiente` aunque la segunda la siga dando por estudiada.
 
 ---
 
@@ -291,4 +291,4 @@ En `TutoriaView.tsx`, se lee `clase_id` de los query params y se propaga en `api
 ninguno
 
 ### Revisión de Claude
-*(Pendiente de revisión)*
+**Aprobada.** Detalle menor: en `HoyView.tsx` quedaron dos líneas en blanco donde estaba el `enlaceTutoria` local (se limpia en P9).
