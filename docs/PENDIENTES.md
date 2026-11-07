@@ -162,6 +162,76 @@ Postgres sin tocar Neon.
 **Aceptación:** `docker compose up --build` arranca, `GET /api/salud` responde 200 en
 `localhost:8000` y la web carga. Pega en el informe la salida de `docker compose ps`.
 
+### P19. Hoy: desbordamiento en móvil y avisos agrupados
+
+Hazla después de P18. En las capturas (390 px de ancho) la vista Hoy se sale por la derecha: los
+avisos de guías y la cabecera quedan cortados. Además, la vista empieza con un aviso amarillo por
+cada guía pendiente de confirmar (hoy hay 6, con duplicados y dos de una asignatura que ya no
+está en el catálogo) antes de lo importante.
+
+- Corrige el desbordamiento horizontal en móvil en Hoy (y revisa la barra superior de móvil del
+  layout). Ninguna vista debe tener scroll horizontal a 390 px.
+- Sustituye la pila de avisos por una sola línea: «N guías por confirmar →» que lleva a la lista
+  de guías. Con una sola guía, puede seguir mostrando su asignatura.
+- En el número de «9 preguntas para hoy» se ve un recuadro amarillo extraño debajo del número
+  (en Hoy y en Repaso): corrige el estilo para que el resaltado se vea como subrayado o quítalo.
+
+**Aceptación:** capturas o prueba en el navegador a 390 px y a 1440 px (regla 10), con varias
+guías pendientes en una copia de `data/examples`. `npm run lint` sin avisos.
+
+### P20. Asignaturas: un solo selector y acciones peligrosas apartadas
+
+Hazla después de P15 y P17 (tocan los mismos archivos). Hoy Asignaturas tiene tres niveles de
+navegación seguidos (pestañas Cronogramas/Material → «Gestionar / Subir sílabo» → chips de
+asignatura) y Material tiene además sus propias pestañas. Los botones que borran están al lado
+de los normales.
+
+- Estructura: arriba, el selector de asignatura (uno solo, compartido); debajo, tres pestañas:
+  **Clases**, **Material** y **Proyectos**. «Subir sílabo» es un botón dentro de Clases (y el
+  estado vacío de una asignatura sin clases lo ofrece directamente). La pestaña se refleja en la
+  URL (`?tab=`) y las URL antiguas siguen funcionando.
+- Acciones de borrado (vaciar cronograma, eliminar asignatura, vaciar todo el material) en un
+  menú «⋯» o en una sección «Zona peligrosa» al final, nunca junto al botón principal. Siguen
+  pidiendo confirmación.
+- No mostrar el slug al usuario.
+- Solo reorganizar: sin cambios de API ni de lógica de datos.
+
+**Aceptación:** prueba en el navegador (regla 10) de cada acción que había antes (todas siguen
+accesibles), en escritorio y a 390 px. Lista en el informe dónde quedó cada botón.
+
+### P21. Menú de 9 entradas a 5
+
+Hazla después de P20. Menú actual: Hoy, Calendario, Tutoría, Repaso, Guía offline, Progreso,
+Asignaturas, Plugins, Configuración.
+
+- **Hoy** incorpora el resumen de Progreso (avance por asignatura); la vista Progreso se elimina.
+- **Estudiar** agrupa Tutoría, Repaso y Guía offline como tres pestañas o modos de una misma
+  pantalla.
+- **Calendario** y **Asignaturas** se quedan.
+- **Ajustes** agrupa Configuración y Plugins.
+- Todas las rutas antiguas (`/tutoria`, `/repaso`, `/guia`, `/progreso`, `/plugins`, `/config`)
+  redirigen a su nuevo sitio conservando la query (`/tutoria?materia=…&clase_id=…` debe seguir
+  funcionando: lo usan los enlaces de P1).
+- Actualiza los enlaces internos.
+
+**Aceptación:** prueba en el navegador (regla 10) de todas las rutas antiguas y de los enlaces
+«Estudiar» de Hoy y Calendario. `npm run lint`, `npm run build` y `npm test` en verde.
+
+### P22. Textos más cortos y consistentes
+
+Hazla al final de la interfaz (después de P21).
+
+- Las introducciones de cada vista, una sola línea (Guía offline y Repaso tienen párrafos de tres
+  líneas); lo demás, en un icono de ayuda o en el estado vacío.
+- Siempre «asignatura», nunca «materia», en la interfaz.
+- Botones con mayúscula solo en la primera palabra («Añadir clase», no «Añadir Clase»).
+- Sin jerga: «Ingestar documento individual» → «Convertir en nota» (revisa «ingestar» en toda la
+  interfaz).
+- Plugins: el «Registro de sincronización» solo aparece después de pulsar «Actualizar».
+
+**Aceptación:** `git grep -n "Materia\b\|materia " frontend/src/views` sin textos visibles con
+«materia»; capturas antes y después de 3 vistas en el informe. `npm run lint` sin avisos.
+
 ## Documentación funcional (tarea aparte, no toca código)
 
 ### D1. Manual funcional del sistema en PDF
