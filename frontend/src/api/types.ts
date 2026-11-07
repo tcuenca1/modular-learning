@@ -434,6 +434,7 @@ export interface ClaseGuia {
   respuestas: string
   resultado: ResultadoClaseGuia | null
   dudas: string
+  estado_previo?: string | null
 }
 
 export interface Guia {

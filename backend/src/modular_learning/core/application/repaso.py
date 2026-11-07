@@ -102,7 +102,7 @@ class RepasoService:
         self.historial_repo.registrar(evento)
 
     def registrar_estudio_offline(
-        self, materia: str, tema: str, resultado: str, dudas: str = ""
+        self, materia: str, tema: str, resultado: str, dudas: str = "", guia_id: str | None = None
     ) -> None:
         """Anota en el historial una clase estudiada con una guía offline y cómo le fue."""
         evento: dict[str, Any] = {
@@ -114,6 +114,8 @@ class RepasoService:
         }
         if dudas:
             evento["dudas"] = dudas
+        if guia_id:
+            evento["guia_id"] = guia_id
         self.historial_repo.registrar(evento)
 
     # ------------------------------------------------------------------ consultas

@@ -242,3 +242,36 @@ def test_exportar_pdf(contexto):
     assert filename == f"Guia_redes_{guia.id}.pdf"
     assert len(servicio.exportador_pdf.guias_exportadas) == 1
     assert servicio.exportador_pdf.guias_exportadas[0].id == guia.id
+
+
+def test_deshacer_dos_guias_mismo_tema_no_toca_la_otra(contexto):
+    servicio, _cronograma, historial, _ = contexto
+    g1 = _guia_generada(servicio, ["Trunking"])
+    g2 = _guia_generada(servicio, ["Trunking"])
+
+    servicio.registrar_revision(g1.id, {0: ("entendida", "")})
+    servicio.registrar_revision(g2.id, {0: ("con_dudas", "duda en g2")})
+
+    eventos = historial.listar(materia="Redes")
+    assert len(eventos) == 2
+    assert any(e.get("guia_id") == g1.id for e in eventos)
+    assert any(e.get("guia_id") == g2.id for e in eventos)
+
+    # Deshacer g1 no toca los eventos de g2
+    servicio.deshacer_revision(g1.id)
+    eventos_restantes = historial.listar(materia="Redes")
+    assert len(eventos_restantes) == 1
+    assert eventos_restantes[0].get("guia_id") == g2.id
+
+
+def test_deshacer_clase_ya_completada_sigue_completada(contexto):
+    servicio, cronograma, _historial, _ = contexto
+    # VLAN ya está completada antes de la guía (CLASES[0]["estado"] == "completado")
+    assert cronograma.obtener_cronograma("Redes")[0]["estado"] == "completado"
+
+    guia = _guia_generada(servicio, ["VLAN"])
+    servicio.registrar_revision(guia.id, {0: ("entendida", "")})
+
+    # Al deshacer, debe volver a su estado_previo ("completado"), no a "pendiente"
+    servicio.deshacer_revision(guia.id)
+    assert cronograma.obtener_cronograma("Redes")[0]["estado"] == "completado"

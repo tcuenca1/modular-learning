@@ -72,6 +72,7 @@ class ClaseGuia:
     resultado: str | None = None
     dudas: str = ""
     clase_id: str = ""
+    estado_previo: str | None = None
 
     @property
     def generada(self) -> bool:

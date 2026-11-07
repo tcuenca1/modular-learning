@@ -174,6 +174,11 @@ class GuiaOfflineService:
             clase.resultado = resultado
             clase.dudas = texto_dudas.strip() if resultado == CON_DUDAS else ""
 
+            detalle = self.cronograma_repo.obtener_detalle_clase(
+                guia.materia, tema=clase.tema, clase_id=clase.clase_id or None
+            )
+            clase.estado_previo = detalle.get("estado") if detalle else None
+
             if resultado in (ENTENDIDA, CON_DUDAS):
                 self.cronograma_repo.marcar_clase_completada(
                     guia.materia, tema_exacto=clase.tema, clase_id=clase.clase_id
@@ -185,7 +190,11 @@ class GuiaOfflineService:
                 pendientes.append(clase.tema)
             if self.repaso:
                 self.repaso.registrar_estudio_offline(
-                    guia.materia, clase.tema, resultado, clase.dudas
+                    guia.materia,
+                    clase.tema,
+                    resultado,
+                    clase.dudas,
+                    guia_id=guia.id,
                 )
 
         guia.revisada = _ahora()
@@ -213,22 +222,18 @@ class GuiaOfflineService:
             if clase.resultado in (ENTENDIDA, CON_DUDAS):
                 self.cronograma_repo.marcar_clase(
                     guia.materia,
-                    clase_id=clase.clase_id,
+                    clase_id=clase.clase_id or None,
                     tema=clase.tema,
-                    estado="pendiente",
+                    estado=clase.estado_previo or "pendiente",
                 )
                 revertidas.append(clase.tema)
             clase.resultado = None
             clase.dudas = ""
+            clase.estado_previo = None
 
-        temas_guia = {c.tema for c in guia.clases}
         if self.repaso:
             self.repaso.historial_repo.eliminar(
-                lambda e: (
-                    e.get("tipo") == "guia"
-                    and e.get("materia") == guia.materia
-                    and e.get("tema") in temas_guia
-                )
+                lambda e: e.get("tipo") == "guia" and e.get("guia_id") == guia.id
             )
 
         guia.revisada = None
