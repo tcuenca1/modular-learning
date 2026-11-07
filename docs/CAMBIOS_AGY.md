@@ -33,6 +33,33 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P13. «Vaciar cronograma» no debe borrar la asignatura
+
+- **Commit:** bf2ac35 `fix(api): P13 vaciar cronograma conserva la asignatura en el catalogo`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/apps/api/routers/materias.py
+  - backend/tests/integration/api/test_api.py
+
+### Qué hice
+Se cambió `borrar_materia=False` en la llamada a `servicio.eliminar_cronograma` dentro del endpoint `DELETE /api/materias/{materia}/cronograma` (`routers/materias.py`). De este modo, vaciar el cronograma borra sus clases pero conserva la asignatura en el catálogo.
+Se revisó `SilabosView.tsx`, verificando que al vaciar el cronograma se mantiene la asignatura activa seleccionada mostrando el estado vacío de clases.
+
+### Cómo lo verifiqué
+- pytest: 133 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 kept, 0 broken
+- Tests nuevos:
+  - backend/tests/integration/api/test_api.py::test_eliminar_cronograma_conserva_materia
+- Prueba manual: Ejecución del test de integración comprobando que tras `DELETE /api/materias/redes/cronograma`, `GET /api/materias` sigue retornando «Redes» en la lista del catálogo y `GET /api/materias/redes/cronograma` retorna `{"clases": []}`.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P12. Seleccionar la asignatura recién guardada aunque lleve tildes
 
 - **Commit:** bb1a30f `fix(web): P12 seleccionar la asignatura recien guardada aunque lleve tildes`
