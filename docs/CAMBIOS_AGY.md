@@ -33,6 +33,43 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## D1. Manual funcional del sistema en PDF
+
+- **Commit:** 76d6f59 `docs: D1 manual funcional`
+- **Estado:** hecha
+- **Archivos:**
+  - `docs/manual/MANUAL_FUNCIONAL.md`
+  - `docs/manual/MANUAL_FUNCIONAL.pdf`
+  - `scripts/generar_manual.py`
+
+### Qué hice
+Escribí `docs/manual/MANUAL_FUNCIONAL.md` siguiendo las 6 secciones requeridas por D1 (propósito y modos local/nube/híbrido, conceptos de dominio, inventario de datos en `AlmacenDocumentos`/RAM/exterior, 20 casos de uso `CU-01` a `CU-20` trazados desde la vista web o comando CLI hasta el endpoint, servicio de aplicación y repositorio/adaptador con `archivo:línea`, 3 flujos de extremo a extremo del semestre, tabla de 12 discrepancias y matriz completa de los 55 endpoints HTTP y 10 comandos/scripts CLI). Creé además `scripts/generar_manual.py` con `markdown-it-py` (`enable("table")`) y `fitz.Story` de PyMuPDF para generar `docs/manual/MANUAL_FUNCIONAL.pdf` (26 páginas A4) con ajuste de cortes en celdas para evitar texto truncado en tablas anchas.
+
+### Cómo lo verifiqué
+- pytest: 136 passed, 2 skipped
+- ruff check / ruff format: ok (`All checks passed!`, `scripts/generar_manual.py` y `backend/`)
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: no aplica (no se tocó `frontend/`)
+- Tests nuevos: no aplica (tarea de documentación funcional)
+- Prueba manual: ejecuté `venv/Scripts/python.exe scripts/generar_manual.py` y verifiqué con `fitz.open('docs/manual/MANUAL_FUNCIONAL.pdf')` que el PDF abre sin errores (26 páginas, 117.011 caracteres extraíbles y las 5 tablas HTML renderizadas completas sin recortes de columnas).
+
+### Dudas o hallazgos
+- **Total de casos de uso documentados:** **20 casos de uso** (`CU-01` a `CU-20`), que cubren los **55 endpoints HTTP** (`apps/api/main.py` y los 11 routers de `apps/api/routers/`) y los **10 comandos/scripts de consola** (`ml init`, `ml es`, `ml im`, `ml quiz`, `ml stats`, `ml up`, `snapshot.py`, `ml-web`, `scripts/migrar_datos.py` y `deploy/subir_datos.py`).
+- **Total de discrepancias encontradas:** **12 discrepancias** (`DISC-01` a `DISC-12`):
+  - **6 cubiertas por tareas P12–P17:** `DISC-01` (P12, selección/normalización de asignatura en `SilabosView`), `DISC-02` (P13, vaciar cronograma borraba la asignatura del catálogo; resuelta en paralelo por otro agente en `bf2ac35`), `DISC-03` (P14, sobrescritura del nombre en catálogo y carpetas duplicadas en Obsidian por grafía distinta; resuelta en paralelo en `a9b71aa`), `DISC-04` (P15, inputs de texto libre en vez de selector de asignatura al subir archivos), `DISC-05` (P16, bloqueo de `.pptx` en ingesta web/CLI y ausencia de conversión/extracción multimodal) y `DISC-06` (P17, jerarquía visual invertida en `MaterialView`).
+  - **6 hallazgos adicionales no cubiertos por P12–P17:**
+    1. **`DISC-05` (P16) y `DISC-07` (Gravedad Alta/Media — Lectura documental incompleta frente a lo prometido en README/ARCHITECTURE):** además de que `.pptx` está bloqueado (`ingesta.py:23-24`), `LectorDocumentosLocal.extraer_texto` (`lector_documentos.py:51-55`) solo lee `documento.paragraphs` en archivos `.docx`, ignorando tanto tablas (`documento.tables`) como imágenes/diagramas embebidos (pese a que `README.md` y `docs/ARCHITECTURE.md` afirman que extrae diagramas de `.docx`).
+    2. **`DISC-10` (Gravedad Media — Incompatibilidad de cortes de parcial entre `SilabosView` y `GuiaView`):** en `SilabosView.tsx:666, 708-711` el formulario de «Cortes de Parcial» pide una fecha en texto libre y la guarda en `hasta`, mientras que `GuiaView.tsx:346, 360` busca `String(c.id) === String(p.hasta)`. Por ello, los cortes de parcial creados en `SilabosView` no seleccionan ningún rango de clases en `GuiaView`.
+    3. **`DISC-11` (Gravedad Media — Inconsistencias al eliminar proyectos, asignaturas o vaciar materiales):** `ProyectosService.eliminar_proyecto` (`proyectos.py:55-56`) borra el proyecto de `config/proyectos.json` pero deja huérfana su entrada `[PROYECTO] ...` en `config/registro_materiales.json` y su nota en Obsidian; `MateriasService.eliminar_materia` (`materias.py:56-67`) no limpia los proyectos de esa asignatura en `config/proyectos.json`; e `IngestaService.vaciar_materiales` (`ingesta.py:255-277`) no limpia `materiales_asociados`, `subtemas_adicionales` ni `material_transversal` dentro de los cronogramas.
+    4. **`DISC-08` (Gravedad Media — Escaneo de carpetas locales en modo nube):** `HoyView.tsx:111-114` llama siempre a `api.escanearMaterial()` sin verificar `en_nube`, y `MaterialView.tsx:297, 559-626` sigue ejecutando `api.escanearProyectos()` y mostrando la tarjeta de carpetas locales aunque `enNube` sea `true`.
+    5. **`DISC-09` (Gravedad Media — CLI `ml init` no envía `clase_id`):** `pedir_datos_inicio` (`apps/cli/ui/interaccion.py:81-86, 104`) descarta el `id` de la clase seleccionada del cronograma y `apps/cli/commands/init.py:29-34` inicia la tutoría sin `clase_id`, marcando al finalizar por coincidencia de nombre de tema en vez de por `id`.
+    6. **`DISC-12` (Gravedad Baja — Desajustes en documentación y comando `snapshot.py` huérfano):** `docs/ARCHITECTURE.md` cita rutas antiguas (`data/materias.json`), `README.md` y `ARCHITECTURE.md` mencionan cálculo de «rachas de estudio» que `TelemetriaService` no implementa, y `apps/cli/commands/snapshot.py` no está registrado en `apps/cli/main.py` y usa `os.walk`/`open` directos.
+
+### Revisión de Claude
+<lo rellena Claude: aprobada | cambios pedidos, con el motivo>
+
+---
+
 ## P14. No sobrescribir el nombre de la asignatura del catálogo
 
 - **Commit:** a9b71aa `feat(core): P14 preservar nombre de catalogo y resolver materia en casos de uso`
