@@ -32,6 +32,7 @@ def migrar(
         "cronogramas_renombrados": 0,
         "ids_asignados": 0,
         "guias_vinculadas": 0,
+        "conflictos": 0,
     }
 
     # ------------------------------------------------------------------ 1. Materias
@@ -47,13 +48,13 @@ def migrar(
                         materias.append(m)
                 elif isinstance(item, str):
                     materias.append(Materia.desde_nombre(item))
-        except Exception:
-            pass
+        except json.JSONDecodeError as err:
+            print(f"[ERROR] No se pudo leer config/materias.json: {err}")
     else:
         texto_txt = almacen_doc.leer("config/materias.txt")
         if texto_txt:
-            lineas = [l.strip() for l in texto_txt.splitlines() if l.strip()]
-            materias = [Materia.desde_nombre(l) for l in lineas]
+            lineas = [line.strip() for line in texto_txt.splitlines() if line.strip()]
+            materias = [Materia.desde_nombre(line) for line in lineas]
 
     if materias:
         resumen["materias"] = len(materias)
@@ -75,6 +76,20 @@ def migrar(
     ]
     cronogramas_por_slug: dict[str, list[dict[str, Any]]] = {}
 
+    # Detectar posibles colisiones donde un archivo no-slug mapea a un slug que ya existe
+    materias_con_conflicto: set[str] = set()
+    for c in claves_schedules:
+        nombre_arch = c[len("schedules/") :]
+        base_arch = (
+            nombre_arch.removesuffix("_cronograma.json")
+            .removesuffix("_cronograma")
+            .removesuffix(".json")
+        )
+        s_arch = slug_materia(base_arch)
+        dest_arch = f"schedules/{s_arch}_cronograma.json"
+        if dest_arch != c and almacen_doc.leer(dest_arch) is not None:
+            materias_con_conflicto.add(s_arch)
+
     for clave in claves_schedules:
         resumen["cronogramas_procesados"] += 1
         texto_sched = almacen_doc.leer(clave)
@@ -82,7 +97,8 @@ def migrar(
             continue
         try:
             data = json.loads(texto_sched)
-        except Exception:
+        except json.JSONDecodeError as err:
+            print(f"[ERROR] No se pudo leer {clave}: {err}")
             continue
 
         if isinstance(data, dict):
@@ -93,10 +109,6 @@ def migrar(
         else:
             continue
 
-        sin_id = sum(1 for c in clases if not str(c.get("id") or "").strip())
-        ids_creados = asignar_ids(clases)
-        resumen["ids_asignados"] += sin_id
-
         nombre_archivo = clave[len("schedules/") :]
         base = (
             nombre_archivo.removesuffix("_cronograma.json")
@@ -104,16 +116,36 @@ def migrar(
             .removesuffix(".json")
         )
         slug = slug_materia(base)
-        cronogramas_por_slug[slug] = clases
-
         nueva_clave = f"schedules/{slug}_cronograma.json"
+
+        # Si hay conflicto para esta materia, no escribimos ni borramos nada
+        if slug in materias_con_conflicto:
+            if nueva_clave != clave:
+                resumen["conflictos"] += 1
+                print(
+                    f"[AVISO] Conflicto: '{clave}' no se renombra porque '{nueva_clave}' ya existe. "
+                    "No se modifica."
+                )
+            else:
+                print(
+                    f"[AVISO] Conflicto para '{slug}': '{clave}' coexiste con otra versión no migrada. "
+                    "No se modifica."
+                )
+            continue
+
+        sin_id = sum(1 for c in clases if not str(c.get("id") or "").strip())
+        asignar_ids(clases)
+        resumen["ids_asignados"] += sin_id
+
+        cronogramas_por_slug[slug] = clases
         renombrado = nueva_clave != clave
 
         if renombrado:
             resumen["cronogramas_renombrados"] += 1
+            msg_ids = f", {sin_id} ids nuevos" if sin_id > 0 else ""
             if simular:
                 print(
-                    f"[SIMULADO] Renombrar {clave} -> {nueva_clave} ({len(clases)} clases, nuevos IDs: {ids_creados})"
+                    f"[SIMULADO] Renombrar {clave} -> {nueva_clave} ({len(clases)} clases{msg_ids})"
                 )
             else:
                 data["clases"] = clases
@@ -122,22 +154,20 @@ def migrar(
                 )
                 almacen_doc.eliminar(clave)
                 print(
-                    f"[OK] Renombrado {clave} -> {nueva_clave} ({len(clases)} clases, nuevos IDs: {ids_creados})"
+                    f"[OK] Renombrado {clave} -> {nueva_clave} ({len(clases)} clases{msg_ids})"
                 )
         else:
-            if ids_creados > 0:
+            if sin_id > 0:
                 if simular:
                     print(
-                        f"[SIMULADO] {clave}: {len(clases)} clases ({ids_creados} nuevos IDs)"
+                        f"[SIMULADO] {clave}: {len(clases)} clases ({sin_id} ids nuevos)"
                     )
                 else:
                     data["clases"] = clases
                     almacen_doc.escribir(
                         clave, json.dumps(data, indent=2, ensure_ascii=False)
                     )
-                    print(
-                        f"[OK] {clave}: {len(clases)} clases ({ids_creados} nuevos IDs)"
-                    )
+                    print(f"[OK] {clave}: {len(clases)} clases ({sin_id} ids nuevos)")
             else:
                 print(f"[OK] {clave}: {len(clases)} clases (al día)")
 
@@ -146,7 +176,8 @@ def migrar(
     if texto_guias:
         try:
             guias = json.loads(texto_guias)
-        except Exception:
+        except json.JSONDecodeError as err:
+            print(f"[ERROR] No se pudo leer guias/guias.json: {err}")
             guias = {}
 
         migradas = 0

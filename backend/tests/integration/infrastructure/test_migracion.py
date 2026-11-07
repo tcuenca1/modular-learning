@@ -6,6 +6,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 from modular_learning.infrastructure.persistence.almacen import AlmacenArchivos
 
 # Añadir scripts/ al path para importar migrar_datos
@@ -94,3 +96,39 @@ def test_migracion_idempotente_sobre_almacen_archivos(tmp_path):
     assert post_claves == snapshot_claves
     post_docs = {clave: almacen.leer(clave) for clave in post_claves}
     assert post_docs == snapshot_docs
+
+
+def test_migracion_conflicto_no_sobrescribe(tmp_path):
+    schedules_dir = tmp_path / "schedules"
+    schedules_dir.mkdir(parents=True, exist_ok=True)
+    if sys.platform == "win32":
+        import subprocess
+
+        res_fs = subprocess.run(
+            ["fsutil", "file", "setCaseSensitiveInfo", str(schedules_dir), "enable"],
+            capture_output=True,
+            check=False,
+        )
+        if res_fs.returncode != 0:
+            pytest.skip(
+                "No se pudo habilitar distinción de mayúsculas en Windows para este directorio"
+            )
+
+    almacen = AlmacenArchivos(tmp_path)
+
+    datos_mayus = {
+        "clases": [{"id": "id-mayus-1", "fecha": "01/10/2026", "tema": "Clase Mayusculas"}]
+    }
+    datos_minus = {
+        "clases": [{"id": "id-minus-1", "fecha": "02/10/2026", "tema": "Clase Minusculas"}]
+    }
+    almacen.escribir("schedules/REDES_cronograma.json", json.dumps(datos_mayus))
+    almacen.escribir("schedules/redes_cronograma.json", json.dumps(datos_minus))
+
+    res = migrar(almacen=almacen, simular=False)
+
+    assert res["conflictos"] == 1
+    doc_mayus = json.loads(almacen.leer("schedules/REDES_cronograma.json"))
+    doc_minus = json.loads(almacen.leer("schedules/redes_cronograma.json"))
+    assert doc_mayus == datos_mayus
+    assert doc_minus == datos_minus
