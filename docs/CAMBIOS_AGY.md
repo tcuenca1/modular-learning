@@ -33,6 +33,44 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P14. No sobrescribir el nombre de la asignatura del catálogo
+
+- **Commit:** a9b71aa `feat(core): P14 preservar nombre de catalogo y resolver materia en casos de uso`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/bootstrap.py
+  - backend/src/modular_learning/core/application/ingesta.py
+  - backend/src/modular_learning/core/application/silabo.py
+  - backend/src/modular_learning/core/application/tutoria.py
+  - backend/src/modular_learning/infrastructure/persistence/json_repositorios.py
+  - backend/tests/integration/infrastructure/test_almacen.py
+  - backend/tests/unit/application/fake_adapters.py
+  - backend/tests/unit/application/test_ingesta_service.py
+  - backend/tests/unit/application/test_silabo_service.py
+  - backend/tests/unit/application/test_tutoria_service.py
+
+### Qué hice
+Se modificó `agregar_materia` en `JsonMateriaRepo` y en el fake `InMemoryMateriaRepo` para que no sobrescriba una asignatura existente por slug, limitándose a añadir nuevas materias.
+En los casos de uso `SilaboService.guardar_cronograma`, `IngestaService` (al calcular la ruta de notas en Obsidian y registro) y `TutoriaService.iniciar_sesion` se resuelve el nombre con `resolver_materia` sobre el catálogo antes de operar, preservando el nombre escrito en caso de no existir en el catálogo. Se conectó `materia_repo` en `bootstrap.py` para `IngestaService` y `TutoriaService`.
+
+### Cómo lo verifiqué
+- pytest: 136 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 kept, 0 broken
+- Tests nuevos:
+  - backend/tests/unit/application/test_silabo_service.py::test_guardar_cronograma_no_sobrescribe_nombre_catalogo
+  - backend/tests/unit/application/test_ingesta_service.py::test_ingesta_usa_nombre_catalogo_para_carpeta_obsidian
+  - backend/tests/unit/application/test_tutoria_service.py::test_tutoria_iniciar_sesion_resuelve_materia_catalogo
+  - backend/tests/integration/infrastructure/test_almacen.py::test_leer_escribir_y_listar
+- Prueba manual: Validación de que al guardar un sílabo con «INGENIERIA DE SOFTWARE II», el catálogo mantiene «Ingeniería de Software II» intacto y el cronograma se asigna a su slug; y que al ingestar material indicando «ingenieria de software ii» la nota se almacena en la carpeta «Ingeniería de Software II».
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P13. «Vaciar cronograma» no debe borrar la asignatura
 
 - **Commit:** bf2ac35 `fix(api): P13 vaciar cronograma conserva la asignatura en el catalogo`
