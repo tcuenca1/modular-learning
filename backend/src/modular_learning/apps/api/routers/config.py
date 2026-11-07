@@ -19,7 +19,7 @@ def obtener_configuracion(
     servicio: Annotated[ConfiguracionService, Depends(get_configuracion_service)],
 ) -> dict[str, Any]:
     datos = dict(servicio.obtener_ajustes())
-    datos["en_nube"] = bool(os.getenv("RENDER") or os.getenv("DATABASE_URL"))
+    datos["en_nube"] = os.getenv("ML_EN_NUBE") == "1"
     return datos
 
 

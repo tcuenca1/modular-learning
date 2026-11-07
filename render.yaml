@@ -10,6 +10,8 @@ services:
     healthCheckPath: /api/salud
     autoDeploy: true
     envVars:
+      - key: ML_EN_NUBE
+        value: "1"
       # Se piden al crear el servicio; no se guardan en el repositorio
       - key: DATABASE_URL
         sync: false

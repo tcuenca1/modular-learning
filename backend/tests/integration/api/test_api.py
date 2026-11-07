@@ -178,6 +178,23 @@ def test_config_obtener_y_guardar(client, tmp_path):
     assert res_post.json()["carpeta_material_existe"] is True
 
 
+def test_config_en_nube_con_variable(client, monkeypatch):
+    monkeypatch.delenv("ML_EN_NUBE", raising=False)
+    res = client.get("/api/config")
+    assert res.status_code == 200
+    assert res.json()["en_nube"] is False
+
+    monkeypatch.setenv("ML_EN_NUBE", "1")
+    res = client.get("/api/config")
+    assert res.status_code == 200
+    assert res.json()["en_nube"] is True
+
+    monkeypatch.setenv("ML_EN_NUBE", "0")
+    res = client.get("/api/config")
+    assert res.status_code == 200
+    assert res.json()["en_nube"] is False
+
+
 def test_escanear_material_endpoint(client, tmp_path):
     carpeta_estudio = tmp_path / "Uni"
     materia_dir = carpeta_estudio / "Seguridad"

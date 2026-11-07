@@ -26,11 +26,12 @@ variable, todo sigue en `data/`.
 
 1. Crea una cuenta en <https://render.com> y conecta tu GitHub.
 2. **New → Blueprint** y elige el repositorio `tcuenca1/modular-learning`. Render lee
-   `render.yaml` (servicio `modular-learning`, rama `refactor/monorepo-hexagonal`).
+   `render.yaml` (servicio `modular-learning`, rama `main`).
 3. Rellena las variables que pide:
    - `DATABASE_URL`: la cadena de Neon.
    - `GEMINI_API_KEY`: tu clave de Gemini.
    - `ML_USUARIO` y `ML_CONTRASENA`: el acceso a la web (sin contraseña responde 503).
+   - `ML_EN_NUBE`: definida automáticamente como `1` en `render.yaml` (indica a la app que oculte el escaneo e ingesta de carpetas locales). En modo híbrido (app local conectada a Neon con `DATABASE_URL`), se deja sin definir para conservar el escaneo local de material.
 4. **Apply**. El primer build tarda unos minutos; la URL queda como
    `https://modular-learning-xxxx.onrender.com`.
 
