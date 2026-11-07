@@ -14,6 +14,7 @@ from tests.unit.application.fake_adapters import (
     InMemoryBovedaPort,
     InMemoryCronogramaRepo,
     InMemoryLectorDocumentosPort,
+    InMemoryMateriaRepo,
     InMemoryRegistroMaterialesRepo,
 )
 
@@ -216,3 +217,27 @@ def test_vaciar_materiales_solo_borra_las_notas_registradas():
     assert nota_generada not in boveda.notas
     assert nota_propia in boveda.notas
     assert registro_repo.listar_materiales() == []
+
+
+def test_ingesta_usa_nombre_catalogo_para_carpeta_obsidian():
+    materia_repo = InMemoryMateriaRepo(["Ingeniería de Software II"])
+    boveda = InMemoryBovedaPort()
+    registro_repo = InMemoryRegistroMaterialesRepo()
+    service = IngestaService(
+        llm=FakeLLM(texto_default="# Resumen de prueba"),
+        registro_repo=registro_repo,
+        boveda_port=boveda,
+        lector_docs=InMemoryLectorDocumentosPort(),
+        ajustes_port=InMemoryAjustesPort(),
+        materia_repo=materia_repo,
+    )
+
+    res = service.ingestar_archivo(
+        ruta_archivo="archivo.txt",
+        nombre_original="archivo.txt",
+        materia="ingenieria de software ii",
+    )
+
+    nota_path = res["ruta_salida"]
+    assert "Ingeniería de Software II" in nota_path
+    assert any("/Ingeniería de Software II/" in k for k in boveda.notas)

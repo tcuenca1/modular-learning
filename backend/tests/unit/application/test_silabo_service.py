@@ -110,3 +110,25 @@ def test_delimitar_seccion_temas():
     assert "4.2 Estructura" in delimitado
     assert "Semana 1: Protocolos" in delimitado
     assert "5. Metodología" not in delimitado
+
+
+def test_guardar_cronograma_no_sobrescribe_nombre_catalogo():
+    materia_repo = InMemoryMateriaRepo(["Ingeniería de Software II"])
+    cronograma_repo = InMemoryCronogramaRepo()
+    service = SilaboService(
+        llm=FakeLLM(),
+        cronograma_repo=cronograma_repo,
+        materia_repo=materia_repo,
+        lector_docs=InMemoryLectorDocumentosPort(),
+    )
+
+    datos = {"clases": [{"tema": "Arquitectura Hexagonal", "estado": "pendiente"}]}
+    ruta = service.guardar_cronograma("INGENIERIA DE SOFTWARE II", datos)
+
+    assert ruta is not None
+    # El nombre en el catálogo se mantiene intacto
+    assert materia_repo.cargar_materias() == ["Ingeniería de Software II"]
+    # El cronograma se guarda en la misma clave
+    cronogramas = cronograma_repo.listar_cronogramas()
+    assert "ingenieria-de-software-ii" in cronogramas
+    assert len(cronogramas["ingenieria-de-software-ii"]) == 1

@@ -11,6 +11,7 @@ from tests.unit.application.fake_adapters import (
     InMemoryBovedaPort,
     InMemoryCronogramaRepo,
     InMemoryLectorDocumentosPort,
+    InMemoryMateriaRepo,
 )
 
 
@@ -136,3 +137,19 @@ def test_paso_invalido_lanza_error(tutoria_env):
 
     with pytest.raises(IndexError):
         list(service.explicar_paso_stream(sesion, -1))
+
+
+def test_tutoria_iniciar_sesion_resuelve_materia_catalogo():
+    materia_repo = InMemoryMateriaRepo(["Ingeniería de Software II"])
+    cronograma_repo = InMemoryCronogramaRepo()
+    llm = FakeLLM(json_default={"pasos": [{"titulo": "Paso 1", "objetivo": "Obj 1"}]})
+    service = TutoriaService(
+        llm=llm,
+        cronograma_repo=cronograma_repo,
+        boveda_port=InMemoryBovedaPort(),
+        lector_docs=InMemoryLectorDocumentosPort(),
+        ajustes_port=InMemoryAjustesPort(),
+        materia_repo=materia_repo,
+    )
+    sesion = service.iniciar_sesion("s1", "ingenieria de software ii", "Patrones", "intermedio")
+    assert sesion.materia == "Ingeniería de Software II"

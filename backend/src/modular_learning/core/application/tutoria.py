@@ -9,11 +9,12 @@ from typing import Any
 
 from modular_learning.core.application.plugins import PluginsService
 from modular_learning.core.application.repaso import RepasoService
+from modular_learning.core.domain.materias import resolver_materia
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.llm import LLMPort
-from modular_learning.core.ports.repositorios import CronogramaRepo
+from modular_learning.core.ports.repositorios import CronogramaRepo, MateriaRepo
 
 NIVELES_PROFUNDIDAD = {
     "BASICO": "BÁSICO",
@@ -103,6 +104,7 @@ class TutoriaService:
         ajustes_port: AjustesPort,
         plugins_service: PluginsService | None = None,
         repaso: RepasoService | None = None,
+        materia_repo: MateriaRepo | None = None,
     ):
         self.llm = llm
         self.cronograma_repo = cronograma_repo
@@ -111,6 +113,7 @@ class TutoriaService:
         self.ajustes_port = ajustes_port
         self.plugins_service = plugins_service
         self.repaso = repaso
+        self.materia_repo = materia_repo
 
     def iniciar_sesion(
         self,
@@ -129,6 +132,10 @@ class TutoriaService:
         nivel = normalizar_nivel(nivel_profundidad)
         detalle = self.cronograma_repo.obtener_detalle_clase(materia, tema=tema, clase_id=clase_id)
         fallos = self.repaso.fallos_previos(materia, tema) if self.repaso else []
+        if self.materia_repo:
+            m_obj = resolver_materia(self.materia_repo.listar(), materia)
+            if m_obj:
+                materia = m_obj.nombre
         enfoque = (enfoque or "").strip() or None
 
         objetivo = f"Estudiar y dominar a fondo el tema dentro de la asignatura {materia}"

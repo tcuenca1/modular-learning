@@ -134,6 +134,7 @@ def build_container(settings: Any | None = None) -> Container:
         ajustes_port=ajustes_repo,
         plugins_service=plugins_service,
         repaso=repaso_service,
+        materia_repo=materia_repo,
     )
 
     evaluacion_service = EvaluacionService(
@@ -168,6 +169,7 @@ def build_container(settings: Any | None = None) -> Container:
         plugins_service=plugins_service,
         cronograma_repo=cronograma_repo,
         proyectos_service=proyectos_service,
+        materia_repo=materia_repo,
     )
 
     telemetria_service = TelemetriaService(

@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from modular_learning.core.domain.materias import resolver_materia
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.llm import LLMPort
 from modular_learning.core.ports.repositorios import CronogramaRepo, MateriaRepo
@@ -118,10 +119,13 @@ class SilaboService:
 
     def guardar_cronograma(self, nombre_materia: str, datos: dict | list) -> str:
         """Guarda el cronograma en el repositorio y registra la materia."""
+        catalogo = self.materia_repo.listar() if self.materia_repo else []
+        m_obj = resolver_materia(catalogo, nombre_materia) if catalogo else None
+        nombre = m_obj.nombre if m_obj else nombre_materia
         cronograma_norm = self.normalizar_cronograma(datos)
         clases = cronograma_norm.get("clases", [])
-        ruta = self.cronograma_repo.guardar_cronograma(nombre_materia, clases)
-        self.materia_repo.agregar_materia(nombre_materia)
+        ruta = self.cronograma_repo.guardar_cronograma(nombre, clases)
+        self.materia_repo.agregar_materia(nombre)
         return ruta
 
     def procesar_archivo_individual(

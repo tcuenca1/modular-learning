@@ -86,7 +86,12 @@ class JsonMateriaRepo(MateriaRepo):
 
     def agregar_materia(self, nueva_materia: str) -> None:
         if nueva_materia and nueva_materia.strip():
-            self.guardar(Materia.desde_nombre(nueva_materia.strip()))
+            materia = Materia.desde_nombre(nueva_materia.strip())
+            materias = self.listar()
+            if any(m.slug == materia.slug for m in materias):
+                return
+            materias.append(materia)
+            self._escribir(materias)
 
 
 class JsonCronogramaRepo(CronogramaRepo):

@@ -76,6 +76,9 @@ def test_repositorios_sobre_el_almacen(almacen):
     assert materias.cargar_materias() == JsonMateriaRepo.MATERIAS_INICIALES
     materias.agregar_materia("Redes II")
     assert JsonMateriaRepo(almacen=almacen).cargar_materias()[-1] == "Redes II"
+    materias.agregar_materia("REDES II")
+    assert "Redes II" in JsonMateriaRepo(almacen=almacen).cargar_materias()
+    assert "REDES II" not in JsonMateriaRepo(almacen=almacen).cargar_materias()
 
     historial = JsonHistorialRepo(almacen=almacen)
     historial.registrar({"tipo": "guia", "materia": "Redes II", "tema": "VLAN"})

@@ -12,11 +12,16 @@ from typing import Any
 from modular_learning.core.application.plugins import PluginsService
 from modular_learning.core.application.proyectos import ProyectosService
 from modular_learning.core.domain import alineador_curricular
+from modular_learning.core.domain.materias import resolver_materia
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.llm import LLMPort
-from modular_learning.core.ports.repositorios import CronogramaRepo, RegistroMaterialesRepo
+from modular_learning.core.ports.repositorios import (
+    CronogramaRepo,
+    MateriaRepo,
+    RegistroMaterialesRepo,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +50,7 @@ class IngestaService:
         plugins_service: PluginsService | None = None,
         cronograma_repo: CronogramaRepo | None = None,
         proyectos_service: ProyectosService | None = None,
+        materia_repo: MateriaRepo | None = None,
     ):
         self.llm = llm
         self.registro_repo = registro_repo
@@ -54,6 +60,7 @@ class IngestaService:
         self.plugins_service = plugins_service
         self.cronograma_repo = cronograma_repo
         self.proyectos_service = proyectos_service
+        self.materia_repo = materia_repo
 
     def clasificar_tipo_material(self, ruta_archivo: str, ruta_raiz_lote: str) -> str:
         """Clasifica el material según su ubicación en la carpeta de la asignatura."""
@@ -101,6 +108,13 @@ class IngestaService:
             )
         return resultado
 
+    def _nombre_materia(self, materia: str) -> str:
+        if self.materia_repo:
+            m_obj = resolver_materia(self.materia_repo.listar(), materia)
+            if m_obj:
+                return m_obj.nombre
+        return materia
+
     def ingestar_archivo(
         self,
         ruta_archivo: str,
@@ -109,6 +123,7 @@ class IngestaService:
         tipo: str = "material_complementario",
     ) -> dict[str, Any]:
         """Ingesta un archivo individual, extrae contenido anonimizado y lo sincroniza."""
+        materia = self._nombre_materia(materia)
         if tipo not in TIPOS_MATERIAL:
             tipo = "material_complementario"
 
