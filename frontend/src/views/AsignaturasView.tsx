@@ -4,7 +4,7 @@ import { MaterialView } from '@/views/MaterialView'
 import { SilabosView } from '@/views/SilabosView'
 
 const PESTANAS = [
-  { id: 'cronogramas', nombre: 'Cronogramas', detalle: 'Sube un sílabo y obtén las clases del semestre.' },
+  { id: 'cronogramas', nombre: 'Cronogramas', detalle: 'Administra tus asignaturas, clases y sílabos del semestre.' },
   { id: 'material', nombre: 'Material', detalle: 'Convierte tus archivos de clase en notas para Obsidian.' },
 ] as const
 

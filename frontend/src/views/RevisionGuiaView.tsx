@@ -18,7 +18,17 @@ interface Respuesta {
   dudas: string
 }
 
-function Resultado({ guia, r }: { guia: Guia; r: RevisionGuiaResponse }) {
+function Resultado({
+  guia,
+  r,
+  onDeshacer,
+  deshaciendo,
+}: {
+  guia: Guia
+  r: RevisionGuiaResponse
+  onDeshacer?: () => void
+  deshaciendo?: boolean
+}) {
   return (
     <div className="max-w-3xl space-y-8">
       <header className="space-y-2">
@@ -77,9 +87,25 @@ function Resultado({ guia, r }: { guia: Guia; r: RevisionGuiaResponse }) {
         </p>
       )}
 
-      <Link to="/" className="inline-block text-sm text-slate-500 underline underline-offset-4 hover:text-slate-800 dark:hover:text-slate-200">
-        Volver a Hoy
-      </Link>
+      <div className="flex flex-wrap items-center gap-4 pt-2">
+        <Link
+          to="/"
+          className="inline-block text-sm text-slate-500 underline underline-offset-4 hover:text-slate-800 dark:hover:text-slate-200"
+        >
+          Volver a Hoy
+        </Link>
+        {onDeshacer && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onDeshacer}
+            disabled={deshaciendo}
+            className="text-xs text-amber-700 hover:text-amber-800 dark:text-amber-400"
+          >
+            {deshaciendo ? 'Deshaciendo…' : 'Deshacer confirmación'}
+          </Button>
+        )}
+      </div>
     </div>
   )
 }
@@ -90,6 +116,7 @@ export function RevisionGuiaView() {
   const [error, setError] = useState<string | null>(null)
   const [respuestas, setRespuestas] = useState<Respuesta[]>([])
   const [enviando, setEnviando] = useState(false)
+  const [deshaciendo, setDeshaciendo] = useState(false)
   const [resultado, setResultado] = useState<RevisionGuiaResponse | null>(null)
 
   useEffect(() => {
@@ -97,7 +124,12 @@ export function RevisionGuiaView() {
       .getGuia(id)
       .then((g) => {
         setGuia(g)
-        setRespuestas(g.clases.map(() => ({ dudas: '' })))
+        setRespuestas(
+          g.clases.map((c) => ({
+            resultado: c.resultado || undefined,
+            dudas: c.dudas || '',
+          }))
+        )
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
   }, [id])
@@ -128,6 +160,35 @@ export function RevisionGuiaView() {
     }
   }
 
+  const handleDeshacer = async () => {
+    if (!guia) return
+    if (!window.confirm('¿Quieres deshacer la confirmación de esta guía? Las clases volverán a quedar pendientes en el cronograma.')) {
+      return
+    }
+    try {
+      setDeshaciendo(true)
+      await api.deshacerRevisionGuia(guia.id)
+      toast.success('Confirmación deshecha', {
+        description: 'Las clases han vuelto a quedar pendientes en el cronograma.',
+      })
+      const recargada = await api.getGuia(guia.id)
+      setGuia(recargada)
+      setResultado(null)
+      setRespuestas(
+        recargada.clases.map((c) => ({
+          resultado: c.resultado || undefined,
+          dudas: c.dudas || '',
+        }))
+      )
+    } catch (err) {
+      toast.error('No pude deshacer la confirmación', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    } finally {
+      setDeshaciendo(false)
+    }
+  }
+
   if (error) {
     return (
       <p className="rounded-md border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
@@ -136,18 +197,32 @@ export function RevisionGuiaView() {
     )
   }
   if (!guia) return <div className="h-48 max-w-3xl animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
-  if (resultado) return <Resultado guia={guia} r={resultado} />
+  if (resultado) return <Resultado guia={guia} r={resultado} onDeshacer={handleDeshacer} deshaciendo={deshaciendo} />
 
   if (guia.revisada) {
     return (
-      <div className="max-w-3xl space-y-3">
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Guía ya confirmada</h1>
-        <p className="text-slate-600 dark:text-slate-400">
-          Ya me dijiste cómo te fue con esta guía de {guia.materia}.
-        </p>
-        <Link to="/guia" className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300">
-          Ver tus guías
-        </Link>
+      <div className="max-w-3xl space-y-4">
+        <header className="space-y-1">
+          <p className="font-display text-sm italic text-slate-500">{guia.materia}</p>
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Guía ya confirmada</h1>
+          <p className="text-slate-600 dark:text-slate-400">
+            Ya registraste tu revisión para esta guía de {guia.materia}. Puedes revertirla si necesitas corregir o volver a repasar.
+          </p>
+        </header>
+
+        <div className="flex flex-wrap items-center gap-4 pt-2">
+          <Button
+            variant="outline"
+            onClick={handleDeshacer}
+            disabled={deshaciendo}
+            className="text-amber-700 hover:text-amber-800 dark:text-amber-400"
+          >
+            {deshaciendo ? 'Deshaciendo…' : 'Deshacer confirmación (volver a pendientes)'}
+          </Button>
+          <Link to="/guia" className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300">
+            Ver todas tus guías
+          </Link>
+        </div>
       </div>
     )
   }
@@ -169,7 +244,7 @@ export function RevisionGuiaView() {
           const r = respuestas[i]
           return (
             <li
-              key={c.tema}
+              key={c.tema + (c.clase_id || i)}
               className="space-y-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
             >
               <div>

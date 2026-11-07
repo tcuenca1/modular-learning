@@ -1,0 +1,92 @@
+import { describe, expect, it } from 'vitest'
+import {
+  clave,
+  clasesConFecha,
+  describirFecha,
+  esCompletada,
+  materiasConCronograma,
+  parsearFecha,
+} from './asignaturas'
+
+describe('clave', () => {
+  it('normaliza tildes, mayúsculas y caracteres especiales', () => {
+    expect(clave('Ingeniería de Software II')).toBe('ingenieriadesoftwareii')
+    expect(clave('INGENIERIA_DE_SOFTWARE_II')).toBe('ingenieriadesoftwareii')
+    expect(clave('Seguridad de la Información!')).toBe('seguridaddelainformacion')
+    expect(clave('Tecnologías de Conmutación I')).toBe('tecnologiasdeconmutacioni')
+  })
+})
+
+describe('parsearFecha', () => {
+  it('parsea fechas en formato dd/mm/aaaa', () => {
+    const f = parsearFecha('15/10/2026')
+    expect(f).toBeDefined()
+    expect(f?.getDate()).toBe(15)
+    expect(f?.getMonth()).toBe(9) // octubre es 9 en JS (0-indexed)
+    expect(f?.getFullYear()).toBe(2026)
+  })
+
+  it('parsea fechas en formato ISO', () => {
+    const f = parsearFecha('2026-10-15T08:00:00Z')
+    expect(f).toBeDefined()
+    expect(f?.getUTCFullYear()).toBe(2026)
+  })
+
+  it('retorna undefined para entradas no válidas', () => {
+    expect(parsearFecha(null)).toBeUndefined()
+    expect(parsearFecha(undefined)).toBeUndefined()
+    expect(parsearFecha('fecha-invalida')).toBeUndefined()
+  })
+})
+
+describe('describirFecha', () => {
+  const hoy = new Date(2026, 9, 15) // 15 de octubre de 2026
+
+  it('describe correctamente fechas relativas', () => {
+    expect(describirFecha(undefined, hoy)).toBe('sin fecha en el cronograma')
+    expect(describirFecha(new Date(2026, 9, 15), hoy)).toBe('es hoy')
+    expect(describirFecha(new Date(2026, 9, 16), hoy)).toBe('es mañana')
+    expect(describirFecha(new Date(2026, 9, 18), hoy)).toBe('en 3 días')
+    expect(describirFecha(new Date(2026, 9, 14), hoy)).toBe('fue ayer')
+    expect(describirFecha(new Date(2026, 9, 10), hoy)).toBe('fue hace 5 días')
+  })
+})
+
+describe('esCompletada', () => {
+  it('detecta clases completadas', () => {
+    expect(esCompletada({ tema: 'T', estado: 'completado' })).toBe(true)
+    expect(esCompletada({ tema: 'T', estado: 'Completada' })).toBe(true)
+    expect(esCompletada({ tema: 'T', estado: 'pendiente' })).toBe(false)
+    expect(esCompletada({ tema: 'T' })).toBe(false)
+  })
+})
+
+describe('clasesConFecha y materiasConCronograma', () => {
+  const cronogramas = {
+    INGENIERIA_DE_SOFTWARE_II: [
+      { fecha: '12/10/2026', tema: 'Arquitectura', estado: 'completado' },
+      { fecha: '16/10/2026', tema: 'Testing', estado: 'pendiente' },
+    ],
+    PROGRAMACION_WEB: [
+      { fecha: '10/10/2026', tema: 'HTML & CSS', estado: 'completado' },
+    ],
+  }
+  const catalogo = ['Ingeniería de Software II', 'Programación Web']
+
+  it('cruza cronogramas con catálogo y ordena por fecha', () => {
+    const fechadas = clasesConFecha(cronogramas, catalogo)
+    expect(fechadas).toHaveLength(3)
+    expect(fechadas[0].materia).toBe('Programación Web')
+    expect(fechadas[0].clase.tema).toBe('HTML & CSS')
+    expect(fechadas[1].materia).toBe('Ingeniería de Software II')
+    expect(fechadas[1].clase.tema).toBe('Arquitectura')
+    expect(fechadas[2].clase.tema).toBe('Testing')
+  })
+
+  it('agrupa asignaturas con cronograma', () => {
+    const mats = materiasConCronograma(cronogramas, catalogo)
+    expect(mats).toHaveLength(2)
+    expect(mats[0].materia).toBe('Ingeniería de Software II')
+    expect(mats[1].materia).toBe('Programación Web')
+  })
+})

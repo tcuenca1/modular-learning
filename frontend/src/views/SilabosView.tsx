@@ -1,15 +1,19 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   AlertCircle,
+  Calendar,
+  Check,
+  Edit2,
   FileText,
   Plus,
   Save,
   Trash2,
   UploadCloud,
+  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
-import type { ClaseCronograma } from '@/api/types'
+import type { ClaseCronograma, MateriaItem, ParcialItem } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -30,13 +34,310 @@ import {
 } from '@/components/ui/table'
 
 export function SilabosView({ embebido = false }: { embebido?: boolean }) {
+  const [tabActiva, setTabActiva] = useState<'gestionar' | 'subir'>('gestionar')
+
+  // Catálogo de asignaturas
+  const [materias, setMaterias] = useState<MateriaItem[]>([])
+  const [materiaActiva, setMateriaActiva] = useState<string>('')
+  const [_cargandoMaterias, setCargandoMaterias] = useState(false)
+
+  // Renombrar y crear asignatura
+  const [renombrando, setRenombrando] = useState(false)
+  const [nuevoNombreMateria, setNuevoNombreMateria] = useState('')
+  const [creandoMateria, setCreandoMateria] = useState(false)
+  const [nombreNuevaMateria, setNombreNuevaMateria] = useState('')
+
+  // Cronograma activo
+  const [clasesCronograma, setClasesCronograma] = useState<ClaseCronograma[]>([])
+  const [cargandoClases, setCargandoClases] = useState(false)
+
+  // Parciales de la materia activa
+  const [parciales, setParciales] = useState<ParcialItem[]>([])
+  const [editandoParciales, setEditandoParciales] = useState(false)
+  const [nuevoParcialNombre, setNuevoParcialNombre] = useState('Parcial 1')
+  const [nuevoParcialHasta, setNuevoParcialHasta] = useState('')
+
+  // Edición y creación de clase
+  const [claseEnEdicion, setClaseEnEdicion] = useState<ClaseCronograma | null>(null)
+  const [mostrandoNuevaClase, setMostrandoNuevaClase] = useState(false)
+  const [nuevaClaseTema, setNuevaClaseTema] = useState('')
+  const [nuevaClaseFecha, setNuevaClaseFecha] = useState('')
+  const [nuevaClaseSemana, setNuevaClaseSemana] = useState('1')
+  const [guardandoClase, setGuardandoClase] = useState(false)
+
+  // Subida de sílabo nuevo (extracción)
   const [file, setFile] = useState<File | null>(null)
-  const [materia, setMateria] = useState('')
+  const [subidaMateria, setSubidaMateria] = useState('')
   const [isDragging, setIsDragging] = useState(false)
   const [extracting, setExtracting] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [clases, setClases] = useState<ClaseCronograma[]>([])
+  const [clasesExtraidas, setClasesExtraidas] = useState<ClaseCronograma[]>([])
 
+  const cargarCatalogo = async (seleccionarSlug?: string) => {
+    try {
+      setCargandoMaterias(true)
+      const res = await api.getMaterias()
+      const lista: MateriaItem[] = res.catalogo && res.catalogo.length > 0
+        ? res.catalogo
+        : (res.materias || []).map((m) => ({ slug: m.toLowerCase().replace(/\s+/g, '-'), nombre: m }))
+
+      setMaterias(lista)
+      if (lista.length > 0) {
+        const destino = seleccionarSlug && lista.find((m) => m.slug === seleccionarSlug)
+          ? seleccionarSlug
+          : materiaActiva && lista.find((m) => m.slug === materiaActiva)
+            ? materiaActiva
+            : lista[0].slug
+        setMateriaActiva(destino)
+      }
+    } catch (err) {
+      toast.error('No pude cargar las asignaturas', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    } finally {
+      setCargandoMaterias(false)
+    }
+  }
+
+  const cargarCronograma = async (slug: string) => {
+    if (!slug) return
+    try {
+      setCargandoClases(true)
+      const [resClases, resParciales] = await Promise.all([
+        api.getCronogramaMateria(slug),
+        api.getParciales(slug).catch(() => ({ parciales: [] })),
+      ])
+      setClasesCronograma(resClases.clases || [])
+      setParciales(resParciales.parciales || [])
+    } catch (_err) {
+      setClasesCronograma([])
+      setParciales([])
+    } finally {
+      setCargandoClases(false)
+    }
+  }
+
+  useEffect(() => {
+    cargarCatalogo()
+  }, [])
+
+  useEffect(() => {
+    if (materiaActiva) {
+      cargarCronograma(materiaActiva)
+      const mObj = materias.find((m) => m.slug === materiaActiva)
+      setNuevoNombreMateria(mObj?.nombre || '')
+      setRenombrando(false)
+      setClaseEnEdicion(null)
+      setMostrandoNuevaClase(false)
+      setEditandoParciales(false)
+    }
+  }, [materiaActiva])
+
+  // --- Handlers Materia ---
+  const handleRenombrarMateria = async () => {
+    if (!nuevoNombreMateria.trim()) {
+      toast.error('El nombre no puede estar vacío.')
+      return
+    }
+    try {
+      await api.renombrarMateria(materiaActiva, nuevoNombreMateria.trim())
+      toast.success('Asignatura renombrada')
+      setRenombrando(false)
+      await cargarCatalogo(materiaActiva)
+    } catch (err) {
+      toast.error('No se pudo renombrar', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  const handleCrearMateria = async () => {
+    if (!nombreNuevaMateria.trim()) {
+      toast.error('Escribe el nombre de la asignatura.')
+      return
+    }
+    try {
+      await api.createMateria(nombreNuevaMateria.trim())
+      toast.success('Asignatura añadida')
+      setNombreNuevaMateria('')
+      setCreandoMateria(false)
+      await cargarCatalogo()
+    } catch (err) {
+      toast.error('No se pudo crear la asignatura', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  const handleEliminarMateria = async () => {
+    const mObj = materias.find((m) => m.slug === materiaActiva)
+    const nombre = mObj?.nombre || materiaActiva
+    if (
+      !window.confirm(
+        `¿Eliminar la asignatura "${nombre}"?\n\n` +
+        `Esto eliminará permanentemente su cronograma y desvinculará sus materiales registrados.`
+      )
+    ) {
+      return
+    }
+
+    try {
+      await api.eliminarMateria(materiaActiva)
+      toast.success(`Asignatura "${nombre}" eliminada`)
+      await cargarCatalogo()
+    } catch (err) {
+      toast.error('No se pudo eliminar la asignatura', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  const handleEliminarCronograma = async () => {
+    const mObj = materias.find((m) => m.slug === materiaActiva)
+    const nombre = mObj?.nombre || materiaActiva
+    if (
+      !window.confirm(
+        `¿Vaciar el cronograma de "${nombre}"?\n\n` +
+        `Se borrarán todas sus clases pero se conservará la asignatura en el catálogo.`
+      )
+    ) {
+      return
+    }
+
+    try {
+      await api.eliminarCronograma(materiaActiva)
+      toast.success('Cronograma vaciado')
+      setClasesCronograma([])
+    } catch (err) {
+      toast.error('No se pudo vaciar el cronograma', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  // --- Handlers Parciales ---
+  const handleGuardarParcial = async () => {
+    if (!nuevoParcialNombre.trim() || !nuevoParcialHasta.trim()) {
+      toast.error('Indica el nombre del parcial y la fecha o tema límite.')
+      return
+    }
+    const actualizados = [...parciales.filter((p) => p.nombre !== nuevoParcialNombre), {
+      nombre: nuevoParcialNombre.trim(),
+      hasta: nuevoParcialHasta.trim(),
+    }]
+    try {
+      await api.guardarParciales(materiaActiva, actualizados)
+      setParciales(actualizados)
+      setNuevoParcialHasta('')
+      toast.success('Corte de parcial guardado')
+    } catch (err) {
+      toast.error('No pude guardar el parcial', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  const handleEliminarParcial = async (nombreParcial: string) => {
+    const actualizados = parciales.filter((p) => p.nombre !== nombreParcial)
+    try {
+      await api.guardarParciales(materiaActiva, actualizados)
+      setParciales(actualizados)
+      toast.success('Parcial eliminado')
+    } catch (_err) {
+      toast.error('No pude eliminar el parcial')
+    }
+  }
+
+  // --- Handlers Clases ---
+  const handleToggleEstadoClase = async (clase: ClaseCronograma) => {
+    const nuevoEstado = clase.estado?.toLowerCase() === 'completado' ? 'pendiente' : 'completado'
+    const id = clase.id || clase.tema
+    try {
+      await api.cambiarEstadoClase(materiaActiva, id, nuevoEstado)
+      setClasesCronograma((prev) =>
+        prev.map((c) => (c.id === clase.id ? { ...c, estado: nuevoEstado } : c))
+      )
+      toast.success(
+        nuevoEstado === 'completado'
+          ? 'Clase marcada como completada'
+          : 'Clase devuelta a pendiente'
+      )
+    } catch (err) {
+      toast.error('No pude cambiar el estado de la clase', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  const handleEliminarClase = async (clase: ClaseCronograma) => {
+    if (!window.confirm(`¿Eliminar la clase "${clase.tema}" del cronograma?`)) return
+    const id = clase.id || clase.tema
+    try {
+      await api.eliminarClase(materiaActiva, id)
+      toast.success('Clase eliminada')
+      setClasesCronograma((prev) => prev.filter((c) => c.id !== clase.id))
+    } catch (err) {
+      toast.error('No pude eliminar la clase', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  const handleGuardarEdicionClase = async () => {
+    if (!claseEnEdicion) return
+    const id = claseEnEdicion.id || claseEnEdicion.tema
+    try {
+      setGuardandoClase(true)
+      const res = await api.editarClase(materiaActiva, id, {
+        tema: claseEnEdicion.tema,
+        fecha: claseEnEdicion.fecha,
+        semana: claseEnEdicion.semana,
+        contenido: claseEnEdicion.contenido,
+      })
+      setClasesCronograma((prev) =>
+        prev.map((c) => (c.id === claseEnEdicion.id ? { ...c, ...res.clase } : c))
+      )
+      toast.success('Clase actualizada')
+      setClaseEnEdicion(null)
+    } catch (err) {
+      toast.error('No pude guardar los cambios', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    } finally {
+      setGuardandoClase(false)
+    }
+  }
+
+  const handleAgregarNuevaClase = async () => {
+    if (!nuevaClaseTema.trim()) {
+      toast.error('Escribe el tema de la clase.')
+      return
+    }
+    try {
+      setGuardandoClase(true)
+      const nextIdx = clasesCronograma.length + 1
+      const res = await api.agregarClase(materiaActiva, {
+        clase: nextIdx,
+        tema: nuevaClaseTema.trim(),
+        fecha: nuevaClaseFecha.trim(),
+        semana: nuevaClaseSemana.trim() || '1',
+        estado: 'pendiente',
+      })
+      setClasesCronograma((prev) => [...prev, res.clase])
+      toast.success('Clase agregada al cronograma')
+      setNuevaClaseTema('')
+      setNuevaClaseFecha('')
+      setMostrandoNuevaClase(false)
+    } catch (err) {
+      toast.error('No pude agregar la clase', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    } finally {
+      setGuardandoClase(false)
+    }
+  }
+
+  // --- Handlers Subida y Extracción de Sílabos ---
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(true)
@@ -50,8 +351,7 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
     e.preventDefault()
     setIsDragging(false)
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFile = e.dataTransfer.files[0]
-      validateAndSetFile(droppedFile)
+      validateAndSetFile(e.dataTransfer.files[0])
     }
   }
 
@@ -70,9 +370,13 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
       return
     }
     setFile(f)
-    if (!materia) {
-      const base = f.name.replace(/\.[^/.]+$/, '').replace(/SYLLABUS/gi, '').replace(/[-_]/g, ' ').trim()
-      setMateria(base)
+    if (!subidaMateria) {
+      const base = f.name
+        .replace(/\.[^/.]+$/, '')
+        .replace(/SYLLABUS/gi, '')
+        .replace(/[-_]/g, ' ')
+        .trim()
+      setSubidaMateria(base)
     }
     toast.info(`Archivo seleccionado: ${f.name}`)
   }
@@ -85,9 +389,9 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
 
     try {
       setExtracting(true)
-      const res = await api.extraerSilabo(file, materia)
-      setMateria(res.materia)
-      setClases(res.datos.clases || [])
+      const res = await api.extraerSilabo(file, subidaMateria)
+      setSubidaMateria(res.materia)
+      setClasesExtraidas(res.datos.clases || [])
       toast.success('Clases extraídas', {
         description: `Se estructuraron ${res.datos.clases?.length || 0} sesiones de clase.`,
       })
@@ -100,55 +404,26 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
     }
   }
 
-  const handleUpdateTema = (index: number, newTema: string) => {
-    setClases((prev) => {
-      const updated = [...prev]
-      updated[index] = { ...updated[index], tema: newTema }
-      return updated
-    })
-  }
-
-  const handleUpdateSemana = (index: number, newSemana: string) => {
-    setClases((prev) => {
-      const updated = [...prev]
-      updated[index] = { ...updated[index], semana: newSemana }
-      return updated
-    })
-  }
-
-  const handleAddClase = () => {
-    const nextIdx = clases.length + 1
-    setClases((prev) => [
-      ...prev,
-      {
-        clase: nextIdx,
-        semana: Math.ceil(nextIdx / 2),
-        tema: 'Nuevo tema de clase',
-        estado: 'pendiente',
-      },
-    ])
-  }
-
-  const handleDeleteClase = (index: number) => {
-    setClases((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  const handleGuardar = async () => {
-    if (!materia.trim()) {
+  const handleGuardarSilaboExtraido = async () => {
+    if (!subidaMateria.trim()) {
       toast.error('Escribe el nombre de la asignatura.')
       return
     }
-    if (clases.length === 0) {
+    if (clasesExtraidas.length === 0) {
       toast.error('No hay clases para guardar.')
       return
     }
 
     try {
       setSaving(true)
-      const res = await api.guardarSilabo(materia.trim(), clases)
+      const res = await api.guardarSilabo(subidaMateria.trim(), clasesExtraidas)
       toast.success('Cronograma guardado', {
         description: `Guardado en ${res.ruta}`,
       })
+      setClasesExtraidas([])
+      setFile(null)
+      await cargarCatalogo()
+      setTabActiva('gestionar')
     } catch (err) {
       toast.error('No pude guardar el cronograma', {
         description: err instanceof Error ? err.message : String(err),
@@ -158,195 +433,630 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
     }
   }
 
+  const materiaSeleccionadaObj = materias.find((m) => m.slug === materiaActiva)
+
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-6 pb-12">
       {!embebido && (
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
-          Extracción y Gestión de Sílabos
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          Convierte sílabos académicos en cronogramas estructurados mediante IA con vista previa editable.
-        </p>
-      </div>
+        <div>
+          <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
+            Cronogramas y Sílabos
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Administra tus asignaturas, ajusta cortes de parcial, cambia estados de clase y extrae nuevos sílabos.
+          </p>
+        </div>
       )}
 
-      {/* Zona Drag & Drop */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Subir sílabo</CardTitle>
-          <CardDescription>
-            PDF, Markdown o texto plano. Se extraen las clases con sus fechas.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all ${
-              isDragging
-                ? 'border-indigo-600 bg-indigo-50/50 dark:border-indigo-400 dark:bg-indigo-950/20'
-                : 'border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700'
-            }`}
-          >
-            <input
-              type="file"
-              accept=".pdf,.md,.txt"
-              onChange={handleFileInput}
-              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-              id="file-upload"
-            />
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
-              <UploadCloud className="h-6 w-6" />
-            </div>
-            <p className="mt-3 text-sm font-medium text-slate-900 dark:text-white">
-              {file ? file.name : 'Arrastra el sílabo aquí o haz clic para elegirlo'}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
-              {file ? `${(file.size / 1024).toFixed(1)} KB` : 'Hasta 20 MB'}
-            </p>
-          </div>
+      {/* Selector de modo: Gestionar vs Subir */}
+      <div className="flex gap-2 border-b border-slate-200 pb-3 dark:border-slate-800">
+        <Button
+          variant={tabActiva === 'gestionar' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setTabActiva('gestionar')}
+          className="gap-2"
+        >
+          <Calendar className="h-4 w-4" />
+          Gestionar Asignaturas y Clases
+        </Button>
+        <Button
+          variant={tabActiva === 'subir' ? 'default' : 'ghost'}
+          size="sm"
+          onClick={() => setTabActiva('subir')}
+          className="gap-2"
+        >
+          <UploadCloud className="h-4 w-4" />
+          Subir e Importar Sílabo
+        </Button>
+      </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                Asignatura
-              </label>
-              <Input
-                placeholder="Ej. Seguridad de la Información"
-                value={materia}
-                onChange={(e) => setMateria(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div className="flex items-end">
-              <Button
-                onClick={handleExtraer}
-                disabled={!file || extracting}
-                className="w-full gap-2"
-              >
-                {extracting ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Leyendo el sílabo…
-                  </>
-                ) : (
-                  <>
-                    <FileText className="h-4 w-4" />
-                    Extraer clases
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Vista Previa Editable del Cronograma */}
-      {clases.length > 0 && (
-        <Card>
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle>Revisa las clases</CardTitle>
-                <Badge variant="outline">{clases.length} clases</Badge>
+      {tabActiva === 'gestionar' ? (
+        <div className="space-y-6">
+          {/* Fila de Asignaturas */}
+          <Card>
+            <CardHeader className="p-4 pb-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <CardTitle className="text-base font-semibold">Tus Asignaturas</CardTitle>
+                <div className="flex items-center gap-2">
+                  {creandoMateria ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={nombreNuevaMateria}
+                        onChange={(e) => setNombreNuevaMateria(e.target.value)}
+                        placeholder="Nombre de la nueva materia"
+                        className="h-8 text-xs w-56"
+                      />
+                      <Button size="sm" onClick={handleCrearMateria} className="h-8 px-2 text-xs">
+                        Guardar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setCreandoMateria(false)}
+                        className="h-8 px-2"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCreandoMateria(true)}
+                      className="h-8 gap-1.5 text-xs"
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Nueva Asignatura
+                    </Button>
+                  )}
+                </div>
               </div>
-              <CardDescription>
-                Corrige lo que haga falta antes de guardar.
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleAddClase} className="gap-1.5">
-                <Plus className="h-4 w-4" /> Añadir Clase
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleGuardar}
-                disabled={saving}
-                className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white"
-              >
-                {saving ? (
-                  <>
-                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Guardando…
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" /> Guardar
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-lg border border-slate-200 dark:border-slate-800">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16">#</TableHead>
-                    <TableHead className="w-28">Semana</TableHead>
-                    <TableHead>Tema Académico</TableHead>
-                    <TableHead className="w-32">Estado</TableHead>
-                    <TableHead className="w-16 text-right">Acción</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clases.map((clase, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell className="font-semibold text-slate-500">
-                        {clase.clase ?? idx + 1}
-                      </TableCell>
-                      <TableCell>
+            </CardHeader>
+            <CardContent className="p-4 pt-1">
+              <div className="flex flex-wrap gap-2">
+                {materias.map((m) => {
+                  const activa = m.slug === materiaActiva
+                  return (
+                    <button
+                      key={m.slug}
+                      type="button"
+                      onClick={() => setMateriaActiva(m.slug)}
+                      className={`cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        activa
+                          ? 'border-indigo-600 bg-indigo-50 text-indigo-900 dark:border-indigo-400 dark:bg-indigo-950/60 dark:text-indigo-200'
+                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {m.nombre}
+                    </button>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Gestión de la Asignatura Seleccionada */}
+          {materiaSeleccionadaObj && (
+            <Card>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    {renombrando ? (
+                      <div className="flex items-center gap-2">
                         <Input
-                          value={clase.semana ?? ''}
-                          onChange={(e) => handleUpdateSemana(idx, e.target.value)}
-                          className="h-8 text-xs"
-                          placeholder="1"
+                          value={nuevoNombreMateria}
+                          onChange={(e) => setNuevoNombreMateria(e.target.value)}
+                          className="h-8 text-sm font-semibold max-w-sm"
                         />
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          value={clase.tema}
-                          onChange={(e) => handleUpdateTema(idx, e.target.value)}
-                          className="h-8 text-sm"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            clase.estado?.toLowerCase() === 'completado' ? 'success' : 'secondary'
-                          }
+                        <Button size="sm" onClick={handleRenombrarMateria} className="h-8 gap-1">
+                          <Check className="h-3.5 w-3.5" /> Guardar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setRenombrando(false)}
+                          className="h-8"
                         >
-                          {clase.estado || 'pendiente'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <CardTitle className="text-xl">{materiaSeleccionadaObj.nombre}</CardTitle>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDeleteClase(idx)}
-                          className="h-8 w-8 text-slate-400 hover:text-red-600"
+                          onClick={() => setRenombrando(true)}
+                          title="Renombrar materia"
+                          className="h-7 w-7 text-slate-400 hover:text-slate-600"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Edit2 className="h-3.5 w-3.5" />
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                      </>
+                    )}
+                  </div>
+                  <CardDescription>
+                    {clasesCronograma.length} clases en el cronograma · Slug: <code>{materiaSeleccionadaObj.slug}</code>
+                  </CardDescription>
+                </div>
 
-      {clases.length === 0 && !extracting && (
-        <div className="rounded-lg border border-slate-200/80 bg-slate-50/50 p-6 text-center text-slate-500 dark:border-slate-800 dark:bg-slate-900/50">
-          <AlertCircle className="mx-auto h-8 w-8 text-slate-400" />
-          <p className="mt-2 text-sm font-medium">Todavía no hay clases que revisar</p>
-          <p className="text-xs text-slate-400">
-            Cuando subas un sílabo, sus clases aparecerán aquí.
-          </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMostrandoNuevaClase(true)}
+                    className="gap-1.5 text-xs"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> Añadir Clase
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEliminarCronograma}
+                    className="gap-1.5 text-xs text-amber-600 hover:text-amber-700"
+                  >
+                    Vaciar Cronograma
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEliminarMateria}
+                    className="gap-1.5 text-xs text-rose-600 hover:text-rose-700"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Eliminar Materia
+                  </Button>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-6">
+                {/* Cortes de Parcial */}
+                <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                        Cortes de Parcial
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Define hasta qué fecha o clase abarca cada parcial para generar guías de todo el corte.
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditandoParciales(!editandoParciales)}
+                      className="text-xs h-7"
+                    >
+                      {editandoParciales ? 'Cerrar' : '+ Añadir / Editar cortes'}
+                    </Button>
+                  </div>
+
+                  {parciales.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {parciales.map((p) => (
+                        <div
+                          key={p.nombre}
+                          className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white px-3 py-1 text-xs font-medium text-indigo-900 dark:border-indigo-800 dark:bg-slate-950 dark:text-indigo-200"
+                        >
+                          <span>{p.nombre}: hasta {p.hasta || 'final'}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleEliminarParcial(p.nombre)}
+                            className="ml-1 text-slate-400 hover:text-red-600"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {editandoParciales && (
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                      <Input
+                        value={nuevoParcialNombre}
+                        onChange={(e) => setNuevoParcialNombre(e.target.value)}
+                        placeholder="Ej. Parcial 1"
+                        className="h-8 text-xs w-36"
+                      />
+                      <Input
+                        value={nuevoParcialHasta}
+                        onChange={(e) => setNuevoParcialHasta(e.target.value)}
+                        placeholder="Fecha límite (ej. 15/10/2026)"
+                        className="h-8 text-xs w-48"
+                      />
+                      <Button size="sm" onClick={handleGuardarParcial} className="h-8 text-xs">
+                        Guardar Parcial
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Formulario Añadir Clase */}
+                {mostrandoNuevaClase && (
+                  <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900 dark:bg-indigo-950/20 space-y-3">
+                    <h4 className="text-xs font-semibold text-indigo-900 dark:text-indigo-200">
+                      Nueva Clase para {materiaSeleccionadaObj.nombre}
+                    </h4>
+                    <div className="grid gap-3 sm:grid-cols-4">
+                      <div className="sm:col-span-2">
+                        <Input
+                          placeholder="Tema de la clase"
+                          value={nuevaClaseTema}
+                          onChange={(e) => setNuevaClaseTema(e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Input
+                          placeholder="Fecha (dd/mm/aaaa)"
+                          value={nuevaClaseFecha}
+                          onChange={(e) => setNuevaClaseFecha(e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Input
+                          placeholder="Semana (ej. 1)"
+                          value={nuevaClaseSemana}
+                          onChange={(e) => setNuevaClaseSemana(e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setMostrandoNuevaClase(false)}
+                        className="h-8 text-xs"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleAgregarNuevaClase}
+                        disabled={guardandoClase}
+                        className="h-8 text-xs bg-indigo-600 hover:bg-indigo-500 text-white"
+                      >
+                        Guardar Clase
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Modal / Formulario Editar Clase */}
+                {claseEnEdicion && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-900 dark:bg-amber-950/20 space-y-3">
+                    <h4 className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                      Editar Clase: {claseEnEdicion.tema}
+                    </h4>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="sm:col-span-2">
+                        <label className="text-[11px] text-slate-500">Tema</label>
+                        <Input
+                          value={claseEnEdicion.tema}
+                          onChange={(e) =>
+                            setClaseEnEdicion({ ...claseEnEdicion, tema: e.target.value })
+                          }
+                          className="h-8 text-xs mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-slate-500">Fecha</label>
+                        <Input
+                          value={claseEnEdicion.fecha || ''}
+                          onChange={(e) =>
+                            setClaseEnEdicion({ ...claseEnEdicion, fecha: e.target.value })
+                          }
+                          className="h-8 text-xs mt-1"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-slate-500">Contenido o Resumen</label>
+                      <Input
+                        value={claseEnEdicion.contenido || ''}
+                        onChange={(e) =>
+                          setClaseEnEdicion({ ...claseEnEdicion, contenido: e.target.value })
+                        }
+                        placeholder="Contenido teórico abordado"
+                        className="h-8 text-xs mt-1"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setClaseEnEdicion(null)}
+                        className="h-8 text-xs"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleGuardarEdicionClase}
+                        disabled={guardandoClase}
+                        className="h-8 text-xs bg-amber-600 hover:bg-amber-500 text-white"
+                      >
+                        Actualizar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tabla de Clases */}
+                {cargandoClases ? (
+                  <div className="py-8 text-center text-sm text-slate-500">
+                    Cargando clases del cronograma…
+                  </div>
+                ) : clasesCronograma.length === 0 ? (
+                  <div className="rounded-lg border border-slate-200/80 bg-slate-50/50 p-6 text-center text-slate-500 dark:border-slate-800 dark:bg-slate-900/50">
+                    <AlertCircle className="mx-auto h-8 w-8 text-slate-400" />
+                    <p className="mt-2 text-sm font-medium">No hay clases registradas en este cronograma</p>
+                    <p className="text-xs text-slate-400">
+                      Añade una clase manualmente o sube un sílabo para generarlas.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-800">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12 text-center">#</TableHead>
+                          <TableHead className="w-24">Fecha</TableHead>
+                          <TableHead>Tema Académico</TableHead>
+                          <TableHead className="w-28 text-center">Estado</TableHead>
+                          <TableHead className="w-24 text-center">Materiales</TableHead>
+                          <TableHead className="w-20 text-right">Acción</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {clasesCronograma.map((c, idx) => {
+                          const completada = c.estado?.toLowerCase() === 'completado'
+                          return (
+                            <TableRow key={c.id || idx}>
+                              <TableCell className="text-center font-mono text-xs text-slate-400">
+                                {c.clase ?? idx + 1}
+                              </TableCell>
+                              <TableCell className="text-xs text-slate-500">
+                                {c.fecha || '—'}
+                              </TableCell>
+                              <TableCell>
+                                <span className="font-medium text-slate-900 dark:text-slate-100 text-sm">
+                                  {c.tema}
+                                </span>
+                                {c.contenido && (
+                                  <p className="text-xs text-slate-500 truncate max-w-md">
+                                    {c.contenido}
+                                  </p>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleEstadoClase(c)}
+                                  className="cursor-pointer transition-transform hover:scale-105"
+                                  title="Haz clic para alternar entre pendiente y completado"
+                                >
+                                  <Badge variant={completada ? 'success' : 'secondary'}>
+                                    {completada ? 'Completado' : 'Pendiente'}
+                                  </Badge>
+                                </button>
+                              </TableCell>
+                              <TableCell className="text-center text-xs text-slate-500">
+                                {c.materiales_asociados?.length || 0}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setClaseEnEdicion(c)}
+                                    title="Editar clase"
+                                    className="h-7 w-7 text-slate-400 hover:text-slate-700"
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEliminarClase(c)}
+                                    title="Eliminar clase"
+                                    className="h-7 w-7 text-slate-400 hover:text-red-600"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      ) : (
+        /* Modo Subir Nuevo Sílabo */
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Subir e importar sílabo</CardTitle>
+              <CardDescription>
+                PDF, Markdown o texto plano. La IA estructurará las sesiones de clase automáticamente.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-all ${
+                  isDragging
+                    ? 'border-indigo-600 bg-indigo-50/50 dark:border-indigo-400 dark:bg-indigo-950/20'
+                    : 'border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700'
+                }`}
+              >
+                <input
+                  type="file"
+                  accept=".pdf,.md,.txt"
+                  onChange={handleFileInput}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  id="file-upload"
+                />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
+                  <UploadCloud className="h-6 w-6" />
+                </div>
+                <p className="mt-3 text-sm font-medium text-slate-900 dark:text-white">
+                  {file ? file.name : 'Arrastra el sílabo aquí o haz clic para elegirlo'}
+                </p>
+                <p className="mt-1 text-xs text-slate-400">
+                  {file ? `${(file.size / 1024).toFixed(1)} KB` : 'Hasta 20 MB'}
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                    Asignatura
+                  </label>
+                  <Input
+                    placeholder="Ej. Seguridad de la Información"
+                    value={subidaMateria}
+                    onChange={(e) => setSubidaMateria(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    onClick={handleExtraer}
+                    disabled={!file || extracting}
+                    className="w-full gap-2"
+                  >
+                    {extracting ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Leyendo el sílabo…
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-4 w-4" />
+                        Extraer clases
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Vista Previa Editable del Cronograma Extraído */}
+          {clasesExtraidas.length > 0 && (
+            <Card>
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <CardTitle>Revisa las clases extraídas</CardTitle>
+                    <Badge variant="outline">{clasesExtraidas.length} clases</Badge>
+                  </div>
+                  <CardDescription>
+                    Corrige lo que haga falta antes de guardar en el cronograma.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleGuardarSilaboExtraido}
+                    disabled={saving}
+                    className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white"
+                  >
+                    {saving ? (
+                      <>
+                        <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Guardando…
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" /> Guardar Cronograma
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-16">#</TableHead>
+                        <TableHead className="w-28">Semana</TableHead>
+                        <TableHead>Tema Académico</TableHead>
+                        <TableHead className="w-32">Estado</TableHead>
+                        <TableHead className="w-16 text-right">Acción</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {clasesExtraidas.map((clase, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-semibold text-slate-500">
+                            {clase.clase ?? idx + 1}
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={clase.semana ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setClasesExtraidas((prev) =>
+                                  prev.map((c, i) => (i === idx ? { ...c, semana: val } : c))
+                                )
+                              }}
+                              className="h-8 text-xs"
+                              placeholder="1"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={clase.tema}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setClasesExtraidas((prev) =>
+                                  prev.map((c, i) => (i === idx ? { ...c, tema: val } : c))
+                                )
+                              }}
+                              className="h-8 text-sm"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                clase.estado?.toLowerCase() === 'completado' ? 'success' : 'secondary'
+                              }
+                            >
+                              {clase.estado || 'pendiente'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                setClasesExtraidas((prev) => prev.filter((_, i) => i !== idx))
+                              }
+                              className="h-8 w-8 text-slate-400 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
     </div>

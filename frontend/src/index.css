@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /*
  * Identidad visual "Cuaderno":
  * - Neutros cálidos de papel y grafito en lugar del slate azulado por defecto.
@@ -130,6 +132,16 @@
     }
   }
 
+  html.dark body {
+    background-color: var(--color-slate-950);
+    color: var(--color-slate-100);
+  }
+
+  html.light body {
+    background-color: var(--color-slate-50);
+    color: var(--color-slate-900);
+  }
+
   h1,
   h2 {
     font-family: var(--font-display);
@@ -165,6 +177,22 @@
         transparent 0.42em
       );
     }
+  }
+
+  html.dark .marcador {
+    background-image: linear-gradient(
+      to top,
+      color-mix(in oklab, var(--color-marcador) 35%, transparent) 0 0.42em,
+      transparent 0.42em
+    );
+  }
+
+  html.light .marcador {
+    background-image: linear-gradient(
+      to top,
+      color-mix(in oklab, var(--color-marcador) 70%, transparent) 0 0.42em,
+      transparent 0.42em
+    );
   }
 
   /*

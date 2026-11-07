@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Printer } from 'lucide-react'
+import { ArrowLeft, Download, Printer } from 'lucide-react'
 import { api } from '@/api/client'
 import type { Guia } from '@/api/types'
 import { Markdown } from '@/components/Markdown'
@@ -68,16 +68,24 @@ export function GuiaImprimirView() {
           <Link to="/guia" className="inline-flex items-center gap-1.5 text-sm text-slate-700 hover:text-slate-950">
             <ArrowLeft className="h-4 w-4" /> Guía offline
           </Link>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-indigo-700 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-800"
-          >
-            <Printer className="h-4 w-4" /> Guardar como PDF
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href={`/api/guias/${guia.id}/pdf`}
+              download
+              className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-indigo-700 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-800"
+            >
+              <Download className="h-4 w-4" /> Descargar PDF directo
+            </a>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            >
+              <Printer className="h-4 w-4" /> Imprimir
+            </button>
+          </div>
           <p className="w-full text-xs text-slate-600">
-            En el diálogo, elige «Guardar como PDF» como destino. La página es A5, pensada para leerla
-            en el móvil.
+            Puedes descargar el PDF vectorial directamente o usar «Imprimir» para ajustar márgenes según tu dispositivo.
           </p>
         </div>
       </div>

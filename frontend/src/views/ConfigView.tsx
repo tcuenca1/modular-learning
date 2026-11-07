@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import {
+  Cloud,
   Folder,
   HardDrive,
+  Palette,
   Save,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import type { Configuracion } from '@/api/types'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -102,9 +105,45 @@ export function ConfigView() {
           Configuración
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Dónde está tu material de clase y dónde se guardan las notas.
+          Dónde está tu material de clase, apariencia de la aplicación y modo de trabajo.
         </p>
       </div>
+
+      {/* Selector de Apariencia / Tema */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5 text-indigo-500" />
+            Apariencia
+          </CardTitle>
+          <CardDescription>
+            Elige el tema visual: claro, oscuro o sincronizado automáticamente con tu sistema operativo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ThemeToggle compacto={false} />
+        </CardContent>
+      </Card>
+
+      {/* Aviso de entorno en la nube */}
+      {config?.en_nube && (
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-4 dark:border-indigo-900 dark:bg-indigo-950/30">
+          <div className="flex items-start gap-3">
+            <Cloud className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+            <div className="text-xs space-y-1">
+              <p className="font-semibold text-indigo-950 dark:text-indigo-200">
+                Despliegue activo en la nube (Render / Neon)
+              </p>
+              <p className="text-slate-600 dark:text-slate-300">
+                El servidor en la nube opera dentro de un contenedor Linux y no puede acceder directamente
+                a rutas de tu disco local (ej. <code>C:\Users\...</code>). Para añadir archivos de clase en la nube,
+                sube tus documentos individuales desde la sección <strong>Material</strong> o utiliza la sincronización
+                híbrida ejecutando la app en local conectada a tu misma base de datos.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Formulario */}
       <Card>

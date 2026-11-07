@@ -3,6 +3,7 @@ import type {
   ClaseCronograma,
   ClaseGuia,
   Configuracion,
+  ConfigurarPluginRequest,
   CronogramasResponse,
   EscaneoResponse,
   EvaluarQuizRequest,
@@ -17,9 +18,17 @@ import type {
   IngestarResponse,
   IniciarTutoriaRequest,
   ListaGuiasResponse,
+  MaterialRegistrado,
   MateriasResponse,
+  ParcialItem,
+  PluginInfo,
   PluginsResponse,
   ProximasClasesResponse,
+  ProyectoCandidato,
+  ProyectoInfo,
+  EstadoProyectoResponse,
+  IngestarProyectoRequest,
+  VaciarMaterialesResponse,
   ResolverDudaRequest,
   ResolverDudaResponse,
   ResumenRepaso,
@@ -78,6 +87,22 @@ export const api = {
     return handleResponse<MateriasResponse>(res)
   },
 
+  async renombrarMateria(slug: string, nombre: string): Promise<unknown> {
+    const res = await fetch(`${BASE_URL}/api/materias/${encodeURIComponent(slug)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre }),
+    })
+    return handleResponse(res)
+  },
+
+  async eliminarMateria(slug: string): Promise<unknown> {
+    const res = await fetch(`${BASE_URL}/api/materias/${encodeURIComponent(slug)}`, {
+      method: 'DELETE',
+    })
+    return handleResponse(res)
+  },
+
   async getProximasClases(materia: string): Promise<ProximasClasesResponse> {
     const res = await fetch(`${BASE_URL}/api/materias/${encodeURIComponent(materia)}/clases`)
     return handleResponse<ProximasClasesResponse>(res)
@@ -86,6 +111,77 @@ export const api = {
   async getCronogramas(): Promise<CronogramasResponse> {
     const res = await fetch(`${BASE_URL}/api/materias/cronogramas`)
     return handleResponse<CronogramasResponse>(res)
+  },
+
+  async getCronogramaMateria(materia: string): Promise<{ clases: ClaseCronograma[] }> {
+    const res = await fetch(`${BASE_URL}/api/materias/${encodeURIComponent(materia)}/cronograma`)
+    return handleResponse<{ clases: ClaseCronograma[] }>(res)
+  },
+
+  async eliminarCronograma(materia: string): Promise<unknown> {
+    const res = await fetch(`${BASE_URL}/api/materias/${encodeURIComponent(materia)}/cronograma`, {
+      method: 'DELETE',
+    })
+    return handleResponse(res)
+  },
+
+  async agregarClase(materia: string, clase: Partial<ClaseCronograma>): Promise<{ clase: ClaseCronograma }> {
+    const res = await fetch(`${BASE_URL}/api/materias/${encodeURIComponent(materia)}/clases`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(clase),
+    })
+    return handleResponse(res)
+  },
+
+  async editarClase(
+    materia: string,
+    clase_id: string,
+    campos: Partial<ClaseCronograma>
+  ): Promise<{ clase: ClaseCronograma }> {
+    const res = await fetch(
+      `${BASE_URL}/api/materias/${encodeURIComponent(materia)}/clases/${encodeURIComponent(clase_id)}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campos }),
+      }
+    )
+    return handleResponse(res)
+  },
+
+  async eliminarClase(materia: string, clase_id: string): Promise<{ ok: boolean }> {
+    const res = await fetch(
+      `${BASE_URL}/api/materias/${encodeURIComponent(materia)}/clases/${encodeURIComponent(clase_id)}`,
+      {
+        method: 'DELETE',
+      }
+    )
+    return handleResponse(res)
+  },
+
+  async cambiarEstadoClase(materia: string, clase_id: string, estado: string): Promise<{ ok: boolean }> {
+    const res = await fetch(
+      `${BASE_URL}/api/materias/${encodeURIComponent(materia)}/clases/${encodeURIComponent(clase_id)}/estado?estado=${encodeURIComponent(estado)}`,
+      {
+        method: 'PATCH',
+      }
+    )
+    return handleResponse(res)
+  },
+
+  async getParciales(materia: string): Promise<{ parciales: ParcialItem[] }> {
+    const res = await fetch(`${BASE_URL}/api/materias/${encodeURIComponent(materia)}/parciales`)
+    return handleResponse(res)
+  },
+
+  async guardarParciales(materia: string, parciales: ParcialItem[]): Promise<{ parciales: ParcialItem[] }> {
+    const res = await fetch(`${BASE_URL}/api/materias/${encodeURIComponent(materia)}/parciales`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parciales }),
+    })
+    return handleResponse(res)
   },
 
   // Stats
@@ -129,6 +225,21 @@ export const api = {
     return handleResponse<EscaneoResponse>(res)
   },
 
+  async getMaterialesRegistrados(): Promise<{ materiales: MaterialRegistrado[] }> {
+    const res = await fetch(`${BASE_URL}/api/material/registrados`)
+    return handleResponse(res)
+  },
+
+  async eliminarMaterial(archivo: string, borrarNota: boolean = true): Promise<{ ok: boolean }> {
+    const res = await fetch(
+      `${BASE_URL}/api/material/${encodeURIComponent(archivo)}?borrar_nota=${borrarNota}`,
+      {
+        method: 'DELETE',
+      }
+    )
+    return handleResponse(res)
+  },
+
   async ingestarArchivo(
     archivo: File,
     materia: string,
@@ -152,13 +263,72 @@ export const api = {
     return handleResponse<PluginsResponse>(res)
   },
 
-  async actualizarPlugin(seleccion: string): Promise<ActualizarPluginResponse> {
+  async configurarPlugin(data: ConfigurarPluginRequest): Promise<{ ok: boolean; plugins: PluginInfo[] }> {
+    const res = await fetch(`${BASE_URL}/api/plugins/config`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    return handleResponse<{ ok: boolean; plugins: PluginInfo[] }>(res)
+  },
+
+  async actualizarPlugin(seleccion: string, carpetaOverride?: string): Promise<ActualizarPluginResponse> {
     const res = await fetch(`${BASE_URL}/api/plugins/actualizar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ seleccion }),
+      body: JSON.stringify({ seleccion, carpeta_override: carpetaOverride }),
     })
     return handleResponse<ActualizarPluginResponse>(res)
+  },
+
+  // Proyectos
+  async getProyectos(materia?: string): Promise<{ proyectos: ProyectoInfo[] }> {
+    const url = materia ? `${BASE_URL}/api/proyectos?materia=${encodeURIComponent(materia)}` : `${BASE_URL}/api/proyectos`
+    const res = await fetch(url)
+    return handleResponse<{ proyectos: ProyectoInfo[] }>(res)
+  },
+
+  async escanearProyectos(materia?: string): Promise<{ candidatos: ProyectoCandidato[] }> {
+    const url = materia ? `${BASE_URL}/api/proyectos/escanear?materia=${encodeURIComponent(materia)}` : `${BASE_URL}/api/proyectos/escanear`
+    const res = await fetch(url)
+    return handleResponse<{ candidatos: ProyectoCandidato[] }>(res)
+  },
+
+  async getEstadoProyecto(idProyecto: string): Promise<EstadoProyectoResponse> {
+    const res = await fetch(`${BASE_URL}/api/proyectos/${encodeURIComponent(idProyecto)}/estado`)
+    return handleResponse<EstadoProyectoResponse>(res)
+  },
+
+  async ingestarProyecto(data: IngestarProyectoRequest): Promise<{ ok: boolean; proyecto: ProyectoInfo }> {
+    const res = await fetch(`${BASE_URL}/api/proyectos/ingestar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    return handleResponse<{ ok: boolean; proyecto: ProyectoInfo }>(res)
+  },
+
+  async actualizarProyecto(idProyecto: string): Promise<{ ok: boolean; proyecto: ProyectoInfo }> {
+    const res = await fetch(`${BASE_URL}/api/proyectos/${encodeURIComponent(idProyecto)}/actualizar`, {
+      method: 'POST',
+    })
+    return handleResponse<{ ok: boolean; proyecto: ProyectoInfo }>(res)
+  },
+
+  async eliminarProyecto(idProyecto: string): Promise<{ ok: boolean; eliminado: string }> {
+    const res = await fetch(`${BASE_URL}/api/proyectos/${encodeURIComponent(idProyecto)}`, {
+      method: 'DELETE',
+    })
+    return handleResponse<{ ok: boolean; eliminado: string }>(res)
+  },
+
+  async vaciarMateriales(borrarNotasObsidian = true): Promise<VaciarMaterialesResponse> {
+    const res = await fetch(`${BASE_URL}/api/material/vaciar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ borrar_notas_obsidian: borrarNotasObsidian }),
+    })
+    return handleResponse<VaciarMaterialesResponse>(res)
   },
 
   // Tutoría
@@ -214,6 +384,13 @@ export const api = {
     return handleResponse<GenerarQuizResponse>(res)
   },
 
+  async eliminarTarjeta(tarjeta_id: string): Promise<{ ok: boolean }> {
+    const res = await fetch(`${BASE_URL}/api/repaso/tarjetas/${encodeURIComponent(tarjeta_id)}`, {
+      method: 'DELETE',
+    })
+    return handleResponse(res)
+  },
+
   async getHistorial(materia?: string, tema?: string): Promise<HistorialResponse> {
     const q = new URLSearchParams()
     if (materia) q.set('materia', materia)
@@ -238,12 +415,19 @@ export const api = {
     return handleResponse<Guia>(res)
   },
 
+  async eliminarGuia(id: string): Promise<{ ok: boolean }> {
+    const res = await fetch(`${BASE_URL}/api/guias/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+    return handleResponse(res)
+  },
+
   /** Registra la guía con sus clases; el contenido se genera después, clase a clase. */
-  async crearGuia(materia: string, temas: string[]): Promise<Guia> {
+  async crearGuia(materia: string, temas: string[], tiempo_minutos?: number): Promise<Guia> {
     const res = await fetch(`${BASE_URL}/api/guias`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ materia, temas }),
+      body: JSON.stringify({ materia, temas, tiempo_minutos }),
     })
     return handleResponse<Guia>(res)
   },
@@ -262,5 +446,12 @@ export const api = {
       body: JSON.stringify(data),
     })
     return handleResponse<RevisionGuiaResponse>(res)
+  },
+
+  async deshacerRevisionGuia(id: string): Promise<unknown> {
+    const res = await fetch(`${BASE_URL}/api/guias/${encodeURIComponent(id)}/deshacer`, {
+      method: 'POST',
+    })
+    return handleResponse(res)
   },
 }

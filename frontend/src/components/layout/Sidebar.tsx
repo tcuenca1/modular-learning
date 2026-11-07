@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { api } from '@/api/client'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { cn } from '@/lib/utils'
 
 interface ItemNav {
@@ -128,16 +129,21 @@ function ContenidoSidebar({ onNavegar }: { onNavegar?: () => void }) {
         ))}
       </nav>
 
-      <div className="space-y-2 px-3">
+      <div className="space-y-3 px-3">
         {online === false && (
           <p className="rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:bg-rose-950/50 dark:text-rose-300">
             No hay conexión con el servidor local.
           </p>
         )}
-        <EnlaceNav
-          item={{ nombre: 'Configuración', ruta: '/config', icono: Settings }}
-          onNavegar={onNavegar}
-        />
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <EnlaceNav
+              item={{ nombre: 'Configuración', ruta: '/config', icono: Settings }}
+              onNavegar={onNavegar}
+            />
+          </div>
+          <ThemeToggle compacto />
+        </div>
       </div>
     </div>
   )
@@ -156,14 +162,17 @@ export function Sidebar() {
       {/* Móvil: cabecera + cajón */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-slate-200 bg-slate-50/95 px-4 backdrop-blur md:hidden dark:border-slate-800 dark:bg-slate-950/95">
         <Marca />
-        <button
-          type="button"
-          onClick={() => setAbierto(true)}
-          className="rounded-md p-2 text-slate-600 hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-slate-800"
-          aria-label="Abrir menú"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle compacto />
+          <button
+            type="button"
+            onClick={() => setAbierto(true)}
+            className="rounded-md p-2 text-slate-600 hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-slate-800"
+            aria-label="Abrir menú"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </div>
       </header>
 
       {abierto && (
