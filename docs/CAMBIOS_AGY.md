@@ -62,6 +62,7 @@ En `EvaluacionService._nombre_materia` se migró la normalización a `resolver_m
 ninguno
 
 ### Revisión de Claude
+**Aprobada.** Reutiliza `resolver_materia` como se pedía y quita el `_clave` duplicado. `ml stats` y `/api/stats` vuelven a mostrar el nombre del catálogo.
 
 ---
 
@@ -90,7 +91,7 @@ Se reemplazó la captura genérica de `Exception` por `json.JSONDecodeError` inf
 ninguno
 
 ### Revisión de Claude
-<!-- lo rellena Claude -->
+**Aprobada.** Los conflictos se detectan antes de tocar nada y la materia afectada se salta entera, también al enlazar guías. `ruff check scripts` está limpio. Nota: el test de conflicto activa la distinción de mayúsculas con `fsutil` y se salta si Windows no lo permite; en este equipo se ejecuta y pasa.
 
 ---
 
@@ -120,7 +121,7 @@ Se eliminaron las líneas en blanco sobrantes en `HoyView.tsx` y se aseguró el 
 ninguno
 
 ### Revisión de Claude
-<!-- lo rellena Claude -->
+**Aprobada.** El contador `recarga` arregla bien el «cargando» infinito, y también cubre la lista vacía y el error. La prueba manual parece hecha contra la API más que en el navegador, pero el cambio es correcto leyendo el código. Queda un detalle menor → P12.
 
 ---
 

@@ -45,62 +45,19 @@ Lee `CLAUDE.md` antes de empezar. Además:
 
 ## Tareas (en orden de prioridad)
 
-### P9. Corregir la regresión de carga de P8
+### P12. Seleccionar la asignatura recién guardada aunque lleve tildes
 
-En `frontend/src/views/SilabosView.tsx`, `cargarCatalogo` llama a `setCargandoClases(true)` aunque
-`destino` sea la materia que ya está activa. Pasa al renombrar (`cargarCatalogo(materiaActiva)`),
-al crear una asignatura y al guardar un sílabo de la materia activa. Como `materiaActiva` no
-cambia, el efecto que carga el cronograma no se vuelve a ejecutar y el panel se queda en
-«cargando» para siempre.
+En `frontend/src/views/SilabosView.tsx` (guardar sílabo), `slugGuardado` se calcula con
+`toLowerCase().replace(/\s+/g, '-')`, que no quita tildes: para «Ingeniería de Software» da
+`ingeniería-de-software` y no coincide con el slug del backend (`ingenieria-de-software`), así
+que se queda seleccionada la asignatura anterior.
 
-- Que el cronograma se recargue también cuando `destino` es la materia activa (por ejemplo, un
-  contador `recarga` en las dependencias del efecto, o extraer la carga a una función que use
-  tanto el efecto como `cargarCatalogo`). Así, al guardar un sílabo de la materia activa se ven
-  las clases nuevas.
-- `frontend/src/views/MaterialView.tsx`: al cambiar de materia vuelve a mostrarse el indicador
-  de carga de proyectos (antes de P8 lo hacía). Quita la duplicación entre el efecto y
-  `cargarProyectos`/`cargarRegistrados` si se puede sin volver a los avisos de oxlint.
-- Añade el salto de línea final de `SilabosView.tsx` y quita las dos líneas en blanco que quedaron
-  en `HoyView.tsx` donde estaba el `enlaceTutoria` local.
+- Busca la asignatura en la lista que devuelve `api.getMaterias()` comparando con `clave()` de
+  `lib/asignaturas.ts` (nombre o slug), en vez de construir el slug a mano. Si hace falta,
+  `cargarCatalogo` puede aceptar el nombre además del slug.
 
-**Aceptación:** `npm run lint` sigue sin avisos. **Prueba en el navegador** (con
-`npm run dev` y la API sobre una copia de `data/examples`): renombrar la asignatura activa, crear
-una asignatura y guardar un sílabo de la asignatura activa; en los tres casos el cronograma se
-muestra y no se queda cargando. Cambiar de materia en Material muestra el indicador. Describe
-en el informe qué viste.
-
-### P10. Migración: no sobrescribir cronogramas al renombrar
-
-En `scripts/migrar_datos.py`:
-
-- Si `nueva_clave` ya existe en el almacén y es distinta de `clave`, **no escribas ni borres
-  nada** para esa materia: muestra un aviso con las dos claves y súmalo a un contador nuevo
-  `resumen["conflictos"]`. El usuario decidirá cuál conservar.
-- `asignar_ids` devuelve `bool`, no un número: usa `sin_id` en los mensajes («3 ids nuevos») y
-  en la condición de escritura.
-- `venv/Scripts/ruff.exe check scripts` sin errores y `ruff format scripts/migrar_datos.py`
-  (100 columnas, como el resto). Para las excepciones, captura `json.JSONDecodeError` en vez de
-  `Exception` y avisa por pantalla del documento que no se pudo leer.
-
-**Aceptación:** en `test_migracion.py`, un test con `schedules/REDES_cronograma.json` y
-`schedules/redes_cronograma.json` con clases distintas: tras migrar, los dos siguen intactos y
-`conflictos == 1`. El test de idempotencia sigue pasando.
-
-### P11. Estadísticas con el nombre del catálogo
-
-Desde P4, `listar_cronogramas` devuelve slugs y `TelemetriaService.obtener_estadisticas`
-(`core/application/telemetria.py`) publica `materia.title()`: `ml stats` y `/api/stats` muestran
-«Ingenieria-De-Software-Ii».
-
-- `TelemetriaService` recibe `materia_repo: MateriaRepo | None = None` (conéctalo en
-  `bootstrap.py`) y usa como clave el nombre del catálogo con `resolver_materia`
-  (`core/domain/materias.py`); si la materia no está en el catálogo, usa el slug tal cual.
-- Haz lo mismo en `EvaluacionService._nombre_materia` (`core/application/evaluacion.py`) con
-  `resolver_materia` y borra su `_clave` local si queda sin uso.
-
-**Aceptación:** test unitario de `TelemetriaService` con fakes: un cronograma con clave
-`ingenieria-de-software-ii` y la materia «Ingeniería de Software II» en el catálogo da la clave
-«Ingeniería de Software II» en `materias`; sin catálogo, la clave es el slug.
+**Aceptación:** guardar un sílabo para una asignatura con tildes la deja seleccionada y muestra
+sus clases (prueba en el navegador, regla 10). `npm run lint` sin avisos.
 
 ## Para decidir con el usuario (no implementar)
 
