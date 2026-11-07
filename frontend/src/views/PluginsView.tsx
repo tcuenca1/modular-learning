@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Check,
   ChevronDown,
@@ -55,9 +55,8 @@ export function PluginsView() {
   )
   const [copied, setCopied] = useState(false)
 
-  const cargarPlugins = async () => {
+  const cargarPlugins = useCallback(async () => {
     try {
-      setLoading(true)
       const res = await api.getPlugins()
       if (res.plugins) {
         setPlugins(res.plugins)
@@ -68,10 +67,31 @@ export function PluginsView() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    cargarPlugins()
+    let cancelado = false
+    api
+      .getPlugins()
+      .then((res) => {
+        if (!cancelado && res.plugins) {
+          setPlugins(res.plugins)
+        }
+      })
+      .catch((err) => {
+        if (!cancelado) {
+          const msg = err instanceof Error ? err.message : String(err)
+          toast.error('No se pudieron cargar los plugins', { description: msg })
+        }
+      })
+      .finally(() => {
+        if (!cancelado) {
+          setLoading(false)
+        }
+      })
+    return () => {
+      cancelado = true
+    }
   }, [])
 
   const handleActualizar = async (opcion: string) => {
@@ -83,6 +103,7 @@ export function PluginsView() {
       toast.success('Plugin actualizado', {
         description: `${opcion} ya tiene el contexto al día.`,
       })
+      setLoading(true)
       await cargarPlugins()
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)

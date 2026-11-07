@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { aplicarTema, obtenerTemaGuardado, type Tema } from '@/lib/theme'
 import { cn } from '@/lib/utils'
@@ -15,11 +15,7 @@ const OPCIONES: { valor: Tema; etiqueta: string; icono: typeof Sun }[] = [
 ]
 
 export function ThemeToggle({ compacto = true, className }: ThemeToggleProps) {
-  const [tema, setTemaState] = useState<Tema>('system')
-
-  useEffect(() => {
-    setTemaState(obtenerTemaGuardado())
-  }, [])
+  const [tema, setTemaState] = useState<Tema>(obtenerTemaGuardado)
 
   const cambiar = (nuevo: Tema) => {
     setTemaState(nuevo)

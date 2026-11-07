@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   AlertCircle,
   Calendar,
@@ -39,7 +39,6 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
   // Catálogo de asignaturas
   const [materias, setMaterias] = useState<MateriaItem[]>([])
   const [materiaActiva, setMateriaActiva] = useState<string>('')
-  const [_cargandoMaterias, setCargandoMaterias] = useState(false)
 
   // Renombrar y crear asignatura
   const [renombrando, setRenombrando] = useState(false)
@@ -49,7 +48,7 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
 
   // Cronograma activo
   const [clasesCronograma, setClasesCronograma] = useState<ClaseCronograma[]>([])
-  const [cargandoClases, setCargandoClases] = useState(false)
+  const [cargandoClases, setCargandoClases] = useState(true)
 
   // Parciales de la materia activa
   const [parciales, setParciales] = useState<ParcialItem[]>([])
@@ -73,9 +72,8 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
   const [saving, setSaving] = useState(false)
   const [clasesExtraidas, setClasesExtraidas] = useState<ClaseCronograma[]>([])
 
-  const cargarCatalogo = async (seleccionarSlug?: string) => {
+  const cargarCatalogo = useCallback(async (seleccionarSlug?: string) => {
     try {
-      setCargandoMaterias(true)
       const res = await api.getMaterias()
       const lista: MateriaItem[] = res.catalogo && res.catalogo.length > 0
         ? res.catalogo
@@ -89,47 +87,73 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
             ? materiaActiva
             : lista[0].slug
         setMateriaActiva(destino)
+        setCargandoClases(true)
       }
     } catch (err) {
       toast.error('No pude cargar las asignaturas', {
         description: err instanceof Error ? err.message : String(err),
       })
-    } finally {
-      setCargandoMaterias(false)
     }
-  }
+  }, [materiaActiva])
 
-  const cargarCronograma = async (slug: string) => {
-    if (!slug) return
-    try {
-      setCargandoClases(true)
-      const [resClases, resParciales] = await Promise.all([
-        api.getCronogramaMateria(slug),
-        api.getParciales(slug).catch(() => ({ parciales: [] })),
-      ])
-      setClasesCronograma(resClases.clases || [])
-      setParciales(resParciales.parciales || [])
-    } catch (_err) {
-      setClasesCronograma([])
-      setParciales([])
-    } finally {
-      setCargandoClases(false)
-    }
+  const cambiarMateria = (slug: string) => {
+    if (slug === materiaActiva) return
+    setMateriaActiva(slug)
+    setCargandoClases(true)
+    setRenombrando(false)
+    setClaseEnEdicion(null)
+    setMostrandoNuevaClase(false)
+    setEditandoParciales(false)
   }
 
   useEffect(() => {
-    cargarCatalogo()
+    api
+      .getMaterias()
+      .then((res) => {
+        const lista: MateriaItem[] =
+          res.catalogo && res.catalogo.length > 0
+            ? res.catalogo
+            : (res.materias || []).map((m) => ({ slug: m.toLowerCase().replace(/\s+/g, '-'), nombre: m }))
+        setMaterias(lista)
+        if (lista.length > 0) {
+          setMateriaActiva(lista[0].slug)
+          setCargandoClases(true)
+        }
+      })
+      .catch((err) => {
+        toast.error('No pude cargar las asignaturas', {
+          description: err instanceof Error ? err.message : String(err),
+        })
+      })
   }, [])
 
   useEffect(() => {
-    if (materiaActiva) {
-      cargarCronograma(materiaActiva)
-      const mObj = materias.find((m) => m.slug === materiaActiva)
-      setNuevoNombreMateria(mObj?.nombre || '')
-      setRenombrando(false)
-      setClaseEnEdicion(null)
-      setMostrandoNuevaClase(false)
-      setEditandoParciales(false)
+    if (!materiaActiva) return
+    let cancelado = false
+    Promise.all([
+      api.getCronogramaMateria(materiaActiva),
+      api.getParciales(materiaActiva).catch(() => ({ parciales: [] })),
+    ])
+      .then(([resClases, resParciales]) => {
+        if (!cancelado) {
+          setClasesCronograma(resClases.clases || [])
+          setParciales(resParciales.parciales || [])
+        }
+      })
+      .catch(() => {
+        if (!cancelado) {
+          setClasesCronograma([])
+          setParciales([])
+        }
+      })
+      .finally(() => {
+        if (!cancelado) {
+          setCargandoClases(false)
+        }
+      })
+
+    return () => {
+      cancelado = true
     }
   }, [materiaActiva])
 
@@ -243,7 +267,7 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
       await api.guardarParciales(materiaActiva, actualizados)
       setParciales(actualizados)
       toast.success('Parcial eliminado')
-    } catch (_err) {
+    } catch {
       toast.error('No pude eliminar el parcial')
     }
   }
@@ -519,7 +543,7 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
                     <button
                       key={m.slug}
                       type="button"
-                      onClick={() => setMateriaActiva(m.slug)}
+                      onClick={() => cambiarMateria(m.slug)}
                       className={`cursor-pointer rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                         activa
                           ? 'border-indigo-600 bg-indigo-50 text-indigo-900 dark:border-indigo-400 dark:bg-indigo-950/60 dark:text-indigo-200'
@@ -565,7 +589,7 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => setRenombrando(true)}
+                          onClick={() => { setNuevoNombreMateria(materiaSeleccionadaObj?.nombre || ""); setRenombrando(true); }}
                           title="Renombrar materia"
                           className="h-7 w-7 text-slate-400 hover:text-slate-600"
                         >

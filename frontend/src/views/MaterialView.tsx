@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -134,14 +134,14 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
 
   // Materiales registrados (ingestados)
   const [registrados, setRegistrados] = useState<MaterialRegistrado[]>([])
-  const [cargandoRegistrados, setCargandoRegistrados] = useState(false)
+  const [cargandoRegistrados, setCargandoRegistrados] = useState(true)
   const [eliminandoArchivo, setEliminandoArchivo] = useState<string | null>(null)
 
   // Proyectos
   const [proyectos, setProyectos] = useState<ProyectoInfo[]>([])
   const [candidatos, setCandidatos] = useState<ProyectoCandidato[]>([])
   const [estadosProyectos, setEstadosProyectos] = useState<Record<string, EstadoProyectoResponse>>({})
-  const [cargandoProyectos, setCargandoProyectos] = useState(false)
+  const [cargandoProyectos, setCargandoProyectos] = useState(true)
   const [actualizandoProyectoId, setActualizandoProyectoId] = useState<string | null>(null)
   const [ingestandoRuta, setIngestandoRuta] = useState<string | null>(null)
   const [verificandoEstados, setVerificandoEstados] = useState(false)
@@ -161,7 +161,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
     fallidos: 0,
   })
 
-  const cargarRegistrados = async () => {
+  const cargarRegistrados = useCallback(async () => {
     try {
       setCargandoRegistrados(true)
       const res = await api.getMaterialesRegistrados()
@@ -171,31 +171,9 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
     } finally {
       setCargandoRegistrados(false)
     }
-  }
+  }, [])
 
-  const cargarProyectos = async (materiaFiltro?: string) => {
-    try {
-      setCargandoProyectos(true)
-      const mat = materiaFiltro ?? (materiaSeleccionada === '__todas__' ? undefined : materiaSeleccionada)
-      const [resProy, resCand] = await Promise.all([
-        api.getProyectos(mat).catch(() => ({ proyectos: [] })),
-        api.escanearProyectos(mat).catch(() => ({ candidatos: [] })),
-      ])
-      const listaProyectos = resProy.proyectos || []
-      setProyectos(listaProyectos)
-      setCandidatos(resCand.candidatos || [])
-
-      if (listaProyectos.length > 0) {
-        verificarEstados(listaProyectos)
-      }
-    } catch (err) {
-      console.error('Error cargando proyectos:', err)
-    } finally {
-      setCargandoProyectos(false)
-    }
-  }
-
-  const verificarEstados = async (lista: ProyectoInfo[]) => {
+  const verificarEstados = useCallback(async (lista: ProyectoInfo[]) => {
     try {
       setVerificandoEstados(true)
       const estadosTemp: Record<string, EstadoProyectoResponse> = {}
@@ -213,7 +191,33 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
     } finally {
       setVerificandoEstados(false)
     }
-  }
+  }, [])
+
+  const cargarProyectos = useCallback(
+    async (materiaFiltro?: string) => {
+      try {
+        setCargandoProyectos(true)
+        const mat =
+          materiaFiltro ?? (materiaSeleccionada === '__todas__' ? undefined : materiaSeleccionada)
+        const [resProy, resCand] = await Promise.all([
+          api.getProyectos(mat).catch(() => ({ proyectos: [] })),
+          api.escanearProyectos(mat).catch(() => ({ candidatos: [] })),
+        ])
+        const listaProyectos = resProy.proyectos || []
+        setProyectos(listaProyectos)
+        setCandidatos(resCand.candidatos || [])
+
+        if (listaProyectos.length > 0) {
+          verificarEstados(listaProyectos)
+        }
+      } catch (err) {
+        console.error('Error cargando proyectos:', err)
+      } finally {
+        setCargandoProyectos(false)
+      }
+    },
+    [materiaSeleccionada, verificarEstados]
+  )
 
   const {
     isStreaming,
@@ -274,14 +278,49 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
       })
       .catch((err) => console.error(err))
 
-    cargarRegistrados()
-    cargarProyectos()
+    api
+      .getMaterialesRegistrados()
+      .then((res) => {
+        setRegistrados(res.materiales || [])
+      })
+      .catch((err) => {
+        console.error('Error cargando materiales registrados:', err)
+      })
+      .finally(() => {
+        setCargandoRegistrados(false)
+      })
   }, [])
 
   useEffect(() => {
+    let cancelado = false
     const mat = materiaSeleccionada === '__todas__' ? undefined : materiaSeleccionada
-    cargarProyectos(mat)
-  }, [materiaSeleccionada])
+    Promise.all([
+      api.getProyectos(mat).catch(() => ({ proyectos: [] })),
+      api.escanearProyectos(mat).catch(() => ({ candidatos: [] })),
+    ])
+      .then(([resProy, resCand]) => {
+        if (!cancelado) {
+          const listaProyectos = resProy.proyectos || []
+          setProyectos(listaProyectos)
+          setCandidatos(resCand.candidatos || [])
+          if (listaProyectos.length > 0) {
+            verificarEstados(listaProyectos)
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Error cargando proyectos:', err)
+      })
+      .finally(() => {
+        if (!cancelado) {
+          setCargandoProyectos(false)
+        }
+      })
+
+    return () => {
+      cancelado = true
+    }
+  }, [materiaSeleccionada, verificarEstados])
 
   const handleEscanear = async () => {
     try {
