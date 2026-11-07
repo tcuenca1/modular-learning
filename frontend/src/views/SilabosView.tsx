@@ -71,6 +71,7 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
   const [extracting, setExtracting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [clasesExtraidas, setClasesExtraidas] = useState<ClaseCronograma[]>([])
+  const [recarga, setRecarga] = useState(0)
 
   const cargarCatalogo = useCallback(async (seleccionarSlug?: string) => {
     try {
@@ -88,11 +89,18 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
             : lista[0].slug
         setMateriaActiva(destino)
         setCargandoClases(true)
+        setRecarga((r) => r + 1)
+      } else {
+        setMateriaActiva('')
+        setCargandoClases(false)
+        setClasesCronograma([])
+        setParciales([])
       }
     } catch (err) {
       toast.error('No pude cargar las asignaturas', {
         description: err instanceof Error ? err.message : String(err),
       })
+      setCargandoClases(false)
     }
   }, [materiaActiva])
 
@@ -118,12 +126,15 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
         if (lista.length > 0) {
           setMateriaActiva(lista[0].slug)
           setCargandoClases(true)
+        } else {
+          setCargandoClases(false)
         }
       })
       .catch((err) => {
         toast.error('No pude cargar las asignaturas', {
           description: err instanceof Error ? err.message : String(err),
         })
+        setCargandoClases(false)
       })
   }, [])
 
@@ -155,7 +166,7 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
     return () => {
       cancelado = true
     }
-  }, [materiaActiva])
+  }, [materiaActiva, recarga])
 
   // --- Handlers Materia ---
   const handleRenombrarMateria = async () => {
@@ -446,7 +457,8 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
       })
       setClasesExtraidas([])
       setFile(null)
-      await cargarCatalogo()
+      const slugGuardado = subidaMateria.trim().toLowerCase().replace(/\s+/g, '-')
+      await cargarCatalogo(slugGuardado)
       setTabActiva('gestionar')
     } catch (err) {
       toast.error('No pude guardar el cronograma', {

@@ -36,8 +36,6 @@ function capitalizar(texto: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
-
-
 /** Una marca por clase del cronograma: llenas las completadas, la siguiente resaltada. */
 function Regleta({ stat }: { stat: MateriaStat }) {
   return (

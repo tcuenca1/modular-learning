@@ -163,7 +163,6 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
 
   const cargarRegistrados = useCallback(async () => {
     try {
-      setCargandoRegistrados(true)
       const res = await api.getMaterialesRegistrados()
       setRegistrados(res.materiales || [])
     } catch (err) {
@@ -196,7 +195,6 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
   const cargarProyectos = useCallback(
     async (materiaFiltro?: string) => {
       try {
-        setCargandoProyectos(true)
         const mat =
           materiaFiltro ?? (materiaSeleccionada === '__todas__' ? undefined : materiaSeleccionada)
         const [resProy, resCand] = await Promise.all([
@@ -570,7 +568,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
             <div className="flex flex-wrap items-center gap-2">
               <select
                 value={materiaSeleccionada}
-                onChange={(e) => setMateriaSeleccionada(e.target.value)}
+                onChange={(e) => { setCargandoProyectos(true); setMateriaSeleccionada(e.target.value); }}
                 className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
               >
                 <option value="__todas__">Todas las asignaturas</option>
@@ -855,7 +853,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={cargarRegistrados}
+                onClick={() => { setCargandoRegistrados(true); void cargarRegistrados(); }}
                 disabled={cargandoRegistrados}
                 className="gap-1.5"
               >
@@ -958,7 +956,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => cargarProyectos()}
+                onClick={() => { setCargandoProyectos(true); void cargarProyectos(); }}
                 disabled={cargandoProyectos}
                 className="gap-1.5"
               >
