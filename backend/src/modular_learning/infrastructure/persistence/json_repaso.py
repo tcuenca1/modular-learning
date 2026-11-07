@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import unicodedata
+from collections.abc import Callable
 from typing import Any
 
+from modular_learning.core.domain.materias import slug_materia
 from modular_learning.core.domain.repaso_espaciado import Tarjeta
 from modular_learning.core.ports.repaso import HistorialRepo, TarjetasRepo
 from modular_learning.infrastructure.persistence.almacen import AlmacenDocumentos, DocumentoJson
@@ -37,6 +39,13 @@ class JsonTarjetasRepo(TarjetasRepo):
         datos[tarjeta.id] = tarjeta.a_dict()
         self._documento.escribir(datos)
 
+    def eliminar(self, ids: list[str]) -> int:
+        datos = self._cargar()
+        quitadas = [i for i in ids if datos.pop(i, None) is not None]
+        if quitadas:
+            self._documento.escribir(datos)
+        return len(quitadas)
+
 
 class JsonHistorialRepo(HistorialRepo):
     """Eventos de estudio en repaso/historial.json como lista cronológica."""
@@ -54,11 +63,11 @@ class JsonHistorialRepo(HistorialRepo):
         self._documento.escribir(eventos)
 
     def listar(self, materia: str | None = None, tema: str | None = None) -> list[dict[str, Any]]:
-        materia_n = _normalizar(materia) if materia else None
+        materia_n = slug_materia(materia) if materia else None
         tema_n = _normalizar(tema) if tema else None
         resultado = []
         for evento in reversed(self._cargar()):
-            if materia_n and _normalizar(str(evento.get("materia", ""))) != materia_n:
+            if materia_n and slug_materia(str(evento.get("materia", ""))) != materia_n:
                 continue
             if tema_n:
                 tema_evento = _normalizar(str(evento.get("tema", "")))
@@ -66,6 +75,13 @@ class JsonHistorialRepo(HistorialRepo):
                     continue
             resultado.append(evento)
         return resultado
+
+    def eliminar(self, criterio: Callable[[dict[str, Any]], bool]) -> int:
+        eventos = self._cargar()
+        restantes = [e for e in eventos if not criterio(e)]
+        if len(restantes) != len(eventos):
+            self._documento.escribir(restantes)
+        return len(eventos) - len(restantes)
 
 
 __all__ = ["JsonHistorialRepo", "JsonTarjetasRepo"]

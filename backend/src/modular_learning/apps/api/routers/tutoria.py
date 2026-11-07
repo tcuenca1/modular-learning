@@ -45,6 +45,7 @@ def iniciar_tutoria(
             tema=body.tema.strip(),
             nivel_profundidad=body.nivel_profundidad,
             enfoque=body.enfoque,
+            clase_id=body.clase_id,
         )
     except (ValueError, FileNotFoundError) as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -64,6 +65,7 @@ def iniciar_tutoria(
         "subtemas_adicionales": sesion.subtemas_adicionales,
         "enfoque": sesion.enfoque,
         "fallos_previos": sesion.fallos_previos,
+        "clase_id": sesion.clase_id,
     }
 
 
@@ -126,3 +128,6 @@ def finalizar_tutoria(
         raise HTTPException(status_code=500, detail=str(e)) from e
     store.eliminar_sesion(sesion_id)
     return resultado
+
+
+__all__ = ["router"]

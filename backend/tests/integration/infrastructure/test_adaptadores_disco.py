@@ -38,6 +38,18 @@ def test_cronograma_repo_listar_y_material_transversal(tmp_path):
     assert data["clases"][0]["tema"] == "CoAP"
 
 
+def test_cronograma_repo_no_confunde_materias_de_nombre_parecido(tmp_path):
+    (tmp_path / "INGENIERIA_DE_SOFTWARE_II_cronograma.json").write_text(
+        '{"clases": [{"tema": "A"}]}', encoding="utf-8"
+    )
+    repo = JsonCronogramaRepo(str(tmp_path))
+
+    assert repo.obtener_cronograma("Ingenieria de Software") is None
+    assert repo.eliminar_cronograma("Ingenieria de Software") is False
+    assert repo.obtener_cronograma("ingenieria-de-software-ii")[0]["tema"] == "A"
+    assert (tmp_path / "INGENIERIA_DE_SOFTWARE_II_cronograma.json").exists()
+
+
 def test_cronograma_repo_carpeta_inexistente(tmp_path):
     assert JsonCronogramaRepo(str(tmp_path / "no_existe")).listar_cronogramas() == {}
 

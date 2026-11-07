@@ -19,8 +19,9 @@ from modular_learning.core.domain.guia_offline import (
     elegir_extension,
     separar_respuestas,
 )
+from modular_learning.core.domain.materias import slug_materia
 from modular_learning.core.ports.documentos import LectorDocumentosPort
-from modular_learning.core.ports.guias import GuiasRepo
+from modular_learning.core.ports.guias import ExportadorPdfPort, GuiasRepo
 from modular_learning.core.ports.llm import LLMPort
 from modular_learning.core.ports.repositorios import CronogramaRepo
 
@@ -45,16 +46,23 @@ class GuiaOfflineService:
         lector_docs: LectorDocumentosPort,
         guias_repo: GuiasRepo,
         repaso: RepasoService | None = None,
+        exportador_pdf: ExportadorPdfPort | None = None,
     ):
         self.llm = llm
         self.cronograma_repo = cronograma_repo
         self.lector_docs = lector_docs
         self.guias_repo = guias_repo
         self.repaso = repaso
+        self.exportador_pdf = exportador_pdf
 
     # ------------------------------------------------------------------ creación
-    def crear(self, materia: str, temas: list[str]) -> GuiaOffline:
-        """Registra la guía con las clases elegidas, en el orden del cronograma, sin generar aún."""
+    def crear(
+        self, materia: str, temas: list[str], tiempo_minutos: int | None = None
+    ) -> GuiaOffline:
+        """
+        Registra la guía con las clases elegidas (por id o por tema), en el orden del cronograma,
+        sin generar aún. Si se indica `tiempo_minutos`, la extensión se adapta a ese presupuesto.
+        """
         if not temas:
             raise ValueError("Elige al menos una clase para la guía.")
         if len(temas) > MAXIMO_CLASES:
@@ -64,23 +72,41 @@ class GuiaOfflineService:
         if not cronograma:
             raise ValueError(f"La asignatura {materia} no tiene cronograma.")
 
-        buscados = {t.strip().lower() for t in temas}
-        clases = [
-            ClaseGuia(tema=c.get("tema", ""), fecha=str(c.get("fecha", "")))
-            for c in cronograma
-            if c.get("tema", "").strip().lower() in buscados
-        ]
-        encontrados = {c.tema.strip().lower() for c in clases}
-        faltan = sorted(buscados - encontrados)
-        if faltan:
+        buscados_ids = {str(t).strip() for t in temas}
+        buscados_temas = {str(t).strip().lower() for t in temas}
+
+        clases: list[ClaseGuia] = []
+        encontrados_ids: set[str] = set()
+        encontrados_temas: set[str] = set()
+
+        for c in cronograma:
+            c_id = str(c.get("id") or "").strip()
+            c_tema = str(c.get("tema") or "").strip()
+            c_tema_l = c_tema.lower()
+
+            if (c_id and c_id in buscados_ids) or c_tema_l in buscados_temas:
+                clases.append(
+                    ClaseGuia(
+                        tema=c_tema,
+                        fecha=str(c.get("fecha", "")),
+                        clase_id=c_id,
+                    )
+                )
+                if c_id:
+                    encontrados_ids.add(c_id)
+                encontrados_temas.add(c_tema_l)
+
+        if not clases:
+            faltan = sorted(buscados_temas - encontrados_temas)
             raise ValueError(f"Estas clases no están en el cronograma: {', '.join(faltan)}")
 
         guia = GuiaOffline(
             id=uuid.uuid4().hex[:12],
             materia=materia,
-            extension=elegir_extension(len(clases)),
+            extension=elegir_extension(len(clases), tiempo_minutos),
             creada=_ahora(),
             clases=clases,
+            tiempo_minutos=tiempo_minutos,
         )
         self.guias_repo.guardar(guia)
         return guia
@@ -91,7 +117,9 @@ class GuiaOfflineService:
         if not 0 <= indice < len(guia.clases):
             raise ValueError(f"La guía no tiene la clase {indice}.")
         clase = guia.clases[indice]
-        detalle = self.cronograma_repo.obtener_detalle_clase(guia.materia, clase.tema)
+        detalle = self.cronograma_repo.obtener_detalle_clase(
+            guia.materia, tema=clase.tema, clase_id=clase.clase_id
+        )
 
         plantilla = self.lector_docs.leer_prompt("06_guia_offline.md")
         prompt = plantilla.format(
@@ -147,7 +175,9 @@ class GuiaOfflineService:
             clase.dudas = texto_dudas.strip() if resultado == CON_DUDAS else ""
 
             if resultado in (ENTENDIDA, CON_DUDAS):
-                self.cronograma_repo.marcar_clase_completada(guia.materia, clase.tema)
+                self.cronograma_repo.marcar_clase_completada(
+                    guia.materia, tema_exacto=clase.tema, clase_id=clase.clase_id
+                )
                 completadas.append(clase.tema)
                 if clase.dudas:
                     dudas.append({"tema": clase.tema, "dudas": clase.dudas})
@@ -166,6 +196,64 @@ class GuiaOfflineService:
             "pendientes": pendientes,
             "dudas": dudas,
         }
+
+    def deshacer_revision(self, guia_id: str) -> dict[str, Any]:
+        """
+        Deshace la confirmación de la guía:
+        - Revierte el estado de las clases en el cronograma a 'pendiente'
+        - Limpia el resultado y dudas de la guía
+        - Quita del historial los eventos registrados por esta guía
+        """
+        guia = self.obtener(guia_id)
+        if not guia.revisada:
+            raise ValueError("Esta guía no ha sido confirmada todavía.")
+
+        revertidas: list[str] = []
+        for clase in guia.clases:
+            if clase.resultado in (ENTENDIDA, CON_DUDAS):
+                self.cronograma_repo.marcar_clase(
+                    guia.materia,
+                    clase_id=clase.clase_id,
+                    tema=clase.tema,
+                    estado="pendiente",
+                )
+                revertidas.append(clase.tema)
+            clase.resultado = None
+            clase.dudas = ""
+
+        temas_guia = {c.tema for c in guia.clases}
+        if self.repaso:
+            self.repaso.historial_repo.eliminar(
+                lambda e: (
+                    e.get("tipo") == "guia"
+                    and e.get("materia") == guia.materia
+                    and e.get("tema") in temas_guia
+                )
+            )
+
+        guia.revisada = None
+        self.guias_repo.guardar(guia)
+        return {
+            "guia_id": guia.id,
+            "materia": guia.materia,
+            "revertidas": revertidas,
+        }
+
+    def eliminar_guia(self, guia_id: str) -> bool:
+        """Elimina una guía guardada."""
+        return self.guias_repo.eliminar([guia_id]) > 0
+
+    def exportar_pdf(self, guia_id: str) -> tuple[bytes, str]:
+        """Genera un archivo PDF vectorizado en A5 para la guía indicada."""
+        guia = self.guias_repo.obtener(guia_id)
+        if not guia:
+            raise LookupError(f"Guía {guia_id} no encontrada.")
+        if not self.exportador_pdf:
+            raise ValueError("No hay exportador de PDF configurado.")
+        pdf_bytes = self.exportador_pdf.exportar_guia(guia)
+        slug = slug_materia(guia.materia)
+        nombre_archivo = f"Guia_{slug}_{guia.id}.pdf"
+        return pdf_bytes, nombre_archivo
 
 
 __all__ = ["GuiaOfflineService"]

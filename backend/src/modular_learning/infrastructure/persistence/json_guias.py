@@ -32,5 +32,12 @@ class JsonGuiasRepo(GuiasRepo):
         datos[guia.id] = guia.a_dict()
         self._documento.escribir(datos)
 
+    def eliminar(self, ids: list[str]) -> int:
+        datos = self._cargar()
+        quitadas = [i for i in ids if datos.pop(i, None) is not None]
+        if quitadas:
+            self._documento.escribir(datos)
+        return len(quitadas)
+
 
 __all__ = ["JsonGuiasRepo"]

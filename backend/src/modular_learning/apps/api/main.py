@@ -21,6 +21,7 @@ from modular_learning.apps.api.routers import (
     material,
     materias,
     plugins,
+    proyectos,
     quiz,
     repaso,
     silabo,
@@ -69,6 +70,7 @@ def create_app(
     app.include_router(silabo.router)
     app.include_router(material.router)
     app.include_router(plugins.router)
+    app.include_router(proyectos.router)
 
     # Rutas estáticas y fallback SPA
     index_html = RUTA_ESTATICOS / "index.html"

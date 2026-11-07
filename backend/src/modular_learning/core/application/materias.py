@@ -1,31 +1,76 @@
-"""Servicio de aplicación para la gestión de asignaturas académicas."""
+"""Servicio de aplicación para la gestión de asignaturas académicas y sus clases."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from modular_learning.core.ports.repositorios import CronogramaRepo, MateriaRepo
+from modular_learning.core.domain.cronograma import buscar_clase, nuevo_id_clase
+from modular_learning.core.domain.materias import Materia, resolver_materia, slug_materia
+from modular_learning.core.ports.repositorios import (
+    CronogramaRepo,
+    MateriaRepo,
+    RegistroMaterialesRepo,
+)
 
 
 class MateriasService:
-    """Caso de uso y operaciones para catálogo de asignaturas."""
+    """Caso de uso y operaciones para catálogo de asignaturas, cronogramas y reversibilidad."""
 
     def __init__(
         self,
         materia_repo: MateriaRepo,
         cronograma_repo: CronogramaRepo | None = None,
+        registro_repo: RegistroMaterialesRepo | None = None,
     ):
         self.materia_repo = materia_repo
         self.cronograma_repo = cronograma_repo
+        self.registro_repo = registro_repo
 
+    # ------------------------------------------------------------------ Catálogo de materias
     def listar_materias(self) -> list[str]:
-        """Retorna la lista de todas las materias registradas."""
+        """Retorna los nombres de las asignaturas registradas (compatibilidad)."""
         return self.materia_repo.cargar_materias()
+
+    def listar_catalogo(self) -> list[dict[str, str]]:
+        """Retorna las materias como [{slug, nombre}] ordenadas por nombre."""
+        return [m.a_dict() for m in self.materia_repo.listar()]
+
+    def obtener_materia(self, slug_o_nombre: str) -> Materia | None:
+        """Busca una asignatura por su slug o por su nombre."""
+        return resolver_materia(self.materia_repo.listar(), slug_o_nombre)
 
     def agregar_materia(self, nueva_materia: str) -> list[str]:
-        """Añade una asignatura al catálogo y retorna la lista actualizada."""
+        """Añade una asignatura al catálogo y retorna la lista de nombres actualizada."""
         self.materia_repo.agregar_materia(nueva_materia)
         return self.materia_repo.cargar_materias()
+
+    def renombrar_materia(self, slug: str, nuevo_nombre: str) -> Materia:
+        """Cambia el nombre para mostrar de una asignatura conservando su slug."""
+        nuevo_nombre = " ".join(nuevo_nombre.split())
+        if not nuevo_nombre:
+            raise ValueError("El nombre no puede estar vacío.")
+        materia = Materia(slug=slug_materia(slug), nombre=nuevo_nombre)
+        self.materia_repo.guardar(materia)
+        return materia
+
+    def eliminar_materia(self, slug_o_nombre: str, borrar_cronograma: bool = True) -> bool:
+        """
+        Elimina la materia del catálogo. Si borrar_cronograma es True, también elimina
+        su cronograma y desvincula sus materiales registrados.
+        """
+        slug = slug_materia(slug_o_nombre)
+        eliminada = self.materia_repo.eliminar(slug)
+        if borrar_cronograma and self.cronograma_repo:
+            self.cronograma_repo.eliminar_cronograma(slug)
+        if self.registro_repo:
+            self.registro_repo.eliminar_de_materia(slug)
+        return eliminada
+
+    # ------------------------------------------------------------------ Cronogramas y clases
+    def obtener_cronograma(self, materia: str) -> list[dict[str, Any]] | None:
+        if not self.cronograma_repo:
+            return None
+        return self.cronograma_repo.obtener_cronograma(materia)
 
     def obtener_proximas_clases(self, materia: str) -> list[dict[str, Any]]:
         """Retorna las clases pendientes del cronograma de la asignatura."""
@@ -38,6 +83,80 @@ class MateriasService:
         if not self.cronograma_repo:
             return {}
         return self.cronograma_repo.listar_cronogramas()
+
+    def eliminar_cronograma(self, materia: str, borrar_materia: bool = True) -> bool:
+        """Elimina el cronograma de una asignatura y opcionalmente la materia del catálogo."""
+        if not self.cronograma_repo:
+            return False
+        ok = self.cronograma_repo.eliminar_cronograma(materia)
+        if borrar_materia:
+            self.eliminar_materia(materia, borrar_cronograma=False)
+        return ok
+
+    def agregar_clase(self, materia: str, datos_clase: dict[str, Any]) -> dict[str, Any]:
+        """Añade manualmente una clase al cronograma de la asignatura."""
+        if not self.cronograma_repo:
+            raise ValueError("No hay repositorio de cronogramas configurado.")
+        clases = self.cronograma_repo.obtener_cronograma(materia) or []
+        nueva = dict(datos_clase)
+        if not nueva.get("id"):
+            nueva["id"] = nuevo_id_clase()
+        if not nueva.get("estado"):
+            nueva["estado"] = "pendiente"
+        clases.append(nueva)
+        self.cronograma_repo.guardar_cronograma(materia, clases)
+        return nueva
+
+    def editar_clase(self, materia: str, clase_id: str, campos: dict[str, Any]) -> dict[str, Any]:
+        """Actualiza los campos de una clase específica dentro del cronograma."""
+        if not self.cronograma_repo:
+            raise ValueError("No hay repositorio de cronogramas configurado.")
+        clases = self.cronograma_repo.obtener_cronograma(materia)
+        if not clases:
+            raise LookupError(f"No hay cronograma para la asignatura {materia}.")
+        clase = buscar_clase(clases, clase_id=clase_id)
+        if clase is None:
+            raise LookupError(f"Clase {clase_id} no encontrada en el cronograma.")
+        for k, v in campos.items():
+            if k != "id":  # El id nunca cambia
+                clase[k] = v
+        self.cronograma_repo.guardar_cronograma(materia, clases)
+        return clase
+
+    def eliminar_clase(self, materia: str, clase_id: str) -> bool:
+        """Quita una clase del cronograma."""
+        if not self.cronograma_repo:
+            return False
+        clases = self.cronograma_repo.obtener_cronograma(materia)
+        if not clases:
+            return False
+        restantes = [c for c in clases if str(c.get("id")) != clase_id]
+        if len(restantes) == len(clases):
+            return False
+        self.cronograma_repo.guardar_cronograma(materia, restantes)
+        return True
+
+    def cambiar_estado_clase(self, materia: str, clase_id: str, nuevo_estado: str) -> bool:
+        """Modifica el estado de una clase ('pendiente' o 'completado')."""
+        if not self.cronograma_repo:
+            return False
+        return self.cronograma_repo.marcar_clase(materia, clase_id=clase_id, estado=nuevo_estado)
+
+    # ------------------------------------------------------------------ Cortes de parcial
+    def obtener_parciales(self, materia: str) -> list[dict[str, Any]]:
+        """Retorna los cortes de parcial definidos para la asignatura."""
+        if not self.cronograma_repo:
+            return []
+        return self.cronograma_repo.obtener_parciales(materia)
+
+    def guardar_parciales(
+        self, materia: str, parciales: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Guarda los cortes de parcial (ej. [{'nombre': 'Parcial 1', 'hasta': 'clase_id'}])"""
+        if not self.cronograma_repo:
+            raise ValueError("No hay repositorio de cronogramas.")
+        self.cronograma_repo.guardar_parciales(materia, parciales)
+        return parciales
 
 
 __all__ = ["MateriasService"]

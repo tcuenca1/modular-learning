@@ -22,5 +22,17 @@ class GuiasRepo(ABC):
     def guardar(self, guia: GuiaOffline) -> None:
         """Crea o actualiza una guía."""
 
+    @abstractmethod
+    def eliminar(self, ids: list[str]) -> int:
+        """Elimina las guías con esos identificadores; retorna cuántas había."""
 
-__all__ = ["GuiasRepo"]
+
+class ExportadorPdfPort(ABC):
+    """Puerto para la generación y renderizado de guías de estudio en formato PDF."""
+
+    @abstractmethod
+    def exportar_guia(self, guia: GuiaOffline) -> bytes:
+        """Genera el contenido binario del PDF para la guía especificada."""
+
+
+__all__ = ["ExportadorPdfPort", "GuiasRepo"]

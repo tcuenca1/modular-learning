@@ -39,6 +39,10 @@ class AlmacenDocumentos(ABC):
     def listar(self, prefijo: str = "") -> list[str]:
         """Claves que empiezan por `prefijo`, ordenadas."""
 
+    @abstractmethod
+    def eliminar(self, clave: str) -> bool:
+        """Borra el documento; retorna False si no existía."""
+
 
 class AlmacenArchivos(AlmacenDocumentos):
     """Documentos como archivos bajo `raiz` (por defecto, la carpeta de datos actual)."""
@@ -83,9 +87,16 @@ class AlmacenArchivos(AlmacenDocumentos):
             if nombre.startswith(inicio_nombre) and os.path.isfile(os.path.join(base, nombre))
         )
 
+    def eliminar(self, clave: str) -> bool:
+        ruta = self._ruta(clave)
+        if not os.path.isfile(ruta):
+            return False
+        os.remove(ruta)
+        return True
+
 
 class AlmacenPostgres(AlmacenDocumentos):
-    """Documentos en la tabla `documentos` de Postgres, con un pool de conexiones."""
+    """Documentos en la tabla `documentos` de Postgres, con un pool de conexiones y caché en memoria."""
 
     def __init__(self, url: str, pool: Any | None = None):
         if pool is None:
@@ -101,6 +112,7 @@ class AlmacenPostgres(AlmacenDocumentos):
                 open=True,
             )
         self._pool = pool
+        self._cache: dict[str, str | None] = {}
         with self._pool.connection() as conn:
             conn.execute(
                 f"CREATE TABLE IF NOT EXISTS {TABLA} ("
@@ -110,13 +122,18 @@ class AlmacenPostgres(AlmacenDocumentos):
             )
 
     def leer(self, clave: str) -> str | None:
+        if clave in self._cache:
+            return self._cache[clave]
         with self._pool.connection() as conn:
             fila = conn.execute(
                 f"SELECT contenido FROM {TABLA} WHERE clave = %s", (clave,)
             ).fetchone()
-        return fila[0] if fila else None
+        contenido = fila[0] if fila else None
+        self._cache[clave] = contenido
+        return contenido
 
     def escribir(self, clave: str, contenido: str) -> None:
+        self._cache[clave] = contenido
         with self._pool.connection() as conn:
             conn.execute(
                 f"INSERT INTO {TABLA} (clave, contenido) VALUES (%s, %s) "
@@ -129,10 +146,22 @@ class AlmacenPostgres(AlmacenDocumentos):
         # left() en lugar de LIKE: los "_" de los nombres no deben actuar como comodines
         with self._pool.connection() as conn:
             filas = conn.execute(
-                f"SELECT clave FROM {TABLA} WHERE left(clave, %s) = %s ORDER BY clave",
+                f"SELECT clave, contenido FROM {TABLA} WHERE left(clave, %s) = %s ORDER BY clave",
                 (len(prefijo), prefijo),
             ).fetchall()
+        for clave_doc, contenido_doc in filas:
+            self._cache[clave_doc] = contenido_doc
         return [f[0] for f in filas]
+
+    def eliminar(self, clave: str) -> bool:
+        self._cache.pop(clave, None)
+        with self._pool.connection() as conn:
+            cursor = conn.execute(f"DELETE FROM {TABLA} WHERE clave = %s", (clave,))
+        return cursor.rowcount > 0
+
+    def vaciar_cache(self) -> None:
+        """Invalida la caché local en memoria."""
+        self._cache.clear()
 
 
 @lru_cache(maxsize=4)

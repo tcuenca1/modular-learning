@@ -12,6 +12,7 @@ from modular_learning.core.application.guias import GuiaOfflineService
 from modular_learning.core.application.ingesta import IngestaService
 from modular_learning.core.application.materias import MateriasService
 from modular_learning.core.application.plugins import PluginsService
+from modular_learning.core.application.proyectos import ProyectosService
 from modular_learning.core.application.repaso import RepasoService
 from modular_learning.core.application.silabo import SilaboService
 from modular_learning.core.application.telemetria import TelemetriaService
@@ -31,6 +32,7 @@ from modular_learning.core.ports.repositorios import (
 from modular_learning.infrastructure.documents.lector_documentos import LectorDocumentosLocal
 from modular_learning.infrastructure.llm.gemini_adapter import LLM_GeminiAdapter
 from modular_learning.infrastructure.obsidian.boveda_obsidian import BovedaObsidianAdapter
+from modular_learning.infrastructure.pdf.exportador_pdf import ExportadorPdfPyMuPDF
 from modular_learning.infrastructure.persistence.json_ajustes import JsonAjustesRepo
 from modular_learning.infrastructure.persistence.json_guias import JsonGuiasRepo
 from modular_learning.infrastructure.persistence.json_repaso import (
@@ -40,11 +42,14 @@ from modular_learning.infrastructure.persistence.json_repaso import (
 from modular_learning.infrastructure.persistence.json_repositorios import (
     JsonCronogramaRepo,
     JsonMateriaRepo,
+    JsonPluginConfigRepo,
+    JsonProyectosRepo,
     JsonRegistroMaterialesRepo,
 )
 from modular_learning.infrastructure.plugins.cisco import CiscoPlugin
 from modular_learning.infrastructure.plugins.nodered import NodeRedPlugin
 from modular_learning.infrastructure.plugins.web import WebPlugin
+from modular_learning.infrastructure.proyectos.inspector_local import InspectorProyectosLocal
 
 
 @dataclass
@@ -77,6 +82,7 @@ class Container:
     materias_service: MateriasService
     repaso_service: RepasoService
     guias_service: GuiaOfflineService
+    proyectos_service: ProyectosService
 
 
 _global_container: Container | None = None
@@ -97,6 +103,8 @@ def build_container(settings: Any | None = None) -> Container:
     tarjetas_repo = JsonTarjetasRepo()
     historial_repo = JsonHistorialRepo()
     guias_repo = JsonGuiasRepo()
+    plugin_config_repo = JsonPluginConfigRepo()
+    proyectos_repo = JsonProyectosRepo()
 
     plugins_dict: dict[str, PluginPracticoBase] = {
         "cisco": CiscoPlugin(),
@@ -110,6 +118,7 @@ def build_container(settings: Any | None = None) -> Container:
         ajustes_port=ajustes_repo,
         carpeta_plugins=str(global_settings.ruta_plugins_memoria()),
         lector_docs=lector_docs,
+        config_repo=plugin_config_repo,
     )
 
     repaso_service = RepasoService(
@@ -141,6 +150,15 @@ def build_container(settings: Any | None = None) -> Container:
         lector_docs=lector_docs,
     )
 
+    proyectos_service = ProyectosService(
+        proyectos_repo=proyectos_repo,
+        registro_repo=registro_repo,
+        boveda_port=boveda_port,
+        lector_docs=lector_docs,
+        llm=llm,
+        inspector=InspectorProyectosLocal(lector_docs),
+    )
+
     ingesta_service = IngestaService(
         llm=llm,
         registro_repo=registro_repo,
@@ -149,6 +167,7 @@ def build_container(settings: Any | None = None) -> Container:
         ajustes_port=ajustes_repo,
         plugins_service=plugins_service,
         cronograma_repo=cronograma_repo,
+        proyectos_service=proyectos_service,
     )
 
     telemetria_service = TelemetriaService(
@@ -163,7 +182,10 @@ def build_container(settings: Any | None = None) -> Container:
     materias_service = MateriasService(
         materia_repo=materia_repo,
         cronograma_repo=cronograma_repo,
+        registro_repo=registro_repo,
     )
+
+    exportador_pdf = ExportadorPdfPyMuPDF()
 
     guias_service = GuiaOfflineService(
         llm=llm,
@@ -171,6 +193,7 @@ def build_container(settings: Any | None = None) -> Container:
         lector_docs=lector_docs,
         guias_repo=guias_repo,
         repaso=repaso_service,
+        exportador_pdf=exportador_pdf,
     )
 
     container = Container(
@@ -196,6 +219,7 @@ def build_container(settings: Any | None = None) -> Container:
         materias_service=materias_service,
         repaso_service=repaso_service,
         guias_service=guias_service,
+        proyectos_service=proyectos_service,
     )
 
     global _global_container

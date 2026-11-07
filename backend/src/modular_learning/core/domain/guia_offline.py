@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-# Cuánto se extiende cada clase según cuántas entran en la guía
+# Cuánto se extiende cada clase según cuántas entran en la guía y el tiempo disponible
 EXTENSIONES = {
     "completa": "Explicación completa y detallada, con ejemplos desarrollados.",
     "estandar": "Explicación clara de lo esencial, con un ejemplo por concepto importante.",
@@ -18,15 +18,34 @@ CON_DUDAS = "con_dudas"
 PENDIENTE = "pendiente"
 RESULTADOS = (ENTENDIDA, CON_DUDAS, PENDIENTE)
 
-MAXIMO_CLASES = 12
+MAXIMO_CLASES = 16
 
 # El prompt separa la explicación de las respuestas de la autoevaluación con este marcador,
 # para poder llevar todas las respuestas al final del documento
 MARCADOR_RESPUESTAS = "<!-- RESPUESTAS -->"
 
 
-def elegir_extension(n_clases: int) -> str:
-    """Una o dos clases se explican completas; muchas, en síntesis, para que quepan en el tiempo."""
+def elegir_extension(n_clases: int, tiempo_minutos: int | None = None) -> str:
+    """
+    Determina la extensión de las explicaciones:
+    - Si se indica tiempo disponible (en minutos), reparte el presupuesto:
+      >= 45 min/clase -> 'completa'
+      >= 20 min/clase -> 'estandar'
+      < 20 min/clase  -> 'sintesis'
+    - Si no se indica tiempo, se guía por la cantidad de clases:
+      <= 2 clases -> 'completa'
+      <= 5 clases -> 'estandar'
+      > 5 clases  -> 'sintesis'
+    """
+    if n_clases <= 0:
+        return "estandar"
+    if tiempo_minutos is not None and tiempo_minutos > 0:
+        minutos_por_clase = tiempo_minutos / n_clases
+        if minutos_por_clase >= 45:
+            return "completa"
+        if minutos_por_clase >= 20:
+            return "estandar"
+        return "sintesis"
     if n_clases <= 2:
         return "completa"
     if n_clases <= 5:
@@ -52,6 +71,7 @@ class ClaseGuia:
     respuestas: str = ""
     resultado: str | None = None
     dudas: str = ""
+    clase_id: str = ""
 
     @property
     def generada(self) -> bool:
@@ -68,6 +88,7 @@ class GuiaOffline:
     creada: str
     clases: list[ClaseGuia] = field(default_factory=list)
     revisada: str | None = None
+    tiempo_minutos: int | None = None
 
     @property
     def completa(self) -> bool:

@@ -173,5 +173,9 @@ class RepasoService:
     ) -> list[dict[str, Any]]:
         return self.historial_repo.listar(materia, tema)
 
+    def eliminar_tarjeta(self, tarjeta_id: str) -> bool:
+        """Elimina una tarjeta de repaso espaciado."""
+        return self.tarjetas_repo.eliminar([tarjeta_id]) > 0
+
 
 __all__ = ["LIMITE_REPASO_DIARIO", "RepasoService"]

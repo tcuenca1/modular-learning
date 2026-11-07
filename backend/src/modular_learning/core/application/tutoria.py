@@ -40,6 +40,8 @@ class SesionTutoria:
     enfoque: str | None = None
     # Preguntas de este tema que el estudiante falló en repasos anteriores
     fallos_previos: list[str] = field(default_factory=list)
+    # Identificador único de la clase en el cronograma
+    clase_id: str | None = None
 
 
 def normalizar_nivel(nivel: str | None) -> str:
@@ -117,6 +119,7 @@ class TutoriaService:
         tema: str,
         nivel_profundidad: str | None,
         enfoque: str | None = None,
+        clase_id: str | None = None,
     ) -> SesionTutoria:
         """Genera el roadmap con el LLM y construye la sesión inicial.
 
@@ -124,7 +127,7 @@ class TutoriaService:
         offline) la ruta se orienta a aclarar ese punto.
         """
         nivel = normalizar_nivel(nivel_profundidad)
-        detalle = self.cronograma_repo.obtener_detalle_clase(materia, tema)
+        detalle = self.cronograma_repo.obtener_detalle_clase(materia, tema=tema, clase_id=clase_id)
         fallos = self.repaso.fallos_previos(materia, tema) if self.repaso else []
         enfoque = (enfoque or "").strip() or None
 
@@ -154,6 +157,7 @@ class TutoriaService:
             subtemas_adicionales=list(detalle.get("subtemas_adicionales", [])),
             enfoque=enfoque,
             fallos_previos=fallos,
+            clase_id=clase_id or detalle.get("id"),
             historial=[
                 {"role": "user", "parts": [prompt_roadmap]},
                 {"role": "model", "parts": [json.dumps(data_roadmap, ensure_ascii=False)]},
@@ -264,7 +268,9 @@ conceptual o la duda, sin limitarte a dar la respuesta.
 
         guardado = self.boveda_port.guardar_resumen(sesion.materia, sesion.tema, guia, ruta_boveda)
         completada = (
-            self.cronograma_repo.marcar_clase_completada(sesion.materia, sesion.tema)
+            self.cronograma_repo.marcar_clase_completada(
+                sesion.materia, tema_exacto=sesion.tema, clase_id=sesion.clase_id
+            )
             if guardado
             else False
         )

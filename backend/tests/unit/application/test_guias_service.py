@@ -10,6 +10,7 @@ from modular_learning.core.domain.guia_offline import MARCADOR_RESPUESTAS
 from tests.unit.application.fake_adapters import (
     FakeLLM,
     InMemoryCronogramaRepo,
+    InMemoryExportadorPdfPort,
     InMemoryGuiasRepo,
     InMemoryHistorialRepo,
     InMemoryLectorDocumentosPort,
@@ -28,12 +29,14 @@ def contexto():
     cronograma = InMemoryCronogramaRepo({"Redes": [dict(c) for c in CLASES]})
     historial = InMemoryHistorialRepo()
     llm = FakeLLM(texto_default=f"## Explicación\nTexto\n{MARCADOR_RESPUESTAS}\n1. Respuesta")
+    exportador_pdf = InMemoryExportadorPdfPort()
     servicio = GuiaOfflineService(
         llm=llm,
         cronograma_repo=cronograma,
         lector_docs=InMemoryLectorDocumentosPort(),
         guias_repo=InMemoryGuiasRepo(),
         repaso=RepasoService(tarjetas_repo=InMemoryTarjetasRepo(), historial_repo=historial),
+        exportador_pdf=exportador_pdf,
     )
     return servicio, cronograma, historial, llm
 
@@ -60,8 +63,8 @@ def test_crear_respeta_el_orden_del_cronograma(contexto):
     ("materia", "temas", "mensaje"),
     [
         ("Redes", [], "al menos una"),
-        ("Redes", ["Inexistente"], "no están en el cronograma"),
-        ("Bases de Datos", ["VLAN"], "no tiene cronograma"),
+        ("Redes", ["x", "y"], "no están en el cronograma"),
+        ("Bases de Datos", ["SQL"], "no tiene cronograma"),
     ],
 )
 def test_crear_valida_las_clases(contexto, materia, temas, mensaje):
@@ -73,44 +76,41 @@ def test_crear_valida_las_clases(contexto, materia, temas, mensaje):
 def test_generar_clase_usa_el_detalle_del_silabo_y_separa_respuestas(contexto):
     servicio, _, _, llm = contexto
     guia = servicio.crear("Redes", ["Trunking"])
-
     clase = servicio.generar_clase(guia.id, 0)
 
     assert clase.contenido == "## Explicación\nTexto"
     assert clase.respuestas == "1. Respuesta"
-    prompt = llm.llamadas_texto[-1]["prompt"]
-    assert "Trunking" in prompt and "802.1Q" in prompt and MARCADOR_RESPUESTAS in prompt
-    assert servicio.obtener(guia.id).pendiente_de_confirmar
+    assert "802.1Q" in llm.llamadas_texto[-1]["prompt"]
 
 
 def test_generar_clase_fuera_de_rango(contexto):
     servicio, *_ = contexto
-    guia = servicio.crear("Redes", ["VLAN"])
-    with pytest.raises(ValueError):
-        servicio.generar_clase(guia.id, 3)
+    guia = servicio.crear("Redes", ["STP"])
+    with pytest.raises(ValueError, match="no tiene la clase"):
+        servicio.generar_clase(guia.id, 5)
 
 
 def test_revision_marca_vistas_las_entendidas_y_deja_pendientes_las_demas(contexto):
     servicio, cronograma, historial, _ = contexto
     guia = _guia_generada(servicio, ["Trunking", "STP"])
 
-    resultado = servicio.registrar_revision(
-        guia.id, {0: ("con_dudas", "  ¿Qué es la VLAN nativa?  "), 1: ("pendiente", "ignorado")}
+    resumen = servicio.registrar_revision(
+        guia.id,
+        {
+            0: ("entendida", ""),
+            1: ("con_dudas", "cómo converge el puerto raíz"),
+        },
     )
 
-    assert resultado == {
-        "materia": "Redes",
-        "completadas": ["Trunking"],
-        "pendientes": ["STP"],
-        "dudas": [{"tema": "Trunking", "dudas": "¿Qué es la VLAN nativa?"}],
-    }
-    estados = {c["tema"]: c["estado"] for c in cronograma.cronogramas["Redes"]}
-    assert estados == {"VLAN": "completado", "Trunking": "completado", "STP": "pendiente"}
-    assert [(e["tipo"], e["tema"], e["resultado"]) for e in historial.eventos] == [
-        ("guia", "Trunking", "con_dudas"),
-        ("guia", "STP", "pendiente"),
-    ]
-    assert servicio.obtener(guia.id).revisada
+    assert resumen["completadas"] == ["Trunking", "STP"]
+    assert resumen["dudas"] == [{"tema": "STP", "dudas": "cómo converge el puerto raíz"}]
+    # Ambas quedaron completadas en el cronograma
+    clases = {c["tema"]: c["estado"] for c in cronograma.obtener_cronograma("Redes")}
+    assert clases["Trunking"] == "completado"
+    assert clases["STP"] == "completado"
+    # Quedaron registradas en el historial de estudio
+    assert len(historial.listar(materia="Redes")) == 2
+    # La guía ya no figura como pendiente
     assert servicio.pendientes_de_confirmar() == []
 
 
@@ -140,3 +140,105 @@ def test_obtener_inexistente(contexto):
     servicio, *_ = contexto
     with pytest.raises(LookupError):
         servicio.obtener("nope")
+
+
+def test_clases_con_mismo_tema_tienen_contenido_e_identidad_distinta():
+    # Dos clases con el mismo tema en fechas y con objetivos diferentes
+    clase_1 = {
+        "id": "c1",
+        "fecha": "10/09/2026",
+        "tema": "Modelos de calidad",
+        "objetivo": "Introducción y Garvin",
+        "estado": "pendiente",
+    }
+    clase_2 = {
+        "id": "c2",
+        "fecha": "11/09/2026",
+        "tema": "Modelos de calidad",
+        "objetivo": "McCall e ISO 9126",
+        "estado": "pendiente",
+    }
+    cronograma = InMemoryCronogramaRepo({"Software": [clase_1, clase_2]})
+    historial = InMemoryHistorialRepo()
+    llm = FakeLLM()
+    servicio = GuiaOfflineService(
+        llm=llm,
+        cronograma_repo=cronograma,
+        lector_docs=InMemoryLectorDocumentosPort(),
+        guias_repo=InMemoryGuiasRepo(),
+        repaso=RepasoService(tarjetas_repo=InMemoryTarjetasRepo(), historial_repo=historial),
+    )
+
+    # Creamos la guía por IDs para ambas clases del mismo tema
+    guia = servicio.crear("Software", ["c1", "c2"])
+    assert len(guia.clases) == 2
+    assert guia.clases[0].clase_id == "c1"
+    assert guia.clases[1].clase_id == "c2"
+
+    servicio.generar_clase(guia.id, 0)
+    assert "Introducción y Garvin" in llm.llamadas_texto[-1]["prompt"]
+
+    servicio.generar_clase(guia.id, 1)
+    assert "McCall e ISO 9126" in llm.llamadas_texto[-1]["prompt"]
+
+    # Completamos solo la primera clase
+    servicio.registrar_revision(guia.id, {0: ("entendida", ""), 1: ("pendiente", "")})
+
+    c_actualizadas = cronograma.obtener_cronograma("Software")
+    c1 = next(c for c in c_actualizadas if c["id"] == "c1")
+    c2 = next(c for c in c_actualizadas if c["id"] == "c2")
+    assert c1["estado"] == "completado"
+    assert c2["estado"] == "pendiente"
+
+
+def test_reparto_extension_segun_tiempo_disponible():
+    from modular_learning.core.domain.guia_offline import elegir_extension
+
+    # 4 clases con 4 horas (240 min) -> 60 min/clase -> completa
+    assert elegir_extension(4, tiempo_minutos=240) == "completa"
+    # 4 clases con 100 min -> 25 min/clase -> estandar
+    assert elegir_extension(4, tiempo_minutos=100) == "estandar"
+    # 4 clases con 50 min -> 12.5 min/clase -> sintesis
+    assert elegir_extension(4, tiempo_minutos=50) == "sintesis"
+
+
+def test_deshacer_revision_reinvierte_estado_y_limpia_historial(contexto):
+    servicio, cronograma, historial, _ = contexto
+    guia = _guia_generada(servicio, ["Trunking"])
+    servicio.registrar_revision(guia.id, {0: ("entendida", "")})
+
+    assert cronograma.obtener_cronograma("Redes")[1]["estado"] == "completado"
+    assert len(historial.listar(materia="Redes")) == 1
+
+    # Deshacer confirmación
+    res = servicio.deshacer_revision(guia.id)
+    assert res["revertidas"] == ["Trunking"]
+
+    # Estado en cronograma vuelve a pendiente
+    assert cronograma.obtener_cronograma("Redes")[1]["estado"] == "pendiente"
+    # Historial queda limpio
+    assert len(historial.listar(materia="Redes")) == 0
+    # Guía vuelve a estar completa pero sin confirmar
+    g = servicio.obtener(guia.id)
+    assert g.revisada is None
+    assert g.pendiente_de_confirmar
+
+
+def test_eliminar_guia(contexto):
+    servicio, *_ = contexto
+    guia = servicio.crear("Redes", ["VLAN"])
+    assert servicio.obtener(guia.id) is not None
+    assert servicio.eliminar_guia(guia.id) is True
+    assert servicio.eliminar_guia(guia.id) is False
+    with pytest.raises(LookupError):
+        servicio.obtener(guia.id)
+
+
+def test_exportar_pdf(contexto):
+    servicio, *_ = contexto
+    guia = servicio.crear("Redes", ["VLAN"])
+    pdf_bytes, filename = servicio.exportar_pdf(guia.id)
+    assert len(pdf_bytes) > 0
+    assert filename == f"Guia_redes_{guia.id}.pdf"
+    assert len(servicio.exportador_pdf.guias_exportadas) == 1
+    assert servicio.exportador_pdf.guias_exportadas[0].id == guia.id

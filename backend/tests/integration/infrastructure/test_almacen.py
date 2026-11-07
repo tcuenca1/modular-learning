@@ -65,7 +65,11 @@ def test_repositorios_sobre_el_almacen(almacen):
     clave = cronogramas.guardar_cronograma("Redes II", [{"tema": "VLAN", "estado": "pendiente"}])
     assert clave == "schedules/Redes_II_cronograma.json"
     assert cronogramas.marcar_clase_completada("redes ii", "VLAN")
-    assert cronogramas.obtener_cronograma("REDES II") == [{"tema": "VLAN", "estado": "completado"}]
+    clases = cronogramas.obtener_cronograma("REDES II")
+    assert len(clases) == 1
+    assert clases[0]["tema"] == "VLAN"
+    assert clases[0]["estado"] == "completado"
+    assert "id" in clases[0]
     assert list(cronogramas.listar_cronogramas()) == ["Redes II"]
 
     materias = JsonMateriaRepo(almacen=almacen)

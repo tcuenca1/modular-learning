@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any
 
 from modular_learning.core.domain.repaso_espaciado import Tarjeta
@@ -23,6 +24,10 @@ class TarjetasRepo(ABC):
     def guardar(self, tarjeta: Tarjeta) -> None:
         """Crea o actualiza una tarjeta."""
 
+    @abstractmethod
+    def eliminar(self, ids: list[str]) -> int:
+        """Elimina las tarjetas con esos identificadores; retorna cuántas había."""
+
 
 class HistorialRepo(ABC):
     """Puerto de repositorio del historial de actividad de estudio por clase."""
@@ -34,6 +39,10 @@ class HistorialRepo(ABC):
     @abstractmethod
     def listar(self, materia: str | None = None, tema: str | None = None) -> list[dict[str, Any]]:
         """Retorna los eventos, del más reciente al más antiguo, filtrados opcionalmente."""
+
+    @abstractmethod
+    def eliminar(self, criterio: Callable[[dict[str, Any]], bool]) -> int:
+        """Elimina los eventos que cumplen el criterio; retorna cuántos."""
 
 
 __all__ = ["HistorialRepo", "TarjetasRepo"]

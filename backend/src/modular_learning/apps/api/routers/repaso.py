@@ -40,3 +40,17 @@ def historial(
     tema: str | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     return {"eventos": servicio.historial(materia, tema)}
+
+
+@router.delete("/tarjetas/{tarjeta_id}")
+def eliminar_tarjeta(
+    tarjeta_id: str,
+    servicio: Annotated[RepasoService, Depends(get_repaso_service)],
+) -> dict[str, Any]:
+    ok = servicio.eliminar_tarjeta(tarjeta_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada.")
+    return {"ok": True}
+
+
+__all__ = ["router"]

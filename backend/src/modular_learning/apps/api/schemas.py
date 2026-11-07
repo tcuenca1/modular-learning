@@ -11,11 +11,16 @@ class NuevaMateria(BaseModel):
     nombre: str = Field(min_length=1)
 
 
+class RenombrarMateria(BaseModel):
+    nombre: str = Field(min_length=1)
+
+
 class IniciarTutoria(BaseModel):
     materia: str = Field(min_length=1)
     tema: str = Field(min_length=1)
     nivel_profundidad: str = "INTERMEDIO"
     enfoque: str | None = None
+    clase_id: str | None = None
 
 
 class Duda(BaseModel):
@@ -26,6 +31,7 @@ class Duda(BaseModel):
 class NuevaGuia(BaseModel):
     materia: str = Field(min_length=1)
     temas: list[str] = Field(min_length=1)
+    tiempo_minutos: int | None = None
 
 
 class ResultadoClaseGuia(BaseModel):
@@ -50,6 +56,13 @@ class GuardarCronograma(BaseModel):
 
 class ActualizarPlugin(BaseModel):
     seleccion: str
+    carpeta_override: str | None = None
+
+
+class ConfigurarPlugin(BaseModel):
+    clave: str = Field(min_length=1)
+    carpeta: str | None = None
+    materia: str | None = None
 
 
 class GuardarConfig(BaseModel):
@@ -59,3 +72,31 @@ class GuardarConfig(BaseModel):
 
 class SincronizarMaterial(BaseModel):
     materia: str = Field(min_length=1)
+
+
+class EditarClase(BaseModel):
+    campos: dict[str, Any]
+
+
+class NuevaClase(BaseModel):
+    tema: str = Field(min_length=1)
+    fecha: str = ""
+    objetivo: str = ""
+    contenido: str = ""
+    estado: str = "pendiente"
+
+
+class GuardarParciales(BaseModel):
+    parciales: list[dict[str, Any]]
+
+
+class IngestarProyectoRequest(BaseModel):
+    materia: str = Field(min_length=1)
+    nombre: str = Field(min_length=1)
+    parcial: str = "general"
+    ruta: str = Field(min_length=1)
+    tipo: str | None = None
+
+
+class VaciarMaterialesRequest(BaseModel):
+    borrar_notas_obsidian: bool = True

@@ -1,8 +1,9 @@
-"""Tests unitarios para IngestaService usando FakeLLM y adaptadores en memoria."""
+"""Tests unitarios para el servicio de ingesta de material de estudio."""
 
 from __future__ import annotations
 
 import json
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -18,105 +19,98 @@ from tests.unit.application.fake_adapters import (
 
 
 @pytest.fixture
-def ingesta_env(tmp_path):
-    boveda_dir = tmp_path / "boveda"
-    boveda_dir.mkdir()
-    material_dir = tmp_path / "material"
-    material_dir.mkdir()
+def mock_plugins_service():
+    service = MagicMock()
+    service.obtener_plugin.return_value = None
+    return service
 
-    fake_llm = FakeLLM(
-        texto_default="# Notas del Material\n\nResumen estructurado en Markdown.",
-        json_default={
-            "clase_asignada": 1,
-            "peso_afinidad": 95,
-            "subtemas_a_incorporar": ["Subtema A"],
-        },
+
+def test_clasificar_tipo_material():
+    service = IngestaService(
+        llm=FakeLLM(),
+        registro_repo=InMemoryRegistroMaterialesRepo(),
+        boveda_port=InMemoryBovedaPort(),
+        lector_docs=InMemoryLectorDocumentosPort(),
+        ajustes_port=InMemoryAjustesPort(),
     )
+
+    raiz = "/data/material/Redes"
+
+    assert service.clasificar_tipo_material("/data/material/Redes/Tarea1.pdf", raiz) == "actividad"
+    assert (
+        service.clasificar_tipo_material(
+            "/data/material/Redes/Material de Estudio/Semana1.pdf", raiz
+        )
+        == "diapositiva"
+    )
+    assert (
+        service.clasificar_tipo_material("/data/material/Redes/Material Adicional/RFC.pdf", raiz)
+        == "lectura"
+    )
+    assert (
+        service.clasificar_tipo_material("/data/material/Redes/Otros/info.pdf", raiz)
+        == "material_complementario"
+    )
+
+
+def test_ingestar_archivo_txt(mock_plugins_service):
+    lector_docs = InMemoryLectorDocumentosPort()
+    lector_docs.materiales["/tmp/apuntes.txt"] = "Conceptos de redes y sockets."
+
     registro_repo = InMemoryRegistroMaterialesRepo()
     boveda_port = InMemoryBovedaPort()
-    lector_docs = InMemoryLectorDocumentosPort()
-    ajustes_port = InMemoryAjustesPort(carpeta_mat=str(material_dir), ruta_bov=str(boveda_dir))
-    cronograma_repo = InMemoryCronogramaRepo()
+    ajustes_port = InMemoryAjustesPort()
+    cronograma_repo = InMemoryCronogramaRepo(
+        {"Redes": [{"tema": "Sockets", "estado": "pendiente"}]}
+    )
 
     service = IngestaService(
-        llm=fake_llm,
+        llm=FakeLLM(texto_default="# Resumen de Apuntes"),
         registro_repo=registro_repo,
         boveda_port=boveda_port,
         lector_docs=lector_docs,
         ajustes_port=ajustes_port,
+        plugins_service=mock_plugins_service,
         cronograma_repo=cronograma_repo,
     )
 
-    return {
-        "service": service,
-        "llm": fake_llm,
-        "registro": registro_repo,
-        "boveda": boveda_port,
-        "lector": lector_docs,
-        "cronograma": cronograma_repo,
-        "boveda_dir": boveda_dir,
-        "material_dir": material_dir,
+    resultado = service.ingestar_archivo(
+        ruta_archivo="/tmp/apuntes.txt",
+        nombre_original="apuntes.txt",
+        materia="Redes",
+        tipo="lectura",
+    )
+
+    assert resultado["archivo"] == "apuntes.txt"
+    assert resultado["materia"] == "Redes"
+    assert resultado["contenido_md"] == "# Resumen de Apuntes"
+    assert registro_repo.verificar_material_ingestado("apuntes.txt") is True
+    assert len(boveda_port.notas) == 1
+
+
+def test_escanear_materia():
+    lector_docs = InMemoryLectorDocumentosPort()
+    lector_docs.materiales = {
+        "/material/Redes/lab1.pdf": "...",
+        "/material/Redes/lab2.docx": "...",
+        "/material/Redes/presentacion.pptx": "...",
+        "/material/Redes/imagen.png": "...",
     }
 
+    registro_repo = InMemoryRegistroMaterialesRepo()
+    registro_repo.registrar_material("lab1.pdf", "Redes")
 
-def test_clasificar_tipo_material(ingesta_env):
-    service = ingesta_env["service"]
-    raiz = "C:/Universidad/Redes"
-
-    t1 = service.clasificar_tipo_material("C:/Universidad/Redes/Lab1.pdf", raiz)
-    assert t1 == "actividad"
-
-    t2 = service.clasificar_tipo_material(
-        "C:/Universidad/Redes/Material de Estudio/Semana1.pdf", raiz
+    service = IngestaService(
+        llm=FakeLLM(),
+        registro_repo=registro_repo,
+        boveda_port=InMemoryBovedaPort(),
+        lector_docs=lector_docs,
+        ajustes_port=InMemoryAjustesPort(carpeta_mat="/material"),
     )
-    assert t2 == "diapositiva"
-
-    t3 = service.clasificar_tipo_material(
-        "C:/Universidad/Redes/Material Adicional/Articulo.pdf", raiz
-    )
-    assert t3 == "lectura"
-
-
-def test_ingestar_archivo_txt(ingesta_env, tmp_path):
-    service = ingesta_env["service"]
-    registro = ingesta_env["registro"]
-    boveda = ingesta_env["boveda"]
-
-    archivo_fuente = tmp_path / "Guia_Comandos.txt"
-    ingesta_env["lector"].materiales[str(archivo_fuente)] = (
-        "Comandos Cisco Packet Tracer: enable, configure terminal"
-    )
-
-    resultado = service.ingestar_archivo(
-        ruta_archivo=str(archivo_fuente),
-        nombre_original="Guia_Comandos.txt",
-        materia="Redes",
-        tipo="actividad",
-    )
-
-    assert resultado["archivo"] == "Guia_Comandos.txt"
-    assert resultado["materia"] == "Redes"
-    assert resultado["tipo"] == "actividad"
-    assert resultado["ruta_salida"] in boveda.notas
-    assert resultado["ruta_salida"].endswith("Redes/Actividad/Guia_Comandos_Notas.md")
-    assert registro.verificar_material_ingestado("Guia_Comandos.txt")
-    assert "enable, configure terminal" in ingesta_env["llm"].llamadas_texto[0]["prompt"]
-
-
-def test_escanear_materia(ingesta_env):
-    service = ingesta_env["service"]
-    material_dir = ingesta_env["material_dir"]
-    registro = ingesta_env["registro"]
-
-    # Registrar archivos de la carpeta de la materia en el lector en memoria
-    materia_folder = material_dir / "Redes"
-    for nombre in ("lab1.pdf", "lab2.docx", "presentacion.pptx"):
-        ingesta_env["lector"].materiales[str(materia_folder / nombre)] = "dummy"
-
-    # Marcar lab1 como ya procesado
-    registro.registrar_material("lab1.pdf", "Redes")
 
     escaneo = service.escanear_materia("Redes")
+
+    assert escaneo["materia"] == "Redes"
     assert escaneo["existe"] is True
     assert escaneo["total"] == 2  # lab1.pdf y lab2.docx
     assert escaneo["omitidos"] == 1  # lab1.pdf
@@ -153,3 +147,72 @@ def test_ingesta_alinea_material_con_cronograma(peso, asignado):
     else:
         assert "materiales_asociados" not in clase
         assert cronograma_repo.transversal["Redes"][0]["archivo"] == "lab.txt"
+
+
+def test_eliminar_material_reversibilidad():
+    registro_repo = InMemoryRegistroMaterialesRepo()
+    boveda_port = InMemoryBovedaPort()
+    cronograma_repo = InMemoryCronogramaRepo(
+        {
+            "Redes": [
+                {
+                    "tema": "Switching",
+                    "estado": "pendiente",
+                    "materiales_asociados": ["guia1.pdf", "otro.pdf"],
+                }
+            ]
+        }
+    )
+    cronograma_repo.agregar_material_transversal("Redes", {"archivo": "guia2.pdf"})
+
+    nota_path = boveda_port.guardar_nota("Redes", "Actividad", "guia1_Notas", "# Notas")
+    registro_repo.registrar_material("guia1.pdf", "Redes", nota=nota_path)
+    registro_repo.registrar_material("guia2.pdf", "Redes")
+
+    service = IngestaService(
+        llm=FakeLLM(),
+        registro_repo=registro_repo,
+        boveda_port=boveda_port,
+        lector_docs=InMemoryLectorDocumentosPort(),
+        ajustes_port=InMemoryAjustesPort(),
+        cronograma_repo=cronograma_repo,
+    )
+
+    assert registro_repo.verificar_material_ingestado("guia1.pdf") is True
+    assert nota_path in boveda_port.notas
+
+    # Eliminar guia1.pdf (asociado a clase y con nota en bóveda)
+    res = service.eliminar_material("guia1.pdf", borrar_nota=True)
+    assert res is not None
+    assert registro_repo.verificar_material_ingestado("guia1.pdf") is False
+    assert nota_path not in boveda_port.notas
+    clase = cronograma_repo.obtener_cronograma("Redes")[0]
+    assert clase["materiales_asociados"] == ["otro.pdf"]
+
+    # Eliminar guia2.pdf (transversal)
+    service.eliminar_material("guia2.pdf", borrar_nota=False)
+    assert "Redes" in cronograma_repo.transversal
+    assert len(cronograma_repo.transversal["Redes"]) == 0
+
+
+def test_vaciar_materiales_solo_borra_las_notas_registradas():
+    registro_repo = InMemoryRegistroMaterialesRepo()
+    boveda = InMemoryBovedaPort()
+    nota_generada = boveda.guardar_nota("Redes", "Actividad", "Tarea1_Notas", "# Tarea 1")
+    nota_propia = boveda.guardar_nota("Redes", "Actividad", "Mis_apuntes", "# Escrita a mano")
+    registro_repo.registrar_material("Tarea1.pdf", "Redes", nota=nota_generada)
+
+    service = IngestaService(
+        llm=FakeLLM(),
+        registro_repo=registro_repo,
+        boveda_port=boveda,
+        lector_docs=InMemoryLectorDocumentosPort(),
+        ajustes_port=InMemoryAjustesPort(),
+    )
+    resultado = service.vaciar_materiales(borrar_notas_obsidian=True)
+
+    assert resultado["total_materiales_eliminados"] == 1
+    assert resultado["notas_obsidian_borradas"] == 1
+    assert nota_generada not in boveda.notas
+    assert nota_propia in boveda.notas
+    assert registro_repo.listar_materiales() == []

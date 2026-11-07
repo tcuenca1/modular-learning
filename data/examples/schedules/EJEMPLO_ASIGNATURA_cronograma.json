@@ -1,35 +1,37 @@
 {
-    "clases": [
-        {
-            "fecha": "01/10/2026",
-            "tema": "Arquitectura Hexagonal y Puertos y Adaptadores",
-            "objetivo": "Diseñar aplicaciones desacopladas aplicando separación de responsabilidades y capas.",
-            "contenido": "Principios de diseño hexagonal. Separación de dominio, aplicación e infraestructura. Inversión de dependencias.",
-            "estado": "completado",
-            "materiales_asociados": [
-                "Taller_01_Arquitectura_Hexagonal.pdf"
-            ],
-            "subtemas_adicionales": [
-                "Definición de puertos primarios y secundarios",
-                "Implementación de adaptadores REST y de persistencia",
-                "Pruebas unitarias sobre casos de uso sin acoplamiento a infraestructura"
-            ]
-        },
-        {
-            "fecha": "08/10/2026",
-            "tema": "Modelado de Dominio y Servicios de Aplicación",
-            "objetivo": "Construir servicios de aplicación orquestando entidades del dominio.",
-            "contenido": "Patrones de diseño de dominio, validaciones invariantes y servicios de aplicación.",
-            "estado": "pendiente",
-            "materiales_asociados": [
-                "Clase_02_Servicios_Aplicacion.pptx"
-            ],
-            "subtemas_adicionales": [
-                "Entidades vs Objetos de Valor",
-                "Manejo de errores de dominio",
-                "Inyección de dependencias en Python"
-            ]
-        }
-    ],
-    "material_transversal": []
+  "clases": [
+    {
+      "fecha": "01/10/2026",
+      "tema": "Arquitectura Hexagonal y Puertos y Adaptadores",
+      "objetivo": "Diseñar aplicaciones desacopladas aplicando separación de responsabilidades y capas.",
+      "contenido": "Principios de diseño hexagonal. Separación de dominio, aplicación e infraestructura. Inversión de dependencias.",
+      "estado": "completado",
+      "materiales_asociados": [
+        "Taller_01_Arquitectura_Hexagonal.pdf"
+      ],
+      "subtemas_adicionales": [
+        "Definición de puertos primarios y secundarios",
+        "Implementación de adaptadores REST y de persistencia",
+        "Pruebas unitarias sobre casos de uso sin acoplamiento a infraestructura"
+      ],
+      "id": "174bf42d"
+    },
+    {
+      "fecha": "08/10/2026",
+      "tema": "Modelado de Dominio y Servicios de Aplicación",
+      "objetivo": "Construir servicios de aplicación orquestando entidades del dominio.",
+      "contenido": "Patrones de diseño de dominio, validaciones invariantes y servicios de aplicación.",
+      "estado": "pendiente",
+      "materiales_asociados": [
+        "Clase_02_Servicios_Aplicacion.pptx"
+      ],
+      "subtemas_adicionales": [
+        "Entidades vs Objetos de Valor",
+        "Manejo de errores de dominio",
+        "Inyección de dependencias en Python"
+      ],
+      "id": "e67e3403"
+    }
+  ],
+  "material_transversal": []
 }

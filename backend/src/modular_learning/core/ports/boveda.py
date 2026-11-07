@@ -31,5 +31,9 @@ class BovedaNotasPort(ABC):
     ) -> bool:
         """Actualiza el archivo índice de la asignatura con un enlace bidireccional a la nota."""
 
+    @abstractmethod
+    def eliminar_nota(self, ruta: str, ruta_boveda: str | None = None) -> bool:
+        """Borra una nota Markdown de la bóveda; solo actúa dentro de ella. False si no existía."""
+
 
 __all__ = ["BovedaNotasPort"]

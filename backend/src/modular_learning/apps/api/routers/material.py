@@ -16,11 +16,39 @@ from modular_learning.apps.api.dependencies import (
     get_ingesta_service,
     get_materias_service,
 )
-from modular_learning.apps.api.schemas import SincronizarMaterial
+from modular_learning.apps.api.schemas import SincronizarMaterial, VaciarMaterialesRequest
 from modular_learning.core.application.ingesta import EXTENSIONES_MATERIAL, IngestaService
 from modular_learning.core.application.materias import MateriasService
 
 router = APIRouter(prefix="/api/material", tags=["material"])
+
+
+@router.get("/registrados")
+def listar_materiales_registrados(
+    servicio: Annotated[IngestaService, Depends(get_ingesta_service)],
+) -> dict[str, list[dict[str, Any]]]:
+    return {"materiales": servicio.listar_materiales_ingestados()}
+
+
+@router.post("/vaciar")
+def vaciar_materiales(
+    body: VaciarMaterialesRequest,
+    servicio: Annotated[IngestaService, Depends(get_ingesta_service)],
+) -> dict[str, Any]:
+    resultado = servicio.vaciar_materiales(borrar_notas_obsidian=body.borrar_notas_obsidian)
+    return {"ok": True, "resultado": resultado}
+
+
+@router.delete("/{nombre_archivo:path}")
+def eliminar_material(
+    nombre_archivo: str,
+    servicio: Annotated[IngestaService, Depends(get_ingesta_service)],
+    borrar_nota: bool = True,
+) -> dict[str, Any]:
+    eliminado = servicio.eliminar_material(nombre_archivo, borrar_nota=borrar_nota)
+    if not eliminado:
+        raise HTTPException(status_code=404, detail="Material no encontrado en el registro.")
+    return {"ok": True, "eliminado": eliminado}
 
 
 @router.get("/escanear")
@@ -29,11 +57,7 @@ def escanear_material(
     materias_srv: Annotated[MateriasService, Depends(get_materias_service)],
     materia: str | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
-    materias = (
-        [materia]
-        if materia and materia != "__todas__"
-        else materias_srv.listar_materias()
-    )
+    materias = [materia] if materia and materia != "__todas__" else materias_srv.listar_materias()
     return {"escaneos": servicio.escanear(materias)}
 
 
@@ -43,11 +67,7 @@ def sincronizar_material_stream(
     servicio: Annotated[IngestaService, Depends(get_ingesta_service)],
     materias_srv: Annotated[MateriasService, Depends(get_materias_service)],
 ) -> StreamingResponse:
-    materias = (
-        [body.materia]
-        if body.materia != "__todas__"
-        else materias_srv.listar_materias()
-    )
+    materias = [body.materia] if body.materia != "__todas__" else materias_srv.listar_materias()
 
     def eventos() -> Iterator[str]:
         try:
@@ -95,3 +115,6 @@ def ingestar_material(
             raise HTTPException(status_code=400, detail=str(e)) from e
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+__all__ = ["router"]

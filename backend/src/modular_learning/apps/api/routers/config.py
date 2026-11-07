@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,7 +18,9 @@ router = APIRouter(prefix="/api/config", tags=["config"])
 def obtener_configuracion(
     servicio: Annotated[ConfiguracionService, Depends(get_configuracion_service)],
 ) -> dict[str, Any]:
-    return servicio.obtener_ajustes()
+    datos = dict(servicio.obtener_ajustes())
+    datos["en_nube"] = bool(os.getenv("RENDER") or os.getenv("DATABASE_URL"))
+    return datos
 
 
 @router.post("")

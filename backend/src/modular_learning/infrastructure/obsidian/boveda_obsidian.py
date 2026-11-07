@@ -119,5 +119,18 @@ tags: [{materia_sin_espacios}, repaso, tutor_ia]
             print(f"⚠️ Error al actualizar el índice de Obsidian para {materia}: {e}")
             return False
 
+    def eliminar_nota(self, ruta: str, ruta_boveda: str | None = None) -> bool:
+        """Borra la nota si es un .md dentro de la bóveda; nunca toca nada fuera de ella."""
+        try:
+            boveda = os.path.realpath(self._resolver_ruta_boveda(ruta_boveda))
+        except ValueError:
+            return False
+        destino = os.path.realpath(ruta)
+        dentro = os.path.commonpath([boveda, destino]) == boveda and destino != boveda
+        if not dentro or not destino.lower().endswith(".md") or not os.path.isfile(destino):
+            return False
+        os.remove(destino)
+        return True
+
 
 __all__ = ["BovedaObsidianAdapter"]

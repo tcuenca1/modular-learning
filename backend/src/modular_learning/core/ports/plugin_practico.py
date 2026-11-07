@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class PluginPracticoBase(ABC):
@@ -22,3 +25,20 @@ class PluginPracticoBase(ABC):
     @abstractmethod
     def cargar_contexto_reciente(self) -> str:
         """Carga el contexto técnico reciente guardado para inyectarlo al system prompt de la IA."""
+
+
+class PluginConfigRepoPort(ABC):
+    """Puerto para persistir la configuración de carpetas y materias de los plugins prácticos."""
+
+    @abstractmethod
+    def obtener_configuraciones(self) -> dict[str, dict[str, Any]]:
+        """Retorna todas las configuraciones almacenadas por clave de plugin."""
+
+    @abstractmethod
+    def guardar_configuracion(
+        self, clave: str, carpeta: str | None = None, materia: str | None = None
+    ) -> dict[str, Any]:
+        """Guarda o actualiza la configuración para el plugin indicado."""
+
+
+__all__ = ["PluginConfigRepoPort", "PluginPracticoBase"]

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 
 from modular_learning.apps.api.dependencies import get_guias_service
 from modular_learning.apps.api.schemas import NuevaGuia, RevisionGuia
@@ -27,6 +27,7 @@ def _resumen(guia: GuiaOffline) -> dict[str, Any]:
         "revisada": guia.revisada,
         "completa": guia.completa,
         "pendiente_de_confirmar": guia.pendiente_de_confirmar,
+        "tiempo_minutos": guia.tiempo_minutos,
         "temas": [c.tema for c in guia.clases],
     }
 
@@ -52,7 +53,7 @@ def guias_pendientes(servicio: Servicio) -> dict[str, list[dict[str, Any]]]:
 @router.post("", status_code=201)
 def crear_guia(body: NuevaGuia, servicio: Servicio) -> dict[str, Any]:
     try:
-        guia = servicio.crear(body.materia.strip(), body.temas)
+        guia = servicio.crear(body.materia.strip(), body.temas, tiempo_minutos=body.tiempo_minutos)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     return guia.a_dict()
@@ -61,6 +62,30 @@ def crear_guia(body: NuevaGuia, servicio: Servicio) -> dict[str, Any]:
 @router.get("/{guia_id}")
 def obtener_guia(guia_id: str, servicio: Servicio) -> dict[str, Any]:
     return _obtener(servicio, guia_id).a_dict()
+
+
+@router.delete("/{guia_id}")
+def eliminar_guia(guia_id: str, servicio: Servicio) -> dict[str, Any]:
+    ok = servicio.eliminar_guia(guia_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Guía no encontrada.")
+    return {"ok": True}
+
+
+@router.get("/{guia_id}/pdf")
+def descargar_pdf(guia_id: str, servicio: Servicio) -> Response:
+    """Descarga directamente la guía formateada y estructurada como archivo PDF."""
+    try:
+        pdf_bytes, filename = servicio.exportar_pdf(guia_id)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/{guia_id}/clases/{indice}")
@@ -82,6 +107,15 @@ def registrar_revision(guia_id: str, body: RevisionGuia, servicio: Servicio) -> 
     resultados = {r.indice: (r.resultado, r.dudas) for r in body.resultados}
     try:
         return servicio.registrar_revision(guia_id, resultados)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.post("/{guia_id}/deshacer")
+def deshacer_revision(guia_id: str, servicio: Servicio) -> dict[str, Any]:
+    _obtener(servicio, guia_id)
+    try:
+        return servicio.deshacer_revision(guia_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 

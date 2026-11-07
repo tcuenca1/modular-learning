@@ -15,6 +15,7 @@ from modular_learning.core.application.guias import GuiaOfflineService
 from modular_learning.core.application.ingesta import IngestaService
 from modular_learning.core.application.materias import MateriasService
 from modular_learning.core.application.plugins import PluginsService
+from modular_learning.core.application.proyectos import ProyectosService
 from modular_learning.core.application.repaso import RepasoService
 from modular_learning.core.application.silabo import SilaboService
 from modular_learning.core.application.telemetria import TelemetriaService
@@ -76,3 +77,7 @@ def get_repaso_service(cont: ContainerDep) -> RepasoService:
 
 def get_guias_service(cont: ContainerDep) -> GuiaOfflineService:
     return cont.guias_service
+
+
+def get_proyectos_service(cont: ContainerDep) -> ProyectosService:
+    return cont.proyectos_service

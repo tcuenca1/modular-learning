@@ -78,6 +78,28 @@ def test_plugin_invalido(client):
     assert client.post("/api/plugins/actualizar", json={"seleccion": "Hack"}).status_code == 400
 
 
+def test_plugins_listar_y_configurar(client, tmp_path):
+    # Listar plugins
+    res_list = client.get("/api/plugins")
+    assert res_list.status_code == 200
+    datos = res_list.json()
+    assert "opciones" in datos
+    assert "plugins" in datos
+    assert any(p["id"] == "cisco" for p in datos["plugins"])
+
+    # Configurar carpeta y materia para cisco
+    carpeta_redes = str(tmp_path / "redes_lab")
+    res_cfg = client.post(
+        "/api/plugins/config",
+        json={"clave": "cisco", "carpeta": carpeta_redes, "materia": "conmutacion-avanzada"},
+    )
+    assert res_cfg.status_code == 200
+    cfg_data = res_cfg.json()
+    assert cfg_data["ok"] is True
+    assert cfg_data["config"]["carpeta"] == carpeta_redes
+    assert cfg_data["config"]["materia"] == "conmutacion-avanzada"
+
+
 def test_silabo_formato_no_soportado(client):
     r = client.post("/api/silabo/extraer", files={"archivo": ("x.exe", b"abc")})
     assert r.status_code == 400
@@ -328,3 +350,47 @@ def test_acceso_sin_contrasena_configurada_no_queda_abierto(tmp_path, monkeypatc
     client = _cliente_con_acceso(tmp_path, monkeypatch, "")
     assert client.get("/api/materias", auth=("ana", "")).status_code == 503
     assert client.get("/api/salud").status_code == 200
+
+
+def test_proyectos_endpoints(client, tmp_path):
+    proy_dir = tmp_path / "sgsi_proyecto"
+    proy_dir.mkdir()
+    (proy_dir / "01_normativa.txt").write_text("politica de seguridad", encoding="utf-8")
+
+    # Listar inicialmente
+    r_list = client.get("/api/proyectos")
+    assert r_list.status_code == 200
+    assert "proyectos" in r_list.json()
+
+    # Ingestar proyecto
+    r_ing = client.post(
+        "/api/proyectos/ingestar",
+        json={
+            "materia": "Seguridad de la Informacion",
+            "nombre": "sgsi_proyecto",
+            "parcial": "general",
+            "ruta": str(proy_dir),
+            "tipo": "documental_auditoria",
+        },
+    )
+    assert r_ing.status_code == 200
+    proy = r_ing.json()["proyecto"]
+    p_id = proy["id"]
+
+    # Consultar proyecto y estado
+    r_get = client.get(f"/api/proyectos/{p_id}")
+    assert r_get.status_code == 200
+    assert r_get.json()["proyecto"]["nombre"] == "sgsi_proyecto"
+
+    r_est = client.get(f"/api/proyectos/{p_id}/estado")
+    assert r_est.status_code == 200
+    assert r_est.json()["estado"] == "al_dia"
+
+    # Actualizar proyecto
+    r_act = client.post(f"/api/proyectos/{p_id}/actualizar")
+    assert r_act.status_code == 200
+
+    # Vaciar materiales y proyectos
+    r_vac = client.post("/api/material/vaciar", json={"borrar_notas_obsidian": False})
+    assert r_vac.status_code == 200
+    assert r_vac.json()["ok"] is True
