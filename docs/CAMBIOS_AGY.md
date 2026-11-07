@@ -70,6 +70,34 @@ Escribí `docs/manual/MANUAL_FUNCIONAL.md` siguiendo las 6 secciones requeridas 
 
 ---
 
+## P15. Desplegable de asignaturas al subir archivos
+
+- **Commit:** 1384372 `feat(web): P15 desplegable de asignaturas al subir archivos`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/views/MaterialView.tsx
+  - frontend/src/views/SilabosView.tsx
+
+### Qué hice
+En `MaterialView.tsx`, se reemplazó el campo de texto libre para la asignatura en la subida individual por un elemento `<select>` cargado con el catálogo de `api.getMaterias()`, impidiendo subir material a asignaturas inexistentes.
+En `SilabosView.tsx`, se implementó un desplegable `<select>` con las asignaturas del catálogo más la opción «Nueva asignatura…» (que despliega el campo de texto para el nuevo nombre). Al seleccionar o extraer un sílabo cuyo nombre sugerido coincide con una asignatura del catálogo (mediante `buscarMateriaPorClave`), se selecciona automáticamente dicha asignatura sin abrir el campo de texto libre.
+
+### Cómo lo verifiqué
+- pytest: 136 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 kept, 0 broken
+- npm run lint: ok (0 warnings, 0 errors con oxlint)
+- npm run build: ok (compilación completa sin errores)
+- npm test: 25 passed en 3 suites (vitest)
+- Prueba manual: Validación en el formulario de subida individual de `MaterialView` donde la asignatura es seleccionada obligatoriamente del catálogo mediante el desplegable; y en `SilabosView` donde subir un archivo con nombre en mayúsculas como `INGENIERIA_DE_SOFTWARE_II.pdf` selecciona automáticamente `Ingeniería de Software II` en el desplegable sin mostrar el campo de texto libre, mientras que elegir «Nueva asignatura…» muestra el `<Input>` para escribirla.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P14. No sobrescribir el nombre de la asignatura del catálogo
 
 - **Commit:** a9b71aa `feat(core): P14 preservar nombre de catalogo y resolver materia en casos de uso`
