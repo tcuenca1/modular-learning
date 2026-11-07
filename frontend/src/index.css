@@ -125,21 +125,9 @@
     font-feature-settings: "ss01";
   }
 
-  @media (prefers-color-scheme: dark) {
-    body {
-      background-color: var(--color-slate-950);
-      color: var(--color-slate-100);
-    }
-  }
-
   html.dark body {
     background-color: var(--color-slate-950);
     color: var(--color-slate-100);
-  }
-
-  html.light body {
-    background-color: var(--color-slate-50);
-    color: var(--color-slate-900);
   }
 
   h1,
@@ -169,28 +157,10 @@
     -webkit-box-decoration-break: clone;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .marcador {
-      background-image: linear-gradient(
-        to top,
-        color-mix(in oklab, var(--color-marcador) 35%, transparent) 0 0.42em,
-        transparent 0.42em
-      );
-    }
-  }
-
   html.dark .marcador {
     background-image: linear-gradient(
       to top,
       color-mix(in oklab, var(--color-marcador) 35%, transparent) 0 0.42em,
-      transparent 0.42em
-    );
-  }
-
-  html.light .marcador {
-    background-image: linear-gradient(
-      to top,
-      color-mix(in oklab, var(--color-marcador) 70%, transparent) 0 0.42em,
       transparent 0.42em
     );
   }
@@ -290,32 +260,30 @@
     font-weight: 600;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .prose {
-      color: var(--color-slate-200);
-    }
-    .prose h1,
-    .prose h2,
-    .prose h3,
-    .prose h4,
-    .prose strong {
-      color: var(--color-slate-50);
-    }
-    .prose a {
-      color: var(--color-indigo-300);
-    }
-    .prose blockquote {
-      color: var(--color-slate-400);
-    }
-    .prose :not(pre) > code {
-      background: var(--color-slate-800);
-      border-color: var(--color-slate-700);
-    }
-    .prose hr,
-    .prose th,
-    .prose td {
-      border-color: var(--color-slate-800);
-    }
+  html.dark .prose {
+    color: var(--color-slate-200);
+  }
+  html.dark .prose h1,
+  html.dark .prose h2,
+  html.dark .prose h3,
+  html.dark .prose h4,
+  html.dark .prose strong {
+    color: var(--color-slate-50);
+  }
+  html.dark .prose a {
+    color: var(--color-indigo-300);
+  }
+  html.dark .prose blockquote {
+    color: var(--color-slate-400);
+  }
+  html.dark .prose :not(pre) > code {
+    background: var(--color-slate-800);
+    border-color: var(--color-slate-700);
+  }
+  html.dark .prose hr,
+  html.dark .prose th,
+  html.dark .prose td {
+    border-color: var(--color-slate-800);
   }
 
   .cifra {
@@ -348,29 +316,41 @@
   }
 
   /* Los estilos de lectura en oscuro no aplican sobre el papel */
-  .hoja .prose {
+  .hoja .prose,
+  html.dark .hoja .prose {
     color: var(--color-slate-800);
   }
   .hoja .prose h1,
   .hoja .prose h2,
   .hoja .prose h3,
   .hoja .prose h4,
-  .hoja .prose strong {
+  .hoja .prose strong,
+  html.dark .hoja .prose h1,
+  html.dark .hoja .prose h2,
+  html.dark .hoja .prose h3,
+  html.dark .hoja .prose h4,
+  html.dark .hoja .prose strong {
     color: var(--color-slate-950);
   }
-  .hoja .prose a {
+  .hoja .prose a,
+  html.dark .hoja .prose a {
     color: var(--color-indigo-700);
   }
-  .hoja .prose blockquote {
+  .hoja .prose blockquote,
+  html.dark .hoja .prose blockquote {
     color: var(--color-slate-600);
   }
-  .hoja .prose :not(pre) > code {
+  .hoja .prose :not(pre) > code,
+  html.dark .hoja .prose :not(pre) > code {
     background: var(--color-slate-100);
     border-color: var(--color-slate-200);
   }
   .hoja .prose hr,
   .hoja .prose th,
-  .hoja .prose td {
+  .hoja .prose td,
+  html.dark .hoja .prose hr,
+  html.dark .hoja .prose th,
+  html.dark .hoja .prose td {
     border-color: var(--color-slate-200);
   }
 }
