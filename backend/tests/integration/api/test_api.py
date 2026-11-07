@@ -271,7 +271,7 @@ def test_cronogramas_para_calendario(client, tmp_path):
         _json.dumps({"clases": [{"fecha": "27/10/2026", "tema": "VLAN"}]}), encoding="utf-8"
     )
     datos = client.get("/api/materias/cronogramas").json()["cronogramas"]
-    assert datos == {"Redes": [{"fecha": "27/10/2026", "tema": "VLAN"}]}
+    assert datos == {"redes": [{"fecha": "27/10/2026", "tema": "VLAN"}]}
 
 
 def test_guia_offline_flujo_completo(app, client, tmp_path):

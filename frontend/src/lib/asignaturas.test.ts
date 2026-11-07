@@ -90,6 +90,19 @@ describe('clasesConFecha y materiasConCronograma', () => {
     expect(mats[0].materia).toBe('Ingeniería de Software II')
     expect(mats[1].materia).toBe('Programación Web')
   })
+
+  it('cruza cronogramas cuyas claves son slugs con el catálogo', () => {
+    const cronogramasSlug = {
+      'ingenieria-de-software-ii': [
+        { fecha: '12/10/2026', tema: 'Arquitectura', estado: 'completado' },
+      ],
+    }
+    const fechadas = clasesConFecha(cronogramasSlug, catalogo)
+    expect(fechadas[0].materia).toBe('Ingeniería de Software II')
+
+    const mats = materiasConCronograma(cronogramasSlug, catalogo)
+    expect(mats[0].materia).toBe('Ingeniería de Software II')
+  })
 })
 
 describe('enlaceTutoria', () => {

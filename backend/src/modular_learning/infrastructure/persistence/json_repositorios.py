@@ -167,7 +167,7 @@ class JsonCronogramaRepo(CronogramaRepo):
     def guardar_cronograma(self, materia: str, clases: list[dict[str, Any]]) -> str:
         asignar_ids(clases)
         clave = self._encontrar_clave_cronograma(materia) or (
-            f"{self.prefijo}{self._slug(materia)}{SUFIJO_CRONOGRAMA}"
+            f"{self.prefijo}{slug_materia(materia)}{SUFIJO_CRONOGRAMA}"
         )
 
         data_orig: Any = None
@@ -192,10 +192,8 @@ class JsonCronogramaRepo(CronogramaRepo):
     def listar_cronogramas(self) -> dict[str, list[dict[str, Any]]]:
         cronogramas: dict[str, list[dict[str, Any]]] = {}
         for nombre in sorted(self._nombres()):
-            if nombre.endswith(SUFIJO_CRONOGRAMA):
-                materia = nombre.removesuffix(SUFIJO_CRONOGRAMA).replace("_", " ")
-            else:
-                materia = nombre.removesuffix(".json").replace("_", " ")
+            base = nombre.removesuffix(SUFIJO_CRONOGRAMA).removesuffix(".json")
+            slug = slug_materia(base)
             try:
                 data = self._leer(self.prefijo + nombre)
             except Exception:
@@ -204,7 +202,7 @@ class JsonCronogramaRepo(CronogramaRepo):
                 data.get("clases", data.get("cronograma", [])) if isinstance(data, dict) else data
             )
             if isinstance(clases, list):
-                cronogramas[materia] = clases
+                cronogramas[slug] = clases
         return cronogramas
 
     def obtener_proximas_clases(self, materia: str) -> list[dict[str, Any]]:
@@ -305,7 +303,7 @@ class JsonCronogramaRepo(CronogramaRepo):
     def guardar_parciales(self, materia: str, parciales: list[dict[str, Any]]) -> None:
         clave = self._encontrar_clave_cronograma(materia)
         if not clave:
-            clave = f"{self.prefijo}{self._slug(materia)}{SUFIJO_CRONOGRAMA}"
+            clave = f"{self.prefijo}{slug_materia(materia)}{SUFIJO_CRONOGRAMA}"
             data = {"clases": [], "parciales": parciales}
         else:
             data = self._leer(clave)

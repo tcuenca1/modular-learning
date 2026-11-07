@@ -102,7 +102,7 @@ class InMemoryCronogramaRepo(CronogramaRepo):
         return False
 
     def listar_cronogramas(self) -> dict[str, list[dict[str, Any]]]:
-        return dict(self.cronogramas)
+        return {slug_materia(k): v for k, v in self.cronogramas.items()}
 
     def obtener_proximas_clases(self, materia: str) -> list[dict[str, Any]]:
         clases = self.obtener_cronograma(materia) or []

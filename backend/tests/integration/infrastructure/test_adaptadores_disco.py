@@ -19,8 +19,8 @@ def test_cronograma_repo_listar_y_material_transversal(tmp_path):
     repo = JsonCronogramaRepo(str(tmp_path))
 
     assert repo.listar_cronogramas() == {
-        "IoT": [{"tema": "MQTT", "estado": "pendiente"}],
-        "Redes": [{"tema": "VLAN", "estado": "completado"}],
+        "iot": [{"tema": "MQTT", "estado": "pendiente"}],
+        "redes": [{"tema": "VLAN", "estado": "completado"}],
     }
 
     repo.agregar_material_transversal("IoT", {"archivo": "x.pdf"})
@@ -130,3 +130,28 @@ def test_repo_de_guias_persiste_y_ordena(tmp_path):
     releida = JsonGuiasRepo(ruta)
     assert [g.id for g in releida.listar()] == ["b", "a"]
     assert releida.obtener("b") == nueva
+
+
+def test_cronograma_guardado_con_slug_y_antiguo_en_mayusculas_se_lee_con_slug(tmp_path):
+    repo = JsonCronogramaRepo(str(tmp_path))
+
+    # 1. Un cronograma antiguo en mayúsculas
+    (tmp_path / "INGENIERIA_DE_SOFTWARE_II_cronograma.json").write_text(
+        json.dumps({"clases": [{"tema": "Arquitectura", "estado": "completado"}]}),
+        encoding="utf-8",
+    )
+
+    # Se sigue leyendo por cualquier variante del nombre
+    clases = repo.obtener_cronograma("Ingeniería de Software II")
+    assert clases is not None
+    assert clases[0]["tema"] == "Arquitectura"
+
+    # listar_cronogramas lo devuelve con su slug
+    cronogramas = repo.listar_cronogramas()
+    assert "ingenieria-de-software-ii" in cronogramas
+    assert cronogramas["ingenieria-de-software-ii"][0]["tema"] == "Arquitectura"
+
+    # 2. Un cronograma nuevo se guarda con el slug
+    ruta = repo.guardar_cronograma("Seguridad de la Información", [{"tema": "Criptografía"}])
+    assert ruta.endswith("seguridad-de-la-informacion_cronograma.json")
+    assert (tmp_path / "seguridad-de-la-informacion_cronograma.json").exists()
