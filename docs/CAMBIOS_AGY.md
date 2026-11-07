@@ -33,6 +33,35 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P10. Migración: no sobrescribir cronogramas al renombrar
+
+- **Commit:** 75f0df9 `fix(scripts): P10 evitar sobrescribir cronogramas y manejar conflictos al migrar`
+- **Estado:** hecha
+- **Archivos:**
+  - scripts/migrar_datos.py
+  - backend/tests/integration/infrastructure/test_migracion.py
+
+### Qué hice
+Se detectan colisiones donde un archivo a renombrar (`clave`) tiene como destino una `nueva_clave` que ya existe en el almacén. En tal caso, no se escribe ni se borra ningún archivo de esa materia, se emite un aviso por pantalla y se incrementa el contador `resumen["conflictos"]`.
+Se adaptaron los mensajes y condiciones de escritura para usar `sin_id` en vez de tratar el valor de retorno de `asignar_ids` como entero.
+Se reemplazó la captura genérica de `Exception` por `json.JSONDecodeError` informando en consola de archivos JSON corruptos, y se formateó el script a 100 columnas sin errores de ruff.
+
+### Cómo lo verifiqué
+- pytest: 130 passed, 2 skipped
+- ruff check / ruff format: ok en scripts y backend
+- import-linter: 3 kept, 0 broken
+- Tests nuevos:
+  - backend/tests/integration/infrastructure/test_migracion.py::test_migracion_conflicto_no_sobrescribe
+- Prueba manual: Ejecución del test de integración de migración con dos documentos coexistentes (`schedules/REDES_cronograma.json` y `schedules/redes_cronograma.json`), confirmando que ambos quedan intactos con `conflictos == 1` y que el test de idempotencia sigue pasando.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+<!-- lo rellena Claude -->
+
+---
+
 ## P9. Corregir la regresión de carga de P8
 
 - **Commit:** d843806 `fix(web): P9 corregir regresion de carga al renombrar o guardar silabo`
