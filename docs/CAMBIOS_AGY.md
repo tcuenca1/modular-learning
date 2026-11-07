@@ -33,6 +33,35 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P3. Crear una guia debe avisar de las clases que no existen
+
+- **Commit:** 96e7fc5 `fix(core): P3 crear guia valida existencia de todas las clases solicitadas`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/core/application/guias.py
+  - backend/tests/unit/application/test_guias_service.py
+
+### Qué hice
+Se actualizó la validación en `GuiaOfflineService.crear` para verificar previamente la presencia de todas las clases solicitadas en el cronograma.
+Cada elemento recibido en `temas` se valida tanto contra los `id` de clase existentes como contra los nombres de `tema`.
+Si cualquiera de las clases no existe, se lanza `ValueError` enumerando explícitamente los identificadores o nombres ausentes, evitando que se omitan en silencio.
+
+### Cómo lo verifiqué
+- pytest: 126 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- Tests nuevos:
+  - backend/tests/unit/application/test_guias_service.py::test_crear_guia_avisa_de_clases_inexistentes_mezclando_id_valido
+- Prueba manual: Verificación con test parametrizado y test unitario con lista mixta de ID válido e ID inexistente (`id-inexistente`), comprobando que se lanza `ValueError` y se nombra la clase faltante.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+*(Pendiente de revisión)*
+
+---
+
 ## P2. Deshacer la revision de una guia solo debe deshacer lo que hizo esa guia
 
 - **Commit:** b87d1be `fix(core): P2 deshacer guia solo afecta a sus propios eventos y preserva estado previo`
