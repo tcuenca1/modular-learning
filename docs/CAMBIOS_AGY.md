@@ -33,6 +33,42 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P4. Cronogramas guardados con el slug de la materia
+
+- **Commit:** 5acd30d `feat(infra): P4 guardar cronogramas con slug y listar con claves de slug`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/infrastructure/persistence/json_repositorios.py
+  - backend/tests/integration/api/test_api.py
+  - backend/tests/integration/infrastructure/test_adaptadores_disco.py
+  - backend/tests/integration/infrastructure/test_almacen.py
+  - backend/tests/unit/application/fake_adapters.py
+  - frontend/src/lib/asignaturas.test.ts
+
+### Qué hice
+`JsonCronogramaRepo.guardar_cronograma` y `guardar_parciales` ahora generan las rutas de nuevos cronogramas usando `slug_materia(materia)`.
+`JsonCronogramaRepo.listar_cronogramas` y `InMemoryCronogramaRepo.listar_cronogramas` retornan las claves de cada cronograma normalizadas con `slug_materia`.
+La búsqueda exacta por slug se preserva tanto para archivos existentes con nombres antiguos en mayúsculas como para los nuevos slugs.
+Los consumidores de frontend (`CalendarioView`, `HoyView`, `GuiaView`, `lib/asignaturas.ts`) cruzan las claves de cronograma con el catálogo a través de `clave()`, resolviendo y mostrando correctamente el nombre oficial de la materia.
+
+### Cómo lo verifiqué
+- pytest: 127 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint (12 avisos existentes de oxlint, 0 errores), build ok, vitest (15 passed)
+- Tests nuevos:
+  - backend/tests/integration/infrastructure/test_adaptadores_disco.py::test_cronograma_guardado_con_slug_y_antiguo_en_mayusculas_se_lee_con_slug
+  - frontend/src/lib/asignaturas.test.ts::cruza cronogramas cuyas claves son slugs con el catálogo
+- Prueba manual: Tests de integración verificando persistencia con slug para cronogramas nuevos y compatibilidad de lectura y listado con cronogramas existentes en mayúsculas.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+*(Pendiente de revisión)*
+
+---
+
 ## P3. Crear una guia debe avisar de las clases que no existen
 
 - **Commit:** 96e7fc5 `fix(core): P3 crear guia valida existencia de todas las clases solicitadas`
