@@ -14,6 +14,7 @@ import {
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import type { ClaseCronograma, MateriaItem, ParcialItem } from '@/api/types'
+import { buscarMateriaPorClave } from '@/lib/asignaturas'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -73,7 +74,7 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
   const [clasesExtraidas, setClasesExtraidas] = useState<ClaseCronograma[]>([])
   const [recarga, setRecarga] = useState(0)
 
-  const cargarCatalogo = useCallback(async (seleccionarSlug?: string) => {
+  const cargarCatalogo = useCallback(async (seleccionar?: string) => {
     try {
       const res = await api.getMaterias()
       const lista: MateriaItem[] = res.catalogo && res.catalogo.length > 0
@@ -82,11 +83,22 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
 
       setMaterias(lista)
       if (lista.length > 0) {
-        const destino = seleccionarSlug && lista.find((m) => m.slug === seleccionarSlug)
-          ? seleccionarSlug
-          : materiaActiva && lista.find((m) => m.slug === materiaActiva)
-            ? materiaActiva
-            : lista[0].slug
+        let destino = ''
+        if (seleccionar) {
+          const coincidencia = buscarMateriaPorClave(lista, seleccionar)
+          if (coincidencia) {
+            destino = coincidencia.slug
+          }
+        }
+        if (!destino && materiaActiva) {
+          const coincideActiva = lista.find((m) => m.slug === materiaActiva)
+          if (coincideActiva) {
+            destino = materiaActiva
+          }
+        }
+        if (!destino) {
+          destino = lista[0].slug
+        }
         setMateriaActiva(destino)
         setCargandoClases(true)
         setRecarga((r) => r + 1)
@@ -457,8 +469,7 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
       })
       setClasesExtraidas([])
       setFile(null)
-      const slugGuardado = subidaMateria.trim().toLowerCase().replace(/\s+/g, '-')
-      await cargarCatalogo(slugGuardado)
+      await cargarCatalogo(subidaMateria.trim())
       setTabActiva('gestionar')
     } catch (err) {
       toast.error('No pude guardar el cronograma', {

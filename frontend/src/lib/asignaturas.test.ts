@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buscarMateriaPorClave,
   clave,
   clasesConFecha,
   describirFecha,
@@ -124,3 +125,33 @@ describe('enlaceTutoria', () => {
     )
   })
 })
+
+describe('buscarMateriaPorClave', () => {
+  const catalogo = [
+    { slug: 'ingenieria-de-software-ii', nombre: 'Ingeniería de Software II' },
+    { slug: 'redes-de-computadores', nombre: 'Redes de Computadores' },
+  ]
+
+  it('encuentra por nombre exacto con tildes', () => {
+    const m = buscarMateriaPorClave(catalogo, 'Ingeniería de Software II')
+    expect(m?.slug).toBe('ingenieria-de-software-ii')
+  })
+
+  it('encuentra por slug normalizado sin tildes', () => {
+    const m = buscarMateriaPorClave(catalogo, 'ingenieria-de-software-ii')
+    expect(m?.nombre).toBe('Ingeniería de Software II')
+  })
+
+  it('encuentra aunque el texto buscado tenga tildes en el slug o este en mayusculas', () => {
+    const m1 = buscarMateriaPorClave(catalogo, 'ingeniería-de-software-ii')
+    expect(m1?.slug).toBe('ingenieria-de-software-ii')
+    const m2 = buscarMateriaPorClave(catalogo, 'INGENIERIA DE SOFTWARE II')
+    expect(m2?.slug).toBe('ingenieria-de-software-ii')
+  })
+
+  it('retorna undefined si no coincide', () => {
+    expect(buscarMateriaPorClave(catalogo, 'Física')).toBeUndefined()
+    expect(buscarMateriaPorClave(catalogo, '')).toBeUndefined()
+  })
+})
+

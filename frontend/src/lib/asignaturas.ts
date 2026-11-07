@@ -1,5 +1,5 @@
 /** Utilidades compartidas para cruzar asignaturas, cronogramas y fechas de clase. */
-import type { ClaseCronograma } from '@/api/types'
+import type { ClaseCronograma, MateriaItem } from '@/api/types'
 
 export const DIA_MS = 86_400_000
 
@@ -99,3 +99,11 @@ export function materiasConCronograma(
     .map(([nombre, clases]) => ({ materia: porClave.get(clave(nombre)) ?? nombre, clases }))
     .sort((a, b) => a.materia.localeCompare(b.materia))
 }
+
+/** Busca una asignatura en el catálogo comparando slug o nombre normalizados con clave(). */
+export function buscarMateriaPorClave(materias: MateriaItem[], buscado: string): MateriaItem | undefined {
+  const norm = clave(buscado)
+  if (!norm) return undefined
+  return materias.find((m) => m.slug === buscado || clave(m.slug) === norm || clave(m.nombre) === norm)
+}
+
