@@ -33,6 +33,39 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P8. Avisos de oxlint
+
+- **Commit:** 306c5ac `refactor(web): P8 corregir avisos de oxlint`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/components/ThemeToggle.tsx
+  - frontend/src/views/MaterialView.tsx
+  - frontend/src/views/PluginsView.tsx
+  - frontend/src/views/SilabosView.tsx
+
+### Qué hice
+Se corrigieron los 12 avisos reportados por `oxlint` sin alterar el comportamiento de la interfaz:
+- En `ThemeToggle.tsx`: se inicializó el estado con `useState(obtenerTemaGuardado)` eliminando la llamada sincrónica a `setTemaState` dentro de `useEffect`.
+- En `PluginsView.tsx`: se eliminó la llamada sincrónica a `setLoading` antes de peticiones en efectos y se cargó la lista en diferido con `.then()` protegiendo cancelaciones.
+- En `SilabosView.tsx`: se sustituyeron `catch (_err)` no utilizados por `catch` sin parámetro; se eliminó el estado no leído `_cargandoMaterias`; se estructuró la carga de asignaturas y cronograma con `useCallback` y promesas asíncronas, y se movió el reseteo de edición al cambio de materia.
+- En `MaterialView.tsx`: se ordenó la declaración de `verificarEstados` antes de `cargarProyectos` con `useCallback` y se resolvieron las dependencias faltantes en los efectos de inicialización y filtro por materia.
+
+### Cómo lo verifiqué
+- pytest: 129 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 avisos y 0 errores en 36 archivos (oxlint); tsc -b y vite build completados con éxito; 21 tests passed (3 suites)
+- Tests nuevos: ninguno (refactor estético/linter)
+- Prueba manual: Ejecución de `npm run lint` reportando 0 advertencias y 0 errores, y `npm run build` sin errores de tipos TypeScript.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+<!-- lo rellena Claude -->
+
+---
+
 ## P7. `en_nube` con una variable explicita
 
 - **Commit:** caa8c4e `feat(api): P7 usar variable ML_EN_NUBE explicita`
