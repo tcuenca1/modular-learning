@@ -33,6 +33,35 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P5. Migracion de datos que tambien funcione en Neon
+
+- **Commit:** 9f26841 `feat(scripts): P5 migracion de datos idempotente sobre AlmacenDocumentos`
+- **Estado:** hecha
+- **Archivos:**
+  - scripts/migrar_datos.py
+  - backend/tests/integration/infrastructure/test_migracion.py
+
+### Qué hice
+Se reescribió `scripts/migrar_datos.py` para operar sobre `AlmacenDocumentos` (`almacen_por_defecto()`), permitiendo migrar datos tanto en archivos locales como en Postgres (Neon).
+El script es completamente idempotente: normaliza materias, asigna ids a las clases sin identificador, renombra los archivos de cronograma al formato `schedules/<slug>_cronograma.json` y vincula `clase_id` en las guías offline.
+Se añadió la opción `--simular` para previsualizar los cambios sin escribir en el almacén.
+
+### Cómo lo verifiqué
+- pytest: 128 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- Tests nuevos:
+  - backend/tests/integration/infrastructure/test_migracion.py::test_migracion_idempotente_sobre_almacen_archivos
+- Prueba manual: Test de integración sobre `tmp_path` con simulación (sin efectos secundarios) y doble ejecución consecutiva comprobando que la segunda pasada no realiza ningún cambio ni renombramiento adicional y los documentos permanecen idénticos.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+*(Pendiente de revisión)*
+
+---
+
 ## P4. Cronogramas guardados con el slug de la materia
 
 - **Commit:** 5acd30d `feat(infra): P4 guardar cronogramas con slug y listar con claves de slug`
