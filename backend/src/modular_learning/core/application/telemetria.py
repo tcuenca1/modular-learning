@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from modular_learning.core.domain.materias import resolver_materia
 from modular_learning.core.ports.plugin_practico import PluginPracticoBase
-from modular_learning.core.ports.repositorios import CronogramaRepo
+from modular_learning.core.ports.repositorios import CronogramaRepo, MateriaRepo
 
 
 class TelemetriaService:
@@ -15,9 +16,11 @@ class TelemetriaService:
         self,
         cronograma_repo: CronogramaRepo,
         plugins: dict[str, PluginPracticoBase] | None = None,
+        materia_repo: MateriaRepo | None = None,
     ):
         self.cronograma_repo = cronograma_repo
         self.plugins = dict(plugins or {})
+        self.materia_repo = materia_repo
 
     def _contar_plugins_activos(self) -> int:
         """Un plugin está activo cuando ya acumuló memoria de contexto técnico."""
@@ -36,6 +39,8 @@ class TelemetriaService:
         temas_completados = 0
         materias_stats: dict[str, dict[str, Any]] = {}
 
+        catalogo = self.materia_repo.listar() if self.materia_repo else []
+
         for materia, clases in self.cronograma_repo.listar_cronogramas().items():
             m_total = len(clases)
             m_completados = sum(
@@ -43,7 +48,11 @@ class TelemetriaService:
             )
             total_temas += m_total
             temas_completados += m_completados
-            materias_stats[materia.title()] = {
+
+            m_obj = resolver_materia(catalogo, materia) if catalogo else None
+            clave_materia = m_obj.nombre if m_obj else materia
+
+            materias_stats[clave_materia] = {
                 "total": m_total,
                 "completados": m_completados,
                 "porcentaje": (m_completados / m_total * 100) if m_total > 0 else 0,

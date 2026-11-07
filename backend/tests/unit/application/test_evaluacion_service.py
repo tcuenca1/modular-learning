@@ -8,7 +8,11 @@ from modular_learning.core.application.evaluacion import (
     EvaluacionService,
     mezclar_opciones,
 )
-from tests.unit.application.fake_adapters import FakeLLM, InMemoryCronogramaRepo
+from tests.unit.application.fake_adapters import (
+    FakeLLM,
+    InMemoryCronogramaRepo,
+    InMemoryMateriaRepo,
+)
 
 
 @pytest.fixture
@@ -103,3 +107,17 @@ def test_mezclar_opciones():
     assert "París" in mezclada["respuesta_correcta"]
     for opt in mezclada["opciones"]:
         assert opt[0] in "ABCD"
+
+
+def test_nombre_materia_con_catalogo():
+    materia_repo = InMemoryMateriaRepo(["Ingeniería de Software II"])
+    service = EvaluacionService(
+        llm=FakeLLM(), cronograma_repo=InMemoryCronogramaRepo(), materia_repo=materia_repo
+    )
+    assert service._nombre_materia("ingenieria-de-software-ii") == "Ingeniería de Software II"
+    assert service._nombre_materia("otra-materia") == "otra-materia"
+
+
+def test_nombre_materia_sin_catalogo():
+    service = EvaluacionService(llm=FakeLLM(), cronograma_repo=InMemoryCronogramaRepo())
+    assert service._nombre_materia("ingenieria-de-software-ii") == "ingenieria-de-software-ii"

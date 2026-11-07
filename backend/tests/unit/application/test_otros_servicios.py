@@ -86,16 +86,22 @@ def test_materias_service():
 def test_telemetria_service():
     cronograma_repo = InMemoryCronogramaRepo(
         {
-            "redes": [
+            "ingenieria-de-software-ii": [
                 {"tema": "Tema 1", "estado": "completado"},
                 {"tema": "Tema 2", "estado": "pendiente"},
             ]
         }
     )
-    service = TelemetriaService(cronograma_repo)
-    stats = service.obtener_estadisticas()
+    # Sin catálogo: la clave es el slug
+    service_sin = TelemetriaService(cronograma_repo)
+    stats_sin = service_sin.obtener_estadisticas()
+    assert stats_sin["total_temas"] == 2
+    assert stats_sin["temas_completados"] == 1
+    assert stats_sin["porcentaje_global"] == 50.0
+    assert "ingenieria-de-software-ii" in stats_sin["materias"]
 
-    assert stats["total_temas"] == 2
-    assert stats["temas_completados"] == 1
-    assert stats["porcentaje_global"] == 50.0
-    assert "Redes" in stats["materias"]
+    # Con catálogo: la clave usa el nombre del catálogo
+    materia_repo = InMemoryMateriaRepo(["Ingeniería de Software II"])
+    service_con = TelemetriaService(cronograma_repo, materia_repo=materia_repo)
+    stats_con = service_con.obtener_estadisticas()
+    assert "Ingeniería de Software II" in stats_con["materias"]

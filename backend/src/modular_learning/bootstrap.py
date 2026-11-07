@@ -173,6 +173,7 @@ def build_container(settings: Any | None = None) -> Container:
     telemetria_service = TelemetriaService(
         cronograma_repo=cronograma_repo,
         plugins=plugins_dict,
+        materia_repo=materia_repo,
     )
 
     configuracion_service = ConfiguracionService(

@@ -5,10 +5,10 @@ from __future__ import annotations
 import json
 import random
 import re
-import unicodedata
 from typing import Any
 
 from modular_learning.core.application.repaso import RepasoService
+from modular_learning.core.domain.materias import resolver_materia
 from modular_learning.core.ports.llm import LLMPort
 from modular_learning.core.ports.repositorios import CronogramaRepo, MateriaRepo
 
@@ -47,12 +47,6 @@ def mezclar_opciones(pregunta: dict, rng: random.Random | None = None) -> dict:
     }
 
 
-def _clave(texto: str) -> str:
-    """Normaliza nombres de asignatura para cruzar cronogramas (nombre de archivo) y catálogo."""
-    sin_tildes = unicodedata.normalize("NFD", texto).encode("ascii", "ignore").decode()
-    return re.sub(r"[^a-z0-9]", "", sin_tildes.lower())
-
-
 class EvaluacionService:
     """Caso de uso para la generación y calificación de quizzes académicos."""
 
@@ -71,10 +65,9 @@ class EvaluacionService:
     def _nombre_materia(self, nombre_cronograma: str) -> str:
         """Usa el nombre del catálogo (con su escritura real) si la asignatura está registrada."""
         if self.materia_repo:
-            clave = _clave(nombre_cronograma)
-            for nombre in self.materia_repo.cargar_materias():
-                if _clave(nombre) == clave:
-                    return nombre
+            m_obj = resolver_materia(self.materia_repo.listar(), nombre_cronograma)
+            if m_obj:
+                return m_obj.nombre
         return nombre_cronograma
 
     def obtener_temas_completados(self) -> list[dict[str, str]]:
