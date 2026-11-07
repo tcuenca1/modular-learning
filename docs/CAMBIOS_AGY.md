@@ -33,6 +33,38 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P11. Estadísticas con el nombre del catálogo
+
+- **Commit:** 4db2c4f `feat(core): P11 estadisticas y evaluacion usan nombre del catalogo`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/bootstrap.py
+  - backend/src/modular_learning/core/application/evaluacion.py
+  - backend/src/modular_learning/core/application/telemetria.py
+  - backend/tests/unit/application/test_evaluacion_service.py
+  - backend/tests/unit/application/test_otros_servicios.py
+
+### Qué hice
+Se actualizó `TelemetriaService` para recibir un `materia_repo: MateriaRepo | None = None` opcional (conectado en `bootstrap.py`). Al recopilar estadísticas, busca el nombre canónico de la materia en el catálogo mediante `resolver_materia`; si la materia no está en el catálogo o no hay repositorio, conserva el slug.
+En `EvaluacionService._nombre_materia` se migró la normalización a `resolver_materia` con el catálogo de `self.materia_repo.listar()` y se eliminó la función auxiliar `_clave` e imports en desuso.
+
+### Cómo lo verifiqué
+- pytest: 132 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 kept, 0 broken
+- Tests nuevos:
+  - backend/tests/unit/application/test_otros_servicios.py::test_telemetria_service
+  - backend/tests/unit/application/test_evaluacion_service.py::test_nombre_materia_con_catalogo
+  - backend/tests/unit/application/test_evaluacion_service.py::test_nombre_materia_sin_catalogo
+- Prueba manual: Verificación del mapeo de nombres en `TelemetriaService` y `EvaluacionService` con `resolver_materia`, garantizando que claves slug como `ingenieria-de-software-ii` devuelven `Ingeniería de Software II` cuando la asignatura existe en el catálogo, y conservan el slug en caso contrario.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P10. Migración: no sobrescribir cronogramas al renombrar
 
 - **Commit:** 75f0df9 `fix(scripts): P10 evitar sobrescribir cronogramas y manejar conflictos al migrar`
