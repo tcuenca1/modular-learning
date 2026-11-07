@@ -33,6 +33,37 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P12. Seleccionar la asignatura recién guardada aunque lleve tildes
+
+- **Commit:** bb1a30f `fix(web): P12 seleccionar la asignatura recien guardada aunque lleve tildes`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/lib/asignaturas.ts
+  - frontend/src/lib/asignaturas.test.ts
+  - frontend/src/views/SilabosView.tsx
+
+### Qué hice
+Se implementó la función auxiliar `buscarMateriaPorClave` en `lib/asignaturas.ts` que busca una materia en el catálogo comparando slug y nombre normalizados mediante `clave()` para que las tildes, mayúsculas o espacios no impidan la correspondencia.
+En `SilabosView.tsx`, se adaptó `cargarCatalogo` para buscar el destino usando `buscarMateriaPorClave`, permitiendo pasar directamente el nombre o slug de la asignatura, y se actualizó `handleGuardarSilaboExtraido` para invocar `cargarCatalogo(subidaMateria.trim())` sin calcular un slug manual defectuoso.
+
+### Cómo lo verifiqué
+- pytest: 132 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 kept, 0 broken
+- npm run lint: ok (0 warnings, 0 errors con oxlint)
+- npm run build: ok (tsc y vite build completados)
+- npm test: 25 passed en 3 suites (vitest)
+- Tests nuevos:
+  - frontend/src/lib/asignaturas.test.ts::buscarMateriaPorClave
+- Prueba manual: Validación del flujo donde al guardar un sílabo con nombre que contiene tildes (p.ej. «Ingeniería de Software II»), `buscarMateriaPorClave` localiza `{ slug: 'ingenieria-de-software-ii', nombre: 'Ingeniería de Software II' }` en el catálogo cargado, asignando `materiaActiva` a dicho slug y activando la recarga para mostrar sus clases de forma inmediata.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P11. Estadísticas con el nombre del catálogo
 
 - **Commit:** 4db2c4f `feat(core): P11 estadisticas y evaluacion usan nombre del catalogo`
