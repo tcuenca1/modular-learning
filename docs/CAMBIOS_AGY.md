@@ -33,6 +33,41 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P2. Deshacer la revision de una guia solo debe deshacer lo que hizo esa guia
+
+- **Commit:** b87d1be `fix(core): P2 deshacer guia solo afecta a sus propios eventos y preserva estado previo`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/core/application/guias.py
+  - backend/src/modular_learning/core/application/repaso.py
+  - backend/src/modular_learning/core/domain/guia_offline.py
+  - backend/tests/unit/application/test_guias_service.py
+  - frontend/src/api/types.ts
+
+### Qué hice
+Se añadió el campo `estado_previo: str | None = None` a `ClaseGuia` (`core/domain/guia_offline.py` y `frontend/src/api/types.ts`).
+`RepasoService.registrar_estudio_offline` ahora recibe `guia_id` opcional y lo persiste en el evento.
+En `GuiaOfflineService.registrar_revision`, se captura `estado_previo` en el cronograma antes de marcar la clase y se pasa `guia_id=guia.id` a repaso.
+En `GuiaOfflineService.deshacer_revision`, se borran únicamente los eventos con ese `guia_id` y las clases vuelven a su `estado_previo` (o `pendiente` si era `None`).
+
+### Cómo lo verifiqué
+- pytest: 125 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint (12 avisos existentes de oxlint, 0 errores), build ok, vitest (14 passed)
+- Tests nuevos:
+  - backend/tests/unit/application/test_guias_service.py::test_deshacer_dos_guias_mismo_tema_no_toca_la_otra
+  - backend/tests/unit/application/test_guias_service.py::test_deshacer_clase_ya_completada_sigue_completada
+- Prueba manual: Verificación unitaria de no colisión entre guías del mismo tema y preservación del estado completado previo tras deshacer.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+*(Pendiente de revisión)*
+
+---
+
 ## P1. La tutoria web debe identificar la clase por su id
 
 - **Commit:** e250c17 `fix(web): P1 enviar clase_id a la tutoria`
