@@ -72,13 +72,25 @@ class GuiaOfflineService:
         if not cronograma:
             raise ValueError(f"La asignatura {materia} no tiene cronograma.")
 
+        ids_en_cronograma = {str(c.get("id") or "").strip() for c in cronograma if c.get("id")}
+        temas_en_cronograma = {
+            str(c.get("tema") or "").strip().lower() for c in cronograma if c.get("tema")
+        }
+
+        faltan = []
+        for t in temas:
+            t_str = str(t).strip()
+            t_lower = t_str.lower()
+            if t_str not in ids_en_cronograma and t_lower not in temas_en_cronograma:
+                faltan.append(t_str)
+
+        if faltan:
+            raise ValueError(f"Estas clases no están en el cronograma: {', '.join(sorted(faltan))}")
+
         buscados_ids = {str(t).strip() for t in temas}
         buscados_temas = {str(t).strip().lower() for t in temas}
 
         clases: list[ClaseGuia] = []
-        encontrados_ids: set[str] = set()
-        encontrados_temas: set[str] = set()
-
         for c in cronograma:
             c_id = str(c.get("id") or "").strip()
             c_tema = str(c.get("tema") or "").strip()
@@ -92,13 +104,6 @@ class GuiaOfflineService:
                         clase_id=c_id,
                     )
                 )
-                if c_id:
-                    encontrados_ids.add(c_id)
-                encontrados_temas.add(c_tema_l)
-
-        if not clases:
-            faltan = sorted(buscados_temas - encontrados_temas)
-            raise ValueError(f"Estas clases no están en el cronograma: {', '.join(faltan)}")
 
         guia = GuiaOffline(
             id=uuid.uuid4().hex[:12],

@@ -275,3 +275,14 @@ def test_deshacer_clase_ya_completada_sigue_completada(contexto):
     # Al deshacer, debe volver a su estado_previo ("completado"), no a "pendiente"
     servicio.deshacer_revision(guia.id)
     assert cronograma.obtener_cronograma("Redes")[0]["estado"] == "completado"
+
+
+def test_crear_guia_avisa_de_clases_inexistentes_mezclando_id_valido(contexto):
+    servicio, cronograma, *_ = contexto
+    clases = cronograma.obtener_cronograma("Redes")
+    id_valido = clases[0]["id"]
+
+    with pytest.raises(ValueError, match="id-inexistente") as exc_info:
+        servicio.crear("Redes", [id_valido, "id-inexistente"])
+
+    assert "id-inexistente" in str(exc_info.value)
