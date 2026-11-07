@@ -271,7 +271,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
       .then((res) => {
         setMaterias(res.materias)
         if (res.materias.length > 0) {
-          setUploadMateria((prev) => prev || res.materias[0])
+          setUploadMateria((prev) => (prev && res.materias.includes(prev) ? prev : res.materias[0]))
         }
       })
       .catch((err) => console.error(err))
@@ -360,7 +360,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
       return
     }
     if (!uploadMateria.trim()) {
-      toast.error('Escribe la asignatura.')
+      toast.error('Selecciona una asignatura.')
       return
     }
 
@@ -755,13 +755,22 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
                     <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
                       Asignatura
                     </label>
-                    <Input
+                    <select
                       value={uploadMateria}
                       onChange={(e) => setUploadMateria(e.target.value)}
-                      placeholder="Ej. Programacion Web"
-                      className="mt-1"
+                      className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
                       required
-                    />
+                    >
+                      {materias.length === 0 ? (
+                        <option value="">Sin asignaturas registradas</option>
+                      ) : (
+                        materias.map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))
+                      )}
+                    </select>
                   </div>
 
                   <div>

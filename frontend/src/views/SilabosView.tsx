@@ -68,6 +68,7 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
   // Subida de sílabo nuevo (extracción)
   const [file, setFile] = useState<File | null>(null)
   const [subidaMateria, setSubidaMateria] = useState('')
+  const [materiaSelect, setMateriaSelect] = useState('__nueva__')
   const [isDragging, setIsDragging] = useState(false)
   const [extracting, setExtracting] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -100,6 +101,11 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
           destino = lista[0].slug
         }
         setMateriaActiva(destino)
+        const activaObj = lista.find((m) => m.slug === destino)
+        if (activaObj) {
+          setMateriaSelect((prev) => (prev === '__nueva__' ? activaObj.nombre : prev))
+          setSubidaMateria((prev) => (prev ? prev : activaObj.nombre))
+        }
         setCargandoClases(true)
         setRecarga((r) => r + 1)
       } else {
@@ -402,6 +408,16 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
     }
   }
 
+
+  const handleSelectMateriaSubida = (valor: string) => {
+    setMateriaSelect(valor)
+    if (valor === '__nueva__') {
+      setSubidaMateria('')
+    } else {
+      setSubidaMateria(valor)
+    }
+  }
+
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       validateAndSetFile(e.target.files[0])
@@ -417,12 +433,17 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
       return
     }
     setFile(f)
-    if (!subidaMateria) {
-      const base = f.name
-        .replace(/\.[^/.]+$/, '')
-        .replace(/SYLLABUS/gi, '')
-        .replace(/[-_]/g, ' ')
-        .trim()
+    const base = f.name
+      .replace(/\.[^/.]+$/, '')
+      .replace(/SYLLABUS/gi, '')
+      .replace(/[-_]/g, ' ')
+      .trim()
+    const coincidencia = buscarMateriaPorClave(materias, base)
+    if (coincidencia) {
+      setMateriaSelect(coincidencia.nombre)
+      setSubidaMateria(coincidencia.nombre)
+    } else {
+      setMateriaSelect('__nueva__')
       setSubidaMateria(base)
     }
     toast.info(`Archivo seleccionado: ${f.name}`)
@@ -437,7 +458,14 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
     try {
       setExtracting(true)
       const res = await api.extraerSilabo(file, subidaMateria)
-      setSubidaMateria(res.materia)
+      const coincidencia = buscarMateriaPorClave(materias, res.materia)
+      if (coincidencia) {
+        setMateriaSelect(coincidencia.nombre)
+        setSubidaMateria(coincidencia.nombre)
+      } else {
+        setMateriaSelect('__nueva__')
+        setSubidaMateria(res.materia)
+      }
       setClasesExtraidas(res.datos.clases || [])
       toast.success('Clases extraídas', {
         description: `Se estructuraron ${res.datos.clases?.length || 0} sesiones de clase.`,
@@ -965,16 +993,35 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                    Asignatura
-                  </label>
-                  <Input
-                    placeholder="Ej. Seguridad de la Información"
-                    value={subidaMateria}
-                    onChange={(e) => setSubidaMateria(e.target.value)}
-                    className="mt-1"
-                  />
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                      Asignatura
+                    </label>
+                    <select
+                      value={materiaSelect}
+                      onChange={(e) => handleSelectMateriaSubida(e.target.value)}
+                      className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+                    >
+                      {materias.map((m) => (
+                        <option key={m.slug} value={m.nombre}>
+                          {m.nombre}
+                        </option>
+                      ))}
+                      <option value="__nueva__">Nueva asignatura…</option>
+                    </select>
+                  </div>
+                  {materiaSelect === '__nueva__' && (
+                    <div>
+                      <Input
+                        placeholder="Nombre de la nueva asignatura"
+                        value={subidaMateria}
+                        onChange={(e) => setSubidaMateria(e.target.value)}
+                        className="mt-1"
+                        autoFocus
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-end">
                   <Button
