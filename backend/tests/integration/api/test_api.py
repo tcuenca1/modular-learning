@@ -35,6 +35,34 @@ def test_materias_crear_y_listar(client):
     assert "Bases de Datos" in client.get("/api/materias").json()["materias"]
 
 
+def test_eliminar_cronograma_conserva_materia(client):
+    # Crear materia Redes
+    r_mat = client.post("/api/materias", json={"nombre": "Redes"})
+    assert r_mat.status_code == 201
+
+    # Añadir clase
+    r_clase = client.post("/api/materias/redes/clases", json={"tema": "Enrutamiento IP"})
+    assert r_clase.status_code == 201
+
+    # Verificar que el cronograma tiene la clase
+    r_crono_antes = client.get("/api/materias/redes/cronograma")
+    assert r_crono_antes.status_code == 200
+    assert len(r_crono_antes.json()["clases"]) == 1
+
+    # Eliminar/vaciar cronograma
+    r_del = client.delete("/api/materias/redes/cronograma")
+    assert r_del.status_code == 200
+
+    # GET /api/materias sigue incluyendo "Redes"
+    materias = client.get("/api/materias").json()["materias"]
+    assert "Redes" in materias
+
+    # GET /api/materias/redes/cronograma devuelve {"clases": []}
+    r_crono_despues = client.get("/api/materias/redes/cronograma")
+    assert r_crono_despues.status_code == 200
+    assert r_crono_despues.json() == {"clases": []}
+
+
 def test_stats_sin_datos(client):
     r = client.get("/api/stats")
     assert r.status_code == 200

@@ -83,7 +83,7 @@ def eliminar_cronograma(
     materia: str,
     servicio: Annotated[MateriasService, Depends(get_materias_service)],
 ) -> dict[str, Any]:
-    ok = servicio.eliminar_cronograma(materia, borrar_materia=True)
+    ok = servicio.eliminar_cronograma(materia, borrar_materia=False)
     if not ok:
         raise HTTPException(status_code=404, detail="Cronograma no encontrado.")
     return {"ok": True, "catalogo": servicio.listar_catalogo()}
