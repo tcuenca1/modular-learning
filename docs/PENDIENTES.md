@@ -38,7 +38,7 @@ Lee `CLAUDE.md` antes de empezar. Además:
    `docs: P1 informe en CAMBIOS_AGY`.
 9. **Documentación:** si la tarea cambia un comportamiento descrito en `README.md`,
    `docs/DESPLIEGUE.md` o `CLAUDE.md`, actualiza ese párrafo en el mismo commit de la tarea.
-   No reescribas `docs/ARCHITECTURE.md` ni añadas documentos nuevos (salvo la tarea D1).
+   No reescribas `docs/ARCHITECTURE.md` ni añadas documentos nuevos (salvo las tareas D1 y D2).
 10. **Prueba manual de verdad.** Si la tarea cambia efectos, estado o carga de datos de una
     vista, ábrela en el navegador y describe qué hiciste y qué viste. `lint` y `build` no
     cuentan como prueba manual.
@@ -217,6 +217,37 @@ exportador de guías en `infrastructure/`). Se versionan los dos.
 aparecen en algún caso de uso (al final, una tabla endpoint o comando → CU). Claude revisará una
 muestra de casos contra el código. Commit `docs: D1 manual funcional`; las discrepancias no se
 arreglan, solo se documentan.
+
+### D2. Poner al día la documentación y limpiar restos
+
+Hazla **después de D1**: el manual te da el inventario de lo que existe de verdad.
+
+- **Borrar** (están obsoletos): `docs/TECHNICAL_WRITER_REPORT.md` (informe de octubre que aún
+  llama al proyecto `ml-cli`) y `docs/CHANGELOG.md` (habla de agentes CrewAI que ya no existen;
+  el historial de git hace de changelog). Quita los enlaces que apunten a ellos.
+- **`README.md`**: que describa el sistema actual: qué es, requisitos (incluido LibreOffice si
+  P16 ya está hecha), instalación con `backend/` y `frontend/`, arranque local, comandos de la
+  CLI y enlaces a `docs/manual/`, `docs/ARCHITECTURE.md` y `docs/DESPLIEGUE.md`. Corto: el
+  detalle va en el manual.
+- **`docs/ARCHITECTURE.md`**: comprobar cada afirmación contra el código (capas, puertos,
+  adaptadores, almacén de documentos, contratos de import-linter) y corregir lo que no
+  coincida. Sin inventar: si algo no está en el código, no va.
+- **`docs/DESPLIEGUE.md`**: comprobar contra `render.yaml`, `Dockerfile` y `deploy/`.
+- **`GEMINI.md`**: reducirlo a «sigue `CLAUDE.md` y las reglas de `docs/PENDIENTES.md`» más los
+  pasos de trabajo (tarea → verificación → commit → informe → detenerse), sin copiar las
+  reglas, para que no se desincronicen.
+- **No toques** `CLAUDE.md` ni `docs/PENDIENTES.md` (salvo «Hallazgos»): son las
+  instrucciones de trabajo y las mantiene Claude. Si ves algo mal en ellos, anótalo en
+  «Hallazgos».
+- **Restos sin versionar** en la raíz (están ignorados por git, solo ocupan disco): borra
+  `build/`, `modular_learning_cli.egg-info/`, `tests/` de la raíz (solo tiene `__pycache__`;
+  los tests están en `backend/tests/`), `__pycache__/`, `.import_linter_cache/` y
+  `.aider.chat.history.md`. **No borres `obsidian_vault/`** ni nada de `data/`: lo decide el
+  usuario.
+
+**Aceptación:** ningún documento menciona `ml-cli`, CrewAI ni rutas que no existan (compruébalo
+con `git grep`). Todos los comandos del README funcionan copiándolos tal cual (pégalos con su
+salida en el informe). Commit `docs: D2 documentacion al dia` y su informe aparte.
 
 ## Para decidir con el usuario (no implementar)
 
