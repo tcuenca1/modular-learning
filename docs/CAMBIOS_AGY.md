@@ -33,6 +33,41 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P6. Tema claro con el sistema en oscuro
+
+- **Commit:** 92f0de2 `fix(web): P6 tema claro funcional con sistema en oscuro`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/index.css
+  - frontend/src/lib/theme.test.ts
+
+### Qué hice
+Se reemplazaron los bloques `@media (prefers-color-scheme: dark)` en `body`, `.marcador` y `.prose` por selectores `html.dark ...`, eliminando las reglas `html.light` redundantes.
+Para la guía imprimible (`.hoja .prose`), se añadieron selectores `html.dark .hoja .prose` con mayor especificidad para preservar el texto oscuro sobre papel blanco incluso si la interfaz está en modo oscuro.
+Se crearon pruebas unitarias para `theme.ts` y para comprobar la ausencia de `@media (prefers-color-scheme: dark)` y `html.light` en `index.css`.
+
+### Cómo lo verifiqué
+- pytest: 128 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: lint ok (12 avisos preexistentes de P8), build ok, 21 tests passed (3 suites)
+- Tests nuevos:
+  - frontend/src/lib/theme.test.ts::devuelve "system" por defecto si no hay nada guardado
+  - frontend/src/lib/theme.test.ts::guarda y recupera temas válidos
+  - frontend/src/lib/theme.test.ts::aplica tema claro añadiendo clase light y quitando dark
+  - frontend/src/lib/theme.test.ts::aplica tema oscuro añadiendo clase dark y quitando light
+  - frontend/src/lib/theme.test.ts::aplica tema del sistema consultando matchMedia
+  - frontend/src/lib/theme.test.ts::index.css no contiene @media (prefers-color-scheme: dark) ni selectores html.light para contrarrestar
+- Prueba manual: Verificación del CSS compilado con `npm run build` confirmando que `.prose` bajo `html.dark` aplica texto claro (`slate-200`) y bajo `html:not(.dark)` mantiene `slate-800`, mientras que `.hoja .prose` mantiene `slate-800` en ambos casos gracias a `html.dark .hoja .prose`.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+<!-- lo rellena Claude -->
+
+---
+
 ## P5. Migracion de datos que tambien funcione en Neon
 
 - **Commit:** 9f26841 `feat(scripts): P5 migracion de datos idempotente sobre AlmacenDocumentos`
