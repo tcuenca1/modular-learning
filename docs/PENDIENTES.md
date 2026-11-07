@@ -3,87 +3,48 @@
 Trabajo acordado que queda para más adelante. Al terminar uno, se borra de aquí (el detalle
 queda en el commit).
 
-## Guía offline
+## Guía offline y tutoría
 
-- **Fase 2: cortes de parcial.** Definir por asignatura qué clases entran en cada parcial
-  ("Parcial 1 hasta la clase 8") para generar la guía de todo un parcial. Los cronogramas
-  actuales no traen esa información: el prompt `04_extraccion_silabo.md` descarta las clases
-  de examen. Más adelante, que la extracción del sílabo capture también las evaluaciones.
-- **Fase 2: reparto según el tiempo disponible.** Indicar cuánto tiempo hay ("4 horas") y
-  ajustar la extensión de cada clase a ese presupuesto, en lugar de depender solo del número
-  de clases.
-- **Descarga directa del PDF.** Hoy se genera con «Guardar como PDF» del navegador, que
-  funciona pero no se siente como una descarga. Generarlo en el servidor (por ejemplo con
-  Playwright/Chromium detrás de un puerto `ExportadorPdfPort`) y servirlo como archivo.
-
-- **Clases con el mismo tema reciben el mismo contenido (bug).** La guía offline y la tutoría
-  buscan el detalle de la clase por su tema (`CronogramaRepo.obtener_detalle_clase(materia,
-  tema)`), y el repositorio devuelve la primera clase que coincide. Si dos clases de días
-  distintos comparten tema, ambas se generan con el objetivo y contenido de la primera. Además,
-  `GuiaOfflineService.crear` agrupa las clases elegidas por tema. Arreglo: identificar la clase
-  por su posición o fecha en el cronograma (no por el tema) en guías, tutoría y
-  `marcar_clase_completada`, que hoy marca todas las clases con ese tema.
+- **La tutoría web no identifica la clase por su id.** El backend ya acepta `clase_id`
+  (`POST /api/tutoria` y `TutoriaService.iniciar_sesion`), pero `enlaceTutoria` y
+  `TutoriaView` solo envían el tema, así que se usa la primera clase pendiente con ese tema.
+  Pasar el id en el enlace desde Hoy, Asignaturas y la revisión de la guía.
+- **Extracción de evaluaciones del sílabo.** Los cortes de parcial ya se definen a mano; falta
+  que el prompt `04_extraccion_silabo.md` capture las evaluaciones en lugar de descartarlas.
+- **Deshacer la revisión de una guía es demasiado amplio.** `deshacer_revision` borra del
+  historial los eventos de tipo "guia" con el mismo tema (aunque sean de otra guía) y deja como
+  pendientes clases que quizá ya estaban completadas antes de la guía. Guardar en el evento el
+  id de la guía y el estado previo de cada clase.
+- **`crear` ya no avisa de clases que faltan.** Si alguna de las clases elegidas no está en el
+  cronograma, se ignora en silencio; solo falla si no se encuentra ninguna.
 
 ## Datos que introduce el usuario
 
-- **Todo debe poder deshacerse.** Si el usuario se equivoca al añadir algo, debe poder
-  eliminarlo o corregirlo. Materia y cronograma van a la par: eliminar una materia elimina su
-  cronograma y viceversa (con confirmación). Revisar todos los puntos de entrada: materias,
-  cronogramas y sus clases (editar, borrar, cambiar estado), material ingestado (registro y
-  nota), guías offline, revisión de una guía (deshacer la confirmación), tarjetas de repaso y
-  ajustes.
-- **Normalizar los nombres de las materias.** Hoy conviven "Ingenieria de Software II" en el
-  catálogo, "INGENIERIA_DE_SOFTWARE_II" en el archivo del cronograma y "Ingenieria De Software
-  Ii" en las estadísticas, y la web los cruza con `clave()`. Definir un identificador único
-  por materia (slug) y un nombre para mostrar, aplicarlo al crear y migrar los datos actuales.
-
-## Plugins prácticos
-
-Hoy Node-RED analiza los `.json` de flujos de una carpeta; Cisco extrae líneas con palabras
-clave de las notas de la bóveda. Estrategias por plugin, a decidir:
-
-- **Cisco Packet Tracer.** Los `.pkt`/`.pka` son binarios cifrados y no hay forma fiable de
-  leerlos fuera de Packet Tracer. Opciones:
-  1. *Configuraciones exportadas* (recomendada): por cada actividad, guardar en una carpeta el
-     `show running-config` de cada equipo (texto). El plugin extrae VLAN, interfaces,
-     enrutamiento, ACL… y el tutor razona sobre la configuración real.
-  2. *Enunciado de la actividad*: el PDF o captura de las instrucciones, ingerido como material.
-  3. *Registro de comandos*: un `.txt` por actividad con los comandos usados; el más simple,
-     pero pierde la topología.
-- **Programación (web y otras).** Asociar a la asignatura la carpeta de proyectos. El plugin
-  lee lo que describe el proyecto sin mandar todo el código: `README`, `package.json` /
-  `pyproject.toml`, estructura de carpetas, rutas y modelos principales, y el `git log` si es
-  un repositorio. Ignorar `node_modules`, `dist`, `.venv` y secretos (`.env`). El tutor puede
-  así explicar con ejemplos del propio proyecto y detectar qué temas del sílabo ya se aplican.
-- **Node-RED.** Mantener la lectura de flujos `.json` y añadir el resumen por flujo (nodos,
-  tópicos MQTT, funciones) para elegir cuál usar en una tutoría.
-- **General.** Cada plugin declara qué carpeta lee y qué extrae, configurable por asignatura
-  en lugar de rutas fijas (Cisco hoy lee `obsidian_vault/Tecnologias de Conmutacion I`).
+- **Terminar la normalización de nombres.** El catálogo ya usa slug + nombre y el registro de
+  material guarda slugs, pero los archivos de cronograma siguen como
+  `INGENIERIA_DE_SOFTWARE_II_cronograma.json` y `listar_cronogramas` devuelve esos nombres.
+  Renombrar los documentos a `<slug>_cronograma.json` y devolver el slug.
+- **Migrar los datos de Neon.** `scripts/migrar_datos.py` solo actúa sobre `data/` local. En
+  la nube los cronogramas reciben ids solo cuando se vuelven a guardar; hasta entonces la web
+  identifica sus clases por el tema. Migrar a través de `AlmacenDocumentos`.
 
 ## Despliegue (Render + Neon)
 
-- **Recarga lenta en la nube.** Con el servidor despierto, una recarga normal tarda 2–3 s en
-  mostrar todo. Cada lectura es un viaje a Neon y una pantalla como Hoy hace muchas (además,
-  buscar un cronograma lista todos antes de leer uno). Solución prevista: caché en memoria en
-  `AlmacenPostgres` (leer una vez, escribir en caché y en Postgres a la vez; es seguro con un
-  solo servidor) y medir antes y después. Aparte, el primer acceso tras 15 min sin uso tarda
-  30–60 s porque Render y Neon se duermen en el plan gratuito; eso no se arregla con código.
-- **Material nuevo en la nube.** El servidor de Render no ve las carpetas de este equipo: en la
-  nube la carpeta de material es `/app/data/material` (vacía) y Configuración rechaza rutas
-  como `C:\Users\…\OneDrive…\6. SEXTO` porque valida que existan en el servidor. Hoy solo
-  funciona subir archivos sueltos desde Material. Opciones a decidir:
-  - **Modo híbrido:** ejecutar la app local con la misma `DATABASE_URL` para ingerir desde las
-    carpetas y la bóveda de Obsidian de este equipo, y que la nube vea el resultado. Requiere
-    que los ajustes (rutas) sean de cada equipo y no se compartan en Postgres.
-  - **Leer de OneDrive** con Microsoft Graph, ya que el material está allí.
-  - Como mínimo, en la nube ocultar el escaneo de carpetas y explicar por qué, en lugar de
-    mostrar una ruta del servidor.
+- **Medir la caché de `AlmacenPostgres`.** Ya hay caché de lectura en memoria; falta medir la
+  recarga antes y después. `listar` sigue consultando Neon cada vez.
+- **`en_nube` se activa con `DATABASE_URL`.** Con el modo híbrido (app local contra Neon) se
+  ocultaría el escaneo de carpetas. Decidirlo con una variable explícita.
+- **Material nuevo en la nube.** Hoy solo se avisa en Configuración y Material. Siguen
+  pendientes las opciones: modo híbrido con ajustes por equipo o lectura de OneDrive con
+  Microsoft Graph.
 
 ## Frontend
 
-- **Tests del frontend.** No hay ninguno. Empezar por la lógica pura de `lib/` (`clave`,
-  `parsearFecha`, `clasesConFecha`, `materiasConCronograma`, `extensionPara`) y seguir con
-  las vistas que tienen flujo propio (repaso, guía offline, confirmación).
-- **Selector de tema claro/oscuro.** Ahora el tema sigue al sistema operativo
-  (`prefers-color-scheme`). Para el despliegue, añadir un selector claro / oscuro / sistema
-  que se recuerde por usuario.
+- **Tema claro con el sistema en oscuro.** `index.css` aún tiene bloques
+  `@media (prefers-color-scheme: dark)` (por ejemplo, el de `.prose`) sin su contrapartida para
+  `html.light`: con el sistema en oscuro y la app en claro, las notas salen en texto claro
+  sobre fondo claro. Pasarlos a la variante `dark:` / `html.dark`.
+- **Avisos de oxlint.** `npm run lint` da 12 avisos en `MaterialView`, `SilabosView`,
+  `PluginsView` y `ThemeToggle` (dependencias de efectos y `setState` dentro de efectos).
+- **Tests de las vistas.** La lógica de `lib/` ya tiene tests; faltan las vistas con flujo
+  propio (repaso, guía offline, confirmación).
