@@ -72,6 +72,7 @@ export function TutoriaView() {
   const [nivel, setNivel] = useState('INTERMEDIO')
   const [tema, setTema] = useState(params.get('tema') || '')
   const [enfoque, setEnfoque] = useState(params.get('enfoque') || '')
+  const [claseId, setClaseId] = useState<string | undefined>(params.get('clase_id') || undefined)
   const [clasesPendientes, setClasesPendientes] = useState<ClaseCronograma[]>([])
   const [cargandoClases, setCargandoClases] = useState(false)
   const [iniciando, setIniciando] = useState(false)
@@ -169,6 +170,7 @@ export function TutoriaView() {
       const res = await api.iniciarTutoria({
         materia: materia.trim(),
         tema: tema.trim(),
+        clase_id: claseId,
         nivel_profundidad: nivel,
         enfoque: enfoque.trim() || undefined,
       })
@@ -589,7 +591,7 @@ export function TutoriaView() {
                 </label>
                 <select
                   value={materia}
-                  onChange={(e) => setMateria(e.target.value)}
+                  onChange={(e) => { setMateria(e.target.value); setClaseId(undefined); }}
                   className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
                 >
                   {materias.map((m) => (
@@ -631,7 +633,7 @@ export function TutoriaView() {
                     <button
                       type="button"
                       key={idx}
-                      onClick={() => setTema(clase.tema)}
+                      onClick={() => { setTema(clase.tema); setClaseId(clase.id); }}
                       className="flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-300 bg-transparent px-3 py-1 text-xs text-slate-700 transition-colors hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-800 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-200"
                     >
                       <Clock className="h-3 w-3 text-indigo-600 dark:text-indigo-400" />
@@ -657,7 +659,7 @@ export function TutoriaView() {
               </label>
               <Input
                 value={tema}
-                onChange={(e) => setTema(e.target.value)}
+                onChange={(e) => { setTema(e.target.value); setClaseId(undefined); }}
                 placeholder="Ej. Enrutamiento BGP"
                 className="text-xs"
                 required

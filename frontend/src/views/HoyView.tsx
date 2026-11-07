@@ -16,7 +16,7 @@ import {
   claveDia,
   clasesConFecha,
   describirFecha,
-  enlaceTutoria as enlaceTutoriaBase,
+  enlaceTutoria,
   formatoCorto,
   inicioDelDia,
   parsearFecha,
@@ -36,9 +36,7 @@ function capitalizar(texto: string): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
-function enlaceTutoria(a: Asignatura): string {
-  return enlaceTutoriaBase(a.nombre, a.siguiente?.tema)
-}
+
 
 /** Una marca por clase del cronograma: llenas las completadas, la siguiente resaltada. */
 function Regleta({ stat }: { stat: MateriaStat }) {
@@ -174,7 +172,7 @@ export function HoyView() {
               <span key={i}>
                 {i > 0 && '; '}
                 <Link
-                  to={enlaceTutoriaBase(c.materia, c.clase.tema)}
+                  to={enlaceTutoria(c.materia, c.clase.tema, undefined, c.clase.id)}
                   className={cn(
                     'text-slate-800 underline decoration-slate-300 underline-offset-4 hover:decoration-indigo-600 dark:text-slate-200 dark:decoration-slate-600',
                     c.completada && 'opacity-60'
@@ -203,7 +201,7 @@ export function HoyView() {
               {foco.fechaSiguiente && ` (${formatoCorto.format(foco.fechaSiguiente)})`}
             </p>
             <Link
-              to={enlaceTutoria(foco)}
+              to={enlaceTutoria(foco.nombre, foco.siguiente!.tema, undefined, foco.siguiente!.id)}
               className="mt-6 inline-flex items-center gap-2 rounded-md bg-indigo-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-800 dark:bg-indigo-400 dark:text-slate-950 dark:hover:bg-indigo-300"
             >
               Estudiar ahora <ArrowRight className="h-4 w-4" />
@@ -268,7 +266,7 @@ export function HoyView() {
                 </div>
                 {a.siguiente && (
                   <Link
-                    to={enlaceTutoria(a)}
+                    to={enlaceTutoria(a.nombre, a.siguiente.tema, undefined, a.siguiente.id)}
                     className="self-center text-sm text-indigo-700 hover:underline hover:underline-offset-4 dark:text-indigo-300"
                   >
                     Estudiar →

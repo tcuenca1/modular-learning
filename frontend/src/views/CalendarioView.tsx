@@ -29,7 +29,7 @@ function diasDeLaCuadricula(mes: Date): Date[] {
 function EntradaClase({ c, compacta }: { c: ClaseFechada; compacta?: boolean }) {
   return (
     <Link
-      to={enlaceTutoria(c.materia, c.clase.tema)}
+      to={enlaceTutoria(c.materia, c.clase.tema, undefined, c.clase.id)}
       title={`${c.materia} · ${c.clase.tema}${c.completada ? ' (completada)' : ''}`}
       className={cn(
         'group block min-w-0 rounded-sm border-l-2 px-1.5 py-0.5 transition-colors',

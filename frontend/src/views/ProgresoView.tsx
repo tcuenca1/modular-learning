@@ -55,7 +55,7 @@ function ClasesPendientes({ materia, hoy }: { materia: string; hoy: Date }) {
               <span className="ml-2 text-xs text-slate-500">{describirFecha(fecha, hoy)}</span>
             </span>
             <Link
-              to={enlaceTutoria(materia, c.tema)}
+              to={enlaceTutoria(materia, c.tema, undefined, c.id)}
               className="text-xs text-indigo-700 hover:underline hover:underline-offset-4 dark:text-indigo-300"
             >
               Estudiar

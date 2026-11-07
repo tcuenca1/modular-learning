@@ -55,37 +55,43 @@ function Resultado({
             Tus dudas
           </h2>
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
-            {r.dudas.map((d) => (
-              <li key={d.tema} className="grid gap-x-6 gap-y-2 py-4 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <div className="min-w-0">
-                  <p className="font-medium text-slate-900 dark:text-slate-100">{d.tema}</p>
-                  <p className="mt-1 whitespace-pre-line break-words text-sm text-slate-600 dark:text-slate-400">
-                    {d.dudas}
-                  </p>
-                </div>
-                <Link
-                  to={enlaceTutoria(r.materia, d.tema, d.dudas)}
-                  className="self-center text-sm font-medium text-indigo-700 hover:underline hover:underline-offset-4 dark:text-indigo-300"
-                >
-                  Preguntar al tutor →
-                </Link>
-              </li>
-            ))}
+            {r.dudas.map((d) => {
+              const clase = guia.clases.find((c) => c.tema === d.tema)
+              return (
+                <li key={d.tema} className="grid gap-x-6 gap-y-2 py-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-900 dark:text-slate-100">{d.tema}</p>
+                    <p className="mt-1 whitespace-pre-line break-words text-sm text-slate-600 dark:text-slate-400">
+                      {d.dudas}
+                    </p>
+                  </div>
+                  <Link
+                    to={enlaceTutoria(r.materia, d.tema, d.dudas, clase?.clase_id)}
+                    className="self-center text-sm font-medium text-indigo-700 hover:underline hover:underline-offset-4 dark:text-indigo-300"
+                  >
+                    Preguntar al tutor →
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         </section>
       )}
 
-      {r.pendientes.length > 0 && (
-        <p className="text-sm text-slate-600 dark:text-slate-400">
-          Siguen pendientes: {r.pendientes.join(', ')}.{' '}
-          <Link
-            to={enlaceTutoria(r.materia, r.pendientes[0])}
-            className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300"
-          >
-            Estudiar con el tutor
-          </Link>
-        </p>
-      )}
+      {r.pendientes.length > 0 && (() => {
+        const clasePendiente = guia.clases.find((c) => c.tema === r.pendientes[0])
+        return (
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Siguen pendientes: {r.pendientes.join(', ')}.{' '}
+            <Link
+              to={enlaceTutoria(r.materia, r.pendientes[0], undefined, clasePendiente?.clase_id)}
+              className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300"
+            >
+              Estudiar con el tutor
+            </Link>
+          </p>
+        )
+      })()}
 
       <div className="flex flex-wrap items-center gap-4 pt-2">
         <Link
