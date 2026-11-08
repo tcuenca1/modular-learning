@@ -45,204 +45,52 @@ Lee `CLAUDE.md` antes de empezar. Además:
 
 ## Tareas (en orden de prioridad)
 
-### P23. El archivo del sílabo no debe cambiar la asignatura elegida
+### P29. Remates de P20 a P28
 
-**Hazla antes de P19** (toca `SilabosView`, que P20 reorganiza). En
-`frontend/src/views/SilabosView.tsx`, al elegir un archivo, si su nombre no coincide con el
-catálogo se cambia el desplegable a «Nueva asignatura…» con el nombre del archivo, aunque el
-usuario ya hubiera elegido una asignatura. Con «Silabo_2026.pdf» se acabaría creando la
-asignatura «Silabo 2026».
+Detalles pequeños que quedaron de la última tanda. Un solo commit.
 
-- Si el nombre del archivo coincide con una asignatura del catálogo, se selecciona esa.
-- Si no coincide, **no se toca** la selección. Solo si el desplegable ya estaba en «Nueva
-  asignatura…» y el campo de texto está vacío, se rellena con el nombre del archivo.
-- Lo mismo con el nombre que devuelve la extracción (`res.materia`).
+- **Formato:** pasa `ruff format` a los archivos que tocaste y no se formatearon:
+  `apps/api/routers/material.py`, `apps/api/routers/proyectos.py`,
+  `tests/unit/application/test_ingesta_service.py`, `test_otros_servicios.py` y
+  `tests/unit/cli/test_init_clase_id.py`. No toques otros archivos.
+- **Redirecciones:** `/silabos` y `/material` también conservan la query (como las demás, con
+  `RedirigirConQuery`); `/material` sigue añadiendo `tab=material`.
+- **`AsignaturasView`:** una sola función carga el catálogo (hoy está duplicada en
+  `cargarMaterias` y en el `useEffect`), y el catálogo **no** se vuelve a pedir al cambiar de
+  pestaña (el efecto no debe depender de `params` entero; lee `materia` de la query solo al
+  cargar).
+- **Mayúscula solo al principio** en los títulos que quedan: «Tus asignaturas», «Tema
+  académico», «Nota de Obsidian», «Último análisis», «Cortes de parcial».
 
-**Aceptación:** prueba en el navegador (regla 10): elegir «Programación Web» y luego un archivo
-llamado `Silabo_2026.pdf` mantiene «Programación Web»; elegir un archivo
-`PROGRAMACION_WEB.pdf` con «Nueva asignatura…» selecciona «Programación Web».
-
-### P24. Completar `.pptx` en la web y evitar notas inventadas
-
-**Hazla antes de P19.** Completa P16:
-
-- `MaterialView`: el selector de archivo acepta `.pptx` y la etiqueta lo menciona; quita el texto
-  «No soportados (ej. .pptx)» si ya no aplica.
-- El `aviso` que devuelve la ingesta (plan B) se muestra al usuario: en el resultado de la subida
-  individual y en el resumen del lote.
-- **Presentación sin texto:** si el plan B extrae menos de ~200 caracteres útiles (sin contar
-  las marcas «--- Diapositiva N ---»), **no se llama a Gemini ni se escribe la nota**: el
-  resultado es un error claro («La presentación es solo imágenes: instala LibreOffice para
-  procesarla») y el archivo no se registra como ingestado.
-- `ConversorLibreOffice`: lanza `soffice` con un perfil propio
-  (`-env:UserInstallation=file:///<tmp>/perfil`) para que funcione aunque LibreOffice esté
-  abierto, y borra ese perfil temporal al terminar.
-
-**Aceptación:** tests unitarios con fakes: plan B con texto vacío no llama al LLM ni escribe en
-la bóveda; plan B con texto sí, y devuelve el aviso. Test del adaptador comprobando que el
-comando incluye `-env:UserInstallation` (sin ejecutar `soffice`). Prueba en el navegador de la
-subida de un `.pptx` con una copia de `data/examples` y una bóveda de prueba.
-
-### P19. Hoy: desbordamiento en móvil y avisos agrupados
-
-Hazla después de P18. En las capturas (390 px de ancho) la vista Hoy se sale por la derecha: los
-avisos de guías y la cabecera quedan cortados. Además, la vista empieza con un aviso amarillo por
-cada guía pendiente de confirmar (hoy hay 6, con duplicados y dos de una asignatura que ya no
-está en el catálogo) antes de lo importante.
-
-- Corrige el desbordamiento horizontal en móvil en Hoy (y revisa la barra superior de móvil del
-  layout). Ninguna vista debe tener scroll horizontal a 390 px.
-- Sustituye la pila de avisos por una sola línea: «N guías por confirmar →» que lleva a la lista
-  de guías. Con una sola guía, puede seguir mostrando su asignatura.
-- En el número de «9 preguntas para hoy» se ve un recuadro amarillo extraño debajo del número
-  (en Hoy y en Repaso): corrige el estilo para que el resaltado se vea como subrayado o quítalo.
-
-**Aceptación:** capturas o prueba en el navegador a 390 px y a 1440 px (regla 10), con varias
-guías pendientes en una copia de `data/examples`. `npm run lint` sin avisos.
-
-### P20. Asignaturas: un solo selector y acciones peligrosas apartadas
-
-Hazla después de P15 y P17 (tocan los mismos archivos). Hoy Asignaturas tiene tres niveles de
-navegación seguidos (pestañas Cronogramas/Material → «Gestionar / Subir sílabo» → chips de
-asignatura) y Material tiene además sus propias pestañas. Los botones que borran están al lado
-de los normales.
-
-- Estructura: arriba, el selector de asignatura (uno solo, compartido); debajo, tres pestañas:
-  **Clases**, **Material** y **Proyectos**. «Subir sílabo» es un botón dentro de Clases (y el
-  estado vacío de una asignatura sin clases lo ofrece directamente). La pestaña se refleja en la
-  URL (`?tab=`) y las URL antiguas siguen funcionando.
-- Acciones de borrado (vaciar cronograma, eliminar asignatura, vaciar todo el material) en un
-  menú «⋯» o en una sección «Zona peligrosa» al final, nunca junto al botón principal. Siguen
-  pidiendo confirmación.
-- No mostrar el slug al usuario.
-- Solo reorganizar: sin cambios de API ni de lógica de datos.
-
-**Aceptación:** prueba en el navegador (regla 10) de cada acción que había antes (todas siguen
-accesibles), en escritorio y a 390 px. Lista en el informe dónde quedó cada botón.
-
-### P21. Menú de 9 entradas a 5
-
-Hazla después de P20. Menú actual: Hoy, Calendario, Tutoría, Repaso, Guía offline, Progreso,
-Asignaturas, Plugins, Configuración.
-
-- **Hoy** incorpora el resumen de Progreso (avance por asignatura); la vista Progreso se elimina.
-- **Estudiar** agrupa Tutoría, Repaso y Guía offline como tres pestañas o modos de una misma
-  pantalla.
-- **Calendario** y **Asignaturas** se quedan.
-- **Ajustes** agrupa Configuración y Plugins.
-- Todas las rutas antiguas (`/tutoria`, `/repaso`, `/guia`, `/progreso`, `/plugins`, `/config`)
-  redirigen a su nuevo sitio conservando la query (`/tutoria?materia=…&clase_id=…` debe seguir
-  funcionando: lo usan los enlaces de P1).
-- Actualiza los enlaces internos.
-
-**Aceptación:** prueba en el navegador (regla 10) de todas las rutas antiguas y de los enlaces
-«Estudiar» de Hoy y Calendario. `npm run lint`, `npm run build` y `npm test` en verde.
-
-### P22. Textos más cortos y consistentes
-
-Hazla al final de la interfaz (después de P21).
-
-- Las introducciones de cada vista, una sola línea (Guía offline y Repaso tienen párrafos de tres
-  líneas); lo demás, en un icono de ayuda o en el estado vacío.
-- Siempre «asignatura», nunca «materia», en la interfaz.
-- Botones con mayúscula solo en la primera palabra («Añadir clase», no «Añadir Clase»).
-- Sin jerga: «Ingestar documento individual» → «Convertir en nota» (revisa «ingestar» en toda la
-  interfaz).
-- Plugins: el «Registro de sincronización» solo aparece después de pulsar «Actualizar».
-
-**Aceptación:** `git grep -n "Materia\b\|materia " frontend/src/views` sin textos visibles con
-«materia»; capturas antes y después de 3 vistas en el informe. `npm run lint` sin avisos.
-
-### P25. En la nube, no escanear carpetas locales (DISC-08 del manual)
-
-`HoyView` llama a `api.escanearMaterial()` siempre y muestra «Material nuevo» aunque la app esté
-en Render; `MaterialView` muestra la tarjeta «Tus carpetas de asignatura» y llama a
-`api.escanearProyectos()` también en la nube.
-
-- Con `en_nube` (de `GET /api/config`), Hoy no escanea ni muestra «Material nuevo», y Material
-  oculta la tarjeta de carpetas y no llama a los escaneos. La subida de archivos sigue
-  disponible.
-- En el backend, los endpoints de escaneo responden vacío (o 409 con un mensaje claro) si
-  `ML_EN_NUBE=1`, para que no dependa solo del frontend.
-
-**Aceptación:** test de API con `ML_EN_NUBE=1` y sin ella; prueba en el navegador con la
-variable puesta.
-
-### P26. La CLI también debe identificar la clase por su id (DISC-09)
-
-`ml init` (`apps/cli/ui/interaccion.py` y `apps/cli/commands/init.py`) descarta el `id` de la
-clase elegida y llama a `iniciar_sesion` sin `clase_id`, así que al cerrar se marca la primera
-clase con ese tema (el mismo fallo que P1 corrigió en la web).
-
-- `pedir_datos_inicio` devuelve también `clase_id` cuando se eligió una clase del cronograma, y
-  `init` lo pasa a `iniciar_sesion`.
-
-**Aceptación:** test de la CLI (con `typer.testing.CliRunner` y servicios falsos, o un test de
-la función) en el que, con dos clases del mismo tema, elegir la segunda manda su `clase_id`.
-
-### P27. Cortes de parcial: guardar la clase, no una fecha (DISC-10)
-
-`SilabosView` guarda en `hasta` una fecha escrita a mano («15/10/2026»), pero `GuiaView` compara
-`hasta` con el `id` de la clase, así que un corte creado desde Sílabos nunca selecciona nada.
-
-- En el formulario de cortes, `hasta` se elige con un desplegable de las clases del cronograma
-  (mostrando fecha y tema) y se guarda el `id` de la clase.
-- Los cortes antiguos con fecha siguen funcionando: si `hasta` no es un id, `GuiaView` usa la
-  última clase con fecha menor o igual a esa fecha.
-- La lista de cortes muestra el tema y la fecha de la clase, no el id.
-
-**Aceptación:** tests de vitest para la función que resuelve `hasta` (id, fecha antigua y valor
-inválido) y prueba en el navegador: crear un corte en Sílabos y usarlo en Guía offline.
-
-### P28. Borrados consistentes (DISC-11)
-
-- `ProyectosService.eliminar_proyecto` también quita su entrada `[PROYECTO] …` del registro de
-  materiales y su nota en la bóveda (como hace `vaciar_proyectos`).
-- `MateriasService.eliminar_materia` también elimina los proyectos de esa asignatura.
-- `IngestaService.vaciar_materiales` limpia las referencias a materiales dentro de los
-  cronogramas (`materiales_asociados` y `material_transversal`), sin tocar clases ni estados.
-
-**Aceptación:** un test unitario con fakes por cada punto.
+**Aceptación:** `ruff format --check` limpio en esos 5 archivos; prueba en el navegador
+(regla 10): abrir `/material?materia=<slug>` llega a Asignaturas › Material con esa asignatura,
+y cambiar de pestaña no hace otra llamada a `/api/materias` (pestaña Red de las herramientas
+de desarrollo).
 
 ## Documentación funcional (tarea aparte, no toca código)
 
-### D2. Poner al día la documentación y limpiar restos
+### D3. Documentación al día tras P19 a P29 (Argon)
 
-Hazla **después de D1**: el manual te da el inventario de lo que existe de verdad.
+Hazla **después de P29**. D2 se hizo antes de P20–P28, así que el manual y la arquitectura
+describen la interfaz anterior.
 
-- **Manual al día:** D1 se escribió sobre el código anterior a P12–P18. Actualiza los casos de
-  uso afectados y marca DISC-01 a DISC-06 como resueltas (con el commit que las resolvió). Cada
-  vez que se apruebe una tarea que cambie un flujo, el manual se actualiza (lo pedirá Claude).
-- **DISC-12:** corrige en `docs/ARCHITECTURE.md` y `README.md` la ruta de `materias.json` y
-  `registro_materiales.json` (están en `data/config/`) y quita las «rachas de estudio», que no
-  existen. Regenera el PDF con `scripts/generar_manual.py`.
+- **`docs/ARCHITECTURE.md`:** la lista de vistas tiene que coincidir con `frontend/src/views/`
+  (hoy nombra `IngestaView`, `ProyectosView` y `ProgresoView`, que no existen). Describe el
+  menú de 5 entradas (Hoy, Estudiar, Calendario, Asignaturas, Ajustes) y qué vista va en cada
+  pestaña.
+- **Manual (`docs/manual/MANUAL_FUNCIONAL.md`):** actualiza los casos de uso a la interfaz
+  nueva (menú de 5, Estudiar con Tutoría/Repaso/Guía, Asignaturas con selector único y pestañas
+  Clases/Material/Proyectos, «Zona peligrosa», Ajustes con Plugins, Progreso dentro de Hoy,
+  rutas antiguas que redirigen). Marca DISC-08 a DISC-11 como resueltas con su commit (P25
+  `7da3dab`, P26 `511c3ab`, P27 `2cead9e`, P28 `58bf149`) y corrige los flujos afectados
+  (escaneo en la nube, `ml init`, cortes de parcial, borrados). Regenera el PDF con
+  `scripts/generar_manual.py`.
+- Comprueba cada `archivo:línea` que cites: los números de línea han cambiado mucho.
+- **No toques** `CLAUDE.md` ni `docs/PENDIENTES.md` (salvo «Hallazgos»).
 
-- **Borrar** (están obsoletos): `docs/TECHNICAL_WRITER_REPORT.md` (informe de octubre que aún
-  llama al proyecto `ml-cli`) y `docs/CHANGELOG.md` (habla de agentes CrewAI que ya no existen;
-  el historial de git hace de changelog). Quita los enlaces que apunten a ellos.
-- **`README.md`**: que describa el sistema actual: qué es, requisitos (incluido LibreOffice si
-  P16 ya está hecha), instalación con `backend/` y `frontend/`, arranque local, comandos de la
-  CLI y enlaces a `docs/manual/`, `docs/ARCHITECTURE.md` y `docs/DESPLIEGUE.md`. Corto: el
-  detalle va en el manual.
-- **`docs/ARCHITECTURE.md`**: comprobar cada afirmación contra el código (capas, puertos,
-  adaptadores, almacén de documentos, contratos de import-linter) y corregir lo que no
-  coincida. Sin inventar: si algo no está en el código, no va.
-- **`docs/DESPLIEGUE.md`**: comprobar contra `render.yaml`, `Dockerfile` y `deploy/`.
-- **`GEMINI.md`**: reducirlo a «sigue `CLAUDE.md` y las reglas de `docs/PENDIENTES.md`» más los
-  pasos de trabajo (tarea → verificación → commit → informe → detenerse), sin copiar las
-  reglas, para que no se desincronicen.
-- **No toques** `CLAUDE.md` ni `docs/PENDIENTES.md` (salvo «Hallazgos»): son las
-  instrucciones de trabajo y las mantiene Claude. Si ves algo mal en ellos, anótalo en
-  «Hallazgos».
-- **Restos sin versionar** en la raíz (están ignorados por git, solo ocupan disco): borra
-  `build/`, `modular_learning_cli.egg-info/`, `tests/` de la raíz (solo tiene `__pycache__`;
-  los tests están en `backend/tests/`), `__pycache__/`, `.import_linter_cache/` y
-  `.aider.chat.history.md`. **No borres `obsidian_vault/`** ni nada de `data/`: lo decide el
-  usuario.
-
-**Aceptación:** ningún documento menciona `ml-cli`, CrewAI ni rutas que no existan (compruébalo
-con `git grep`). Todos los comandos del README funcionan copiándolos tal cual (pégalos con su
-salida en el informe). Commit `docs: D2 documentacion al dia` y su informe aparte.
+**Aceptación:** `git grep -n "ProgresoView\|IngestaView\|ProyectosView" docs README.md` sin
+resultados; el PDF abre sin errores. Commit `docs: D3 documentacion tras P19 a P29` y su
+informe aparte.
 
 ## Para decidir con el usuario (no implementar)
 

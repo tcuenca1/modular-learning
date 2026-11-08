@@ -69,7 +69,7 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada.** `listar(slug)` filtra por slug, así que borrar una asignatura sí encuentra sus proyectos. Detalle: `MateriasService` recibe `proyectos_service: Any`; funciona, pero un tipo concreto sería más claro. Los 5 archivos `.py` de P24–P28 no pasaron `ruff format` (regla 3) → P29.
 ---
 
 ## P27. Cortes de parcial: guardar la clase, no una fecha (DISC-10)
@@ -108,7 +108,7 @@ ninguno
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada.** `resolverIndiceHasta` cubre id, fecha antigua e inválido, y `describirCorte` evita mostrar ids.
 ---
 
 ## P26. La CLI también debe identificar la clase por su id (DISC-09)
@@ -137,7 +137,7 @@ ninguno
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada.** Usar `questionary.Choice` con la clase como valor es más limpio que buscar por la etiqueta.
 ---
 
 ## P25. En la nube, no escanear carpetas locales (DISC-08)
@@ -168,7 +168,7 @@ ninguno
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada.** Backend y frontend respetan `ML_EN_NUBE`.
 ---
 
 ## P22. Textos más cortos y consistentes
@@ -207,7 +207,7 @@ ninguno
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada, con restos → P29.** Quedan títulos en mayúsculas de palabra: «Tus Asignaturas», «Tema Académico», «Nota Obsidian», «Último Análisis» y «Cortes de Parcial».
 ---
 
 ## D2. Poner al día la documentación y limpiar restos
@@ -255,7 +255,7 @@ ninguno
 - Ninguno adicional: los puntos pendientes de decisión (`DISC-07` sobre tablas/imágenes en `.docx` y el archivo huérfano `apps/cli/commands/snapshot.py` de `DISC-12`) ya figuran en la sección «Para decidir con el usuario» de `docs/PENDIENTES.md`.
 
 ### Revisión de Claude
-
+**Aprobada, con una corrección → D3.** README, GEMINI.md y la limpieza están bien. Pero `docs/ARCHITECTURE.md` lista vistas que no existen (`IngestaView`, `ProyectosView`, `ProgresoView`), y como D2 se hizo antes de P20–P28 el manual vuelve a describir el menú de 9 entradas y da DISC-08 a DISC-11 como abiertas.
 
 ---
 
@@ -297,7 +297,7 @@ Reduje las opciones de navegación principal de 9 a 5 entradas consolidadas:
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada, con un detalle → P29.** `/silabos` y `/material` redirigen sin conservar la query (la tarea pedía conservarla en todas). Comprobé en el navegador que `/quiz` abre Estudiar › Repaso.
 ---
 
 ## P20. Asignaturas: un solo selector y acciones peligrosas apartadas
@@ -342,7 +342,7 @@ Reorganicé la pantalla de Asignaturas simplificando la navegación de 3 niveles
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada, con un detalle → P29.** Comprobado en el navegador: un selector, tres pestañas y «Zona peligrosa». En `AsignaturasView` la carga del catálogo está duplicada (`cargarMaterias` y el `useEffect`), y el efecto depende de `params`, así que cada cambio de pestaña vuelve a pedir `/api/materias`.
 ---
 
 ## P19. Hoy: desbordamiento en móvil y avisos agrupados
@@ -375,7 +375,7 @@ Corregí el desbordamiento horizontal en móvil (390 px):
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada.** Medí con Chrome a 390 px (emulación de dispositivo): ninguna vista tiene desbordamiento horizontal (`scrollWidth` = 390); la tabla de Material desborda dentro de su propio contenedor con scroll, que es lo correcto.
 ---
 
 ## P24. Completar `.pptx` en la web y evitar notas inventadas
@@ -407,7 +407,7 @@ Habilité la aceptación de `.pptx` en el selector de `MaterialView` actualizand
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada.** Lo comprobé con el servidor sobre una copia de `data/examples`: un `.pptx` con solo un título devuelve 400 «La presentación es solo imágenes…» y no queda registrado. El informe no traía prueba en el navegador (regla 10).
 ---
 
 
@@ -436,7 +436,7 @@ Implementé la función utilitaria `resolverMateriaSubida` en `frontend/src/lib/
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada.** La lógica queda en `resolverMateriaSubida`, con tests. El informe no traía prueba en el navegador (regla 10): «tests de vitest» no cuenta como prueba manual.
 ---
 
 
