@@ -33,6 +33,41 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P18. Docker Compose para pruebas tipo producción
+
+- **Commit:** e171812 `feat(deploy): P18 docker compose para pruebas tipo produccion`
+- **Estado:** hecha
+- **Archivos:**
+  - `.dockerignore`
+  - `.gitignore`
+  - `docker-compose.yml`
+  - `docs/DESPLIEGUE.md`
+
+### Qué hice
+Creé `docker-compose.yml` en la raíz con servicios `app` (usando el `Dockerfile` actual de producción) y `db` (`postgres:16-alpine`, con volumen persistente con nombre `db_data`). La app se conecta mediante `DATABASE_URL=postgresql://postgres:postgres@db:5432/modular_learning` y monta una copia aislada de `data/examples` (`data_ejemplo`) y una bóveda aislada (`boveda_ejemplo`), protegiendo estrictamente `data/` y la bóveda real de Obsidian. Se añadió `.env` y `.env.*` a `.dockerignore` para garantizar que las credenciales no se copien en la imagen, inyectándose `GEMINI_API_KEY` vía `env_file`. Se documentó en `docs/DESPLIEGUE.md` la guía completa para preparar datos, levantar con compose, poblar/ensayar `scripts/migrar_datos.py --simular` y destruir el entorno.
+
+### Cómo lo verifiqué
+- pytest: 140 passed, 3 skipped
+- ruff check / ruff format: ok (All checks passed!)
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 warnings y 0 errors en oxlint, build exitoso con Vite/tsc, 25 passed en vitest
+- Tests nuevos: no aplica (infraestructura de despliegue y compose)
+- Prueba manual: Se levantó el entorno con `docker compose up --build -d`. Se verificó `docker compose ps` reportando ambos contenedores saludables (`modular-learning-app-1` y `modular-learning-db-1`). Se verificó `GET /api/salud` retornando 200 `{"ok":true}` y la raíz `/` sirviendo el HTML del frontend. Se ensayó la subida de datos de prueba (`deploy/subir_datos.py --subir`) y la simulación de migración (`scripts/migrar_datos.py --simular`) dentro del contenedor reportando `[SIMULADO] config/materias.json: 5 materias` y renombrado de cronogramas. Finalmente se verificó la destrucción completa con `docker compose down -v`.
+  Salida de `docker compose ps`:
+  ```
+  NAME                     IMAGE                  COMMAND                  SERVICE   CREATED              STATUS                        PORTS
+  modular-learning-app-1   modular-learning-app   "arranque"               app       About a minute ago   Up About a minute (healthy)   0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+  modular-learning-db-1    postgres:16-alpine     "docker-entrypoint.s…"   db        4 minutes ago        Up 4 minutes (healthy)        0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+  ```
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
+
 ## P17. Material: lo ingestado primero
 
 - **Commit:** 2d6f757 `feat(web): P17 historial de material primero y subida plegada`
