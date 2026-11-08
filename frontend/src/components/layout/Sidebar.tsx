@@ -3,12 +3,8 @@ import { Link, NavLink } from 'react-router-dom'
 import {
   BookMarked,
   CalendarDays,
-  FileDown,
   GraduationCap,
-  Layers,
-  LineChart,
   Menu,
-  Repeat2,
   Settings,
   Sun,
   X,
@@ -24,25 +20,12 @@ interface ItemNav {
   icono: LucideIcon
 }
 
-const GRUPOS: { titulo: string; items: ItemNav[] }[] = [
-  {
-    titulo: 'Estudiar',
-    items: [
-      { nombre: 'Hoy', ruta: '/', icono: Sun },
-      { nombre: 'Calendario', ruta: '/calendario', icono: CalendarDays },
-      { nombre: 'Tutoría', ruta: '/tutoria', icono: GraduationCap },
-      { nombre: 'Repaso', ruta: '/repaso', icono: Repeat2 },
-      { nombre: 'Guía offline', ruta: '/guia', icono: FileDown },
-      { nombre: 'Progreso', ruta: '/progreso', icono: LineChart },
-    ],
-  },
-  {
-    titulo: 'Biblioteca',
-    items: [
-      { nombre: 'Asignaturas', ruta: '/asignaturas', icono: BookMarked },
-      { nombre: 'Plugins', ruta: '/plugins', icono: Layers },
-    ],
-  },
+const ITEMS_NAV: ItemNav[] = [
+  { nombre: 'Hoy', ruta: '/', icono: Sun },
+  { nombre: 'Estudiar', ruta: '/estudiar', icono: GraduationCap },
+  { nombre: 'Calendario', ruta: '/calendario', icono: CalendarDays },
+  { nombre: 'Asignaturas', ruta: '/asignaturas', icono: BookMarked },
+  { nombre: 'Ajustes', ruta: '/ajustes', icono: Settings },
 ]
 
 function Marca({ className }: { className?: string }) {
@@ -114,18 +97,9 @@ function ContenidoSidebar({ onNavegar }: { onNavegar?: () => void }) {
     <div className="flex h-full flex-col py-5">
       <Marca className="px-3" />
 
-      <nav className="mt-8 flex-1 space-y-7 px-3">
-        {GRUPOS.map((grupo) => (
-          <div key={grupo.titulo}>
-            <p className="mb-1.5 px-3 font-display text-xs italic text-slate-500 dark:text-slate-500">
-              {grupo.titulo}
-            </p>
-            <div className="space-y-0.5">
-              {grupo.items.map((item) => (
-                <EnlaceNav key={item.ruta} item={item} onNavegar={onNavegar} />
-              ))}
-            </div>
-          </div>
+      <nav className="mt-8 flex-1 space-y-1 px-3">
+        {ITEMS_NAV.map((item) => (
+          <EnlaceNav key={item.ruta} item={item} onNavegar={onNavegar} />
         ))}
       </nav>
 
@@ -135,13 +109,7 @@ function ContenidoSidebar({ onNavegar }: { onNavegar?: () => void }) {
             No hay conexión con el servidor local.
           </p>
         )}
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <EnlaceNav
-              item={{ nombre: 'Configuración', ruta: '/config', icono: Settings }}
-              onNavegar={onNavegar}
-            />
-          </div>
+        <div className="flex items-center justify-end px-3">
           <ThemeToggle compacto />
         </div>
       </div>

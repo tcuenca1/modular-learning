@@ -109,20 +109,20 @@ describe('clasesConFecha y materiasConCronograma', () => {
 
 describe('enlaceTutoria', () => {
   it('genera enlace solo con materia', () => {
-    expect(enlaceTutoria('Redes')).toBe('/tutoria?materia=Redes')
+    expect(enlaceTutoria('Redes')).toBe('/estudiar?tab=tutoria&materia=Redes')
   })
 
   it('genera enlace con tema y sin clase_id', () => {
-    expect(enlaceTutoria('Redes', 'BGP')).toBe('/tutoria?materia=Redes&tema=BGP')
-    expect(enlaceTutoria('Redes', 'BGP', 'duda')).toBe('/tutoria?materia=Redes&tema=BGP&enfoque=duda')
+    expect(enlaceTutoria('Redes', 'BGP')).toBe('/estudiar?tab=tutoria&materia=Redes&tema=BGP')
+    expect(enlaceTutoria('Redes', 'BGP', 'duda')).toBe('/estudiar?tab=tutoria&materia=Redes&tema=BGP&enfoque=duda')
   })
 
   it('incluye clase_id en la query si viene', () => {
     expect(enlaceTutoria('Redes', 'BGP', undefined, 'clase-42')).toBe(
-      '/tutoria?materia=Redes&tema=BGP&clase_id=clase-42'
+      '/estudiar?tab=tutoria&materia=Redes&tema=BGP&clase_id=clase-42'
     )
     expect(enlaceTutoria('Redes', 'BGP', 'duda', 'clase-42')).toBe(
-      '/tutoria?materia=Redes&tema=BGP&enfoque=duda&clase_id=clase-42'
+      '/estudiar?tab=tutoria&materia=Redes&tema=BGP&enfoque=duda&clase_id=clase-42'
     )
   })
 })

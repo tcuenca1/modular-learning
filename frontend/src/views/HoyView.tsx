@@ -144,7 +144,7 @@ export function HoyView() {
       {/* Guías offline que aún no se confirmaron: lo primero al volver */}
       {guiasPorConfirmar.length > 0 && (
         <Link
-          to={guiasPorConfirmar.length === 1 ? `/guia/${guiasPorConfirmar[0].id}/revision` : '/guia'}
+          to={guiasPorConfirmar.length === 1 ? `/guia/${guiasPorConfirmar[0].id}/revision` : '/estudiar?tab=guia'}
           className="group flex items-center justify-between gap-3 border-l-4 border-marcador bg-white px-4 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/60"
         >
           <span className="min-w-0 truncate text-slate-700 dark:text-slate-300">
@@ -233,7 +233,7 @@ export function HoyView() {
             <h2 className="text-xl text-slate-900 dark:text-slate-100">Tus asignaturas</h2>
             {stats && (
               <span className="cifra text-xs text-slate-500">
-                {stats.temas_completados}/{stats.total_temas} clases
+                {stats.temas_completados}/{stats.total_temas} clases ({Math.round(stats.porcentaje_global)}%)
               </span>
             )}
           </div>
@@ -246,7 +246,7 @@ export function HoyView() {
                     <h3 className="font-medium text-slate-900 dark:text-slate-100">{a.nombre}</h3>
                     {a.stat && (
                       <span className="cifra text-xs text-slate-500">
-                        {a.stat.completados}/{a.stat.total}
+                        {a.stat.completados}/{a.stat.total} ({Math.round(a.stat.porcentaje)}%)
                       </span>
                     )}
                   </div>
@@ -294,7 +294,7 @@ export function HoyView() {
                   {resumen.pendientes_hoy === 1 ? 'pregunta' : 'preguntas'} para hoy.
                 </p>
                 <Link
-                  to="/repaso"
+                  to="/estudiar?tab=repaso"
                   className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   Repasar ahora
@@ -313,7 +313,7 @@ export function HoyView() {
                   .
                 </p>
                 <Link
-                  to="/repaso"
+                  to="/estudiar?tab=repaso"
                   className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   Preguntas nuevas
@@ -332,7 +332,7 @@ export function HoyView() {
               {errorEscaneo ? (
                 <p className="text-slate-500">
                   No pude revisar tus carpetas.{' '}
-                  <Link to="/config" className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300">
+                  <Link to="/ajustes?tab=config" className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300">
                     Revisa la configuración
                   </Link>
                 </p>

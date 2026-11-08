@@ -46,7 +46,7 @@ export function GuiaImprimirView() {
       <div className="hoja-fondo flex min-h-screen items-center justify-center p-4">
         <div className="max-w-md space-y-3 rounded-lg bg-white p-6 text-slate-800">
           <p>{error ?? 'Esta guía todavía no está generada por completo.'}</p>
-          <Link to="/guia" className="text-indigo-700 underline underline-offset-4">
+          <Link to="/estudiar?tab=guia" className="text-indigo-700 underline underline-offset-4">
             Volver a Guía offline
           </Link>
         </div>
@@ -65,7 +65,7 @@ export function GuiaImprimirView() {
     <div className="hoja-fondo min-h-screen">
       <div className="no-imprimir sticky top-0 z-10 border-b border-slate-300 bg-slate-100/95 backdrop-blur">
         <div className="mx-auto flex max-w-[148mm] flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <Link to="/guia" className="inline-flex items-center gap-1.5 text-sm text-slate-700 hover:text-slate-950">
+          <Link to="/estudiar?tab=guia" className="inline-flex items-center gap-1.5 text-sm text-slate-700 hover:text-slate-950">
             <ArrowLeft className="h-4 w-4" /> Guía offline
           </Link>
           <div className="flex items-center gap-2">

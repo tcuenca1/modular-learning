@@ -38,11 +38,11 @@ export function describirFecha(fecha: Date | undefined, hoy: Date): string {
 
 /** Enlace a la tutoría; `enfoque` es la pregunta de repaso fallada que se quiere reforzar. */
 export function enlaceTutoria(materia: string, tema?: string, enfoque?: string, claseId?: string): string {
-  const q = new URLSearchParams({ materia })
+  const q = new URLSearchParams({ tab: 'tutoria', materia })
   if (tema) q.set('tema', tema)
   if (enfoque) q.set('enfoque', enfoque)
   if (claseId) q.set('clase_id', claseId)
-  return `/tutoria?${q.toString()}`
+  return `/estudiar?${q.toString()}`
 }
 
 export const formatoCorto = new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short' })

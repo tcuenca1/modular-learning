@@ -225,7 +225,7 @@ export function RevisionGuiaView() {
           >
             {deshaciendo ? 'Deshaciendo…' : 'Deshacer confirmación (volver a pendientes)'}
           </Button>
-          <Link to="/guia" className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300">
+          <Link to="/estudiar?tab=guia" className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300">
             Ver todas tus guías
           </Link>
         </div>

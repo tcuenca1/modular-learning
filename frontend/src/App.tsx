@@ -1,17 +1,22 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Outlet, Route, Routes, useSearchParams } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { Sidebar } from '@/components/layout/Sidebar'
+import { AjustesView } from '@/views/AjustesView'
 import { AsignaturasView } from '@/views/AsignaturasView'
 import { CalendarioView } from '@/views/CalendarioView'
-import { ConfigView } from '@/views/ConfigView'
+import { EstudiarView } from '@/views/EstudiarView'
 import { GuiaImprimirView } from '@/views/GuiaImprimirView'
-import { GuiaView } from '@/views/GuiaView'
 import { HoyView } from '@/views/HoyView'
-import { PluginsView } from '@/views/PluginsView'
-import { ProgresoView } from '@/views/ProgresoView'
-import { QuizView } from '@/views/QuizView'
 import { RevisionGuiaView } from '@/views/RevisionGuiaView'
-import { TutoriaView } from '@/views/TutoriaView'
+
+/** Redirige a una ruta conservando los parámetros de búsqueda (query) */
+function RedirigirConQuery({ ruta, tab }: { ruta: string; tab?: string }) {
+  const [params] = useSearchParams()
+  const p = new URLSearchParams(params)
+  if (tab) p.set('tab', tab)
+  const query = p.toString()
+  return <Navigate to={`${ruta}${query ? `?${query}` : ''}`} replace />
+}
 
 /** Marco de la aplicación: barra lateral y columna de contenido. */
 function Marco() {
@@ -35,17 +40,20 @@ export default function App() {
         <Route path="/guia/:id/imprimir" element={<GuiaImprimirView />} />
         <Route element={<Marco />}>
           <Route path="/" element={<HoyView />} />
+          <Route path="/estudiar" element={<EstudiarView />} />
           <Route path="/calendario" element={<CalendarioView />} />
-          <Route path="/tutoria" element={<TutoriaView />} />
-          <Route path="/repaso" element={<QuizView />} />
-          <Route path="/guia" element={<GuiaView />} />
-          <Route path="/guia/:id/revision" element={<RevisionGuiaView />} />
-          <Route path="/progreso" element={<ProgresoView />} />
           <Route path="/asignaturas" element={<AsignaturasView />} />
-          <Route path="/plugins" element={<PluginsView />} />
-          <Route path="/config" element={<ConfigView />} />
-          {/* Rutas anteriores */}
-          <Route path="/quiz" element={<Navigate to="/repaso" replace />} />
+          <Route path="/ajustes" element={<AjustesView />} />
+          <Route path="/guia/:id/revision" element={<RevisionGuiaView />} />
+
+          {/* Rutas anteriores con redirección y conservación de query */}
+          <Route path="/tutoria" element={<RedirigirConQuery ruta="/estudiar" tab="tutoria" />} />
+          <Route path="/repaso" element={<RedirigirConQuery ruta="/estudiar" tab="repaso" />} />
+          <Route path="/guia" element={<RedirigirConQuery ruta="/estudiar" tab="guia" />} />
+          <Route path="/quiz" element={<RedirigirConQuery ruta="/estudiar" tab="repaso" />} />
+          <Route path="/progreso" element={<Navigate to="/" replace />} />
+          <Route path="/plugins" element={<RedirigirConQuery ruta="/ajustes" tab="plugins" />} />
+          <Route path="/config" element={<RedirigirConQuery ruta="/ajustes" tab="config" />} />
           <Route path="/silabos" element={<Navigate to="/asignaturas" replace />} />
           <Route path="/material" element={<Navigate to="/asignaturas?tab=material" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />

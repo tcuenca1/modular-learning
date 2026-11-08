@@ -530,7 +530,7 @@ export function QuizView() {
       {errorMensaje && (
         <div className="space-y-3 border-l-2 border-amber-400 bg-amber-50/60 py-3 pl-4 pr-3 text-sm dark:bg-amber-950/20">
           <p className="text-amber-900 dark:text-amber-200">{errorMensaje}</p>
-          <Button size="sm" variant="outline" onClick={() => navigate('/tutoria')}>
+          <Button size="sm" variant="outline" onClick={() => navigate('/estudiar?tab=tutoria')}>
             Ir a Tutoría
           </Button>
         </div>
