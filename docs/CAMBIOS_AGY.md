@@ -33,6 +33,32 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P17. Material: lo ingestado primero
+
+- **Commit:** 2d6f757 `feat(web): P17 historial de material primero y subida plegada`
+- **Estado:** hecha
+- **Archivos:**
+  - `frontend/src/views/MaterialView.tsx`
+
+### Qué hice
+Reorganicé la disposición de `MaterialView`: el historial de materiales ingestados se ubicó arriba como bloque principal de la pestaña. La sección de subida individual se plegó detrás de un botón «Subir un archivo» en la cabecera de la tarjeta (cerrada por defecto con estado `mostrarSubida`), y los resultados de escaneo solo se despliegan condicionalmente cuando existen escaneos en la visita actual (`escaneos.length > 0`).
+
+### Cómo lo verifiqué
+- pytest: 140 passed, 3 skipped
+- ruff check / ruff format: ok (All checks passed!)
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 warnings y 0 errors en oxlint, build exitoso con Vite/tsc, 25 passed en vitest
+- Tests nuevos: ninguno (cambio exclusivamente visual y de maquetación en frontend)
+- Prueba manual: verificado el flujo de visualización y compilación de componentes de React.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
+
 ## D1. Manual funcional del sistema en PDF
 
 - **Commit:** 76d6f59 `docs: D1 manual funcional`
