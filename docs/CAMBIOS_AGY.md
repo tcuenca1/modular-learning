@@ -33,6 +33,45 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P28. Borrados consistentes (DISC-11)
+
+- **Commit:** 58bf149 `fix(core): P28 borrados consistentes de proyectos materias y materiales`
+- **Estado:** hecha
+- **Archivos:**
+  - `backend/src/modular_learning/bootstrap.py`
+  - `backend/src/modular_learning/core/application/ingesta.py`
+  - `backend/src/modular_learning/core/application/materias.py`
+  - `backend/src/modular_learning/core/application/proyectos.py`
+  - `backend/src/modular_learning/core/ports/repositorios.py`
+  - `backend/src/modular_learning/infrastructure/persistence/json_repositorios.py`
+  - `backend/tests/unit/application/fake_adapters.py`
+  - `backend/tests/unit/application/test_ingesta_service.py`
+  - `backend/tests/unit/application/test_otros_servicios.py`
+  - `backend/tests/unit/application/test_proyectos_service.py`
+
+### Qué hice
+1. **Borrado limpio de proyecto individual (`ProyectosService.eliminar_proyecto`):** Se aseguró que al eliminar un proyecto se elimine también su entrada `[PROYECTO] …` del registro de materiales y su nota generada en la bóveda de Obsidian.
+2. **Borrado en cascada de proyectos por asignatura (`MateriasService.eliminar_materia`):** Al eliminar una asignatura, el servicio ahora identifica y elimina todos los proyectos asociados a dicha asignatura mediante `proyectos_service` o `proyectos_repo`.
+3. **Limpieza no destructiva de cronogramas (`IngestaService.vaciar_materiales`):** Al vaciar materiales, recorre los cronogramas registrados para vaciar las listas de `materiales_asociados` de cada sesión y el `material_transversal` (mediante el nuevo método `limpiar_material_transversal` en `CronogramaRepo`), preservando de manera intacta todas las clases, temas y sus estados.
+
+### Cómo lo verifiqué
+- pytest: 147 passed, 3 skipped
+- ruff check / ruff format: ok (All checks passed!)
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 warnings y 0 errors en oxlint, build exitoso en 1.16s con Vite/tsc, 37 passed en vitest.
+- Tests nuevos:
+  - `test_proyectos_service.py::test_eliminar_proyecto_quita_registro_y_nota_obsidian`
+  - `test_otros_servicios.py::test_eliminar_materia_elimina_proyectos_asociados`
+  - `test_ingesta_service.py::test_vaciar_materiales_limpia_referencias_en_cronograma_sin_tocar_clases_ni_estados`
+- Prueba manual: Pruebas unitarias de aislamiento con adaptadores en memoria (fakes) garantizando que no queden referencias huérfanas en el registro, notas ni cronogramas.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P27. Cortes de parcial: guardar la clase, no una fecha (DISC-10)
 
 - **Commit:** 2cead9e `feat(web): P27 cortes de parcial asociados a clase del cronograma`
