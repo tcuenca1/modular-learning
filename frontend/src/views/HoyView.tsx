@@ -142,21 +142,27 @@ export function HoyView() {
   return (
     <div className="space-y-12">
       {/* Guías offline que aún no se confirmaron: lo primero al volver */}
-      {guiasPorConfirmar.map((g) => (
+      {guiasPorConfirmar.length > 0 && (
         <Link
-          key={g.id}
-          to={`/guia/${g.id}/revision`}
-          className="group flex flex-col gap-1 border-l-4 border-marcador bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 dark:bg-slate-900"
+          to={guiasPorConfirmar.length === 1 ? `/guia/${guiasPorConfirmar[0].id}/revision` : '/guia'}
+          className="group flex items-center justify-between gap-3 border-l-4 border-marcador bg-white px-4 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/60"
         >
-          <span className="text-sm text-slate-700 dark:text-slate-300">
-            <span className="font-medium text-slate-900 dark:text-slate-100">¿Cómo te fue con tu guía offline?</span>{' '}
-            {g.materia} · {g.temas.length === 1 ? g.temas[0] : `${g.temas.length} clases`}
+          <span className="min-w-0 truncate text-slate-700 dark:text-slate-300">
+            {guiasPorConfirmar.length === 1 ? (
+              <>
+                1 guía de <span className="font-medium text-slate-900 dark:text-slate-100">{guiasPorConfirmar[0].materia}</span> por confirmar
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-slate-900 dark:text-slate-100">{guiasPorConfirmar.length} guías</span> por confirmar
+              </>
+            )}
           </span>
-          <span className="shrink-0 text-sm text-indigo-700 group-hover:underline group-hover:underline-offset-4 dark:text-indigo-300">
-            Confirmar →
+          <span className="shrink-0 text-sm font-medium text-indigo-700 group-hover:underline group-hover:underline-offset-4 dark:text-indigo-300">
+            {guiasPorConfirmar.length === 1 ? 'Confirmar →' : 'Ver todas →'}
           </span>
         </Link>
-      ))}
+      )}
 
       {/* Lo que toca hoy */}
       <section>
@@ -191,7 +197,7 @@ export function HoyView() {
           </div>
         ) : foco ? (
           <>
-            <h1 className="mt-3 max-w-3xl text-[2.6rem] leading-[1.1] text-slate-900 dark:text-slate-50">
+            <h1 className="mt-3 max-w-3xl text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl md:text-4xl lg:text-[2.6rem] lg:leading-[1.1] dark:text-slate-50 break-words">
               Te toca <span className="marcador">{foco.siguiente!.tema}</span>
             </h1>
             <p className="mt-3 text-slate-600 dark:text-slate-400">
@@ -207,7 +213,7 @@ export function HoyView() {
           </>
         ) : (
           <>
-            <h1 className="mt-3 text-[2.6rem] leading-[1.1] text-slate-900 dark:text-slate-50">
+            <h1 className="mt-3 text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl md:text-4xl lg:text-[2.6rem] lg:leading-[1.1] dark:text-slate-50 break-words">
               No tienes clases pendientes.
             </h1>
             <p className="mt-3 text-slate-600 dark:text-slate-400">
@@ -284,7 +290,7 @@ export function HoyView() {
             {resumen && resumen.pendientes_hoy > 0 ? (
               <div className="mt-4 space-y-3">
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  <span className="cifra marcador text-slate-900 dark:text-slate-100">{resumen.pendientes_hoy}</span>{' '}
+                  <span className="cifra font-semibold text-slate-900 underline decoration-marcador decoration-2 underline-offset-4 dark:text-slate-100">{resumen.pendientes_hoy}</span>{' '}
                   {resumen.pendientes_hoy === 1 ? 'pregunta' : 'preguntas'} para hoy.
                 </p>
                 <Link

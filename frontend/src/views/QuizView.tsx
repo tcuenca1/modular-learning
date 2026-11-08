@@ -503,7 +503,7 @@ export function QuizView() {
         <section className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-900">
           <div>
             <p className="font-display text-xl text-slate-900 dark:text-slate-50">
-              Tienes <span className="marcador cifra">{resumen.pendientes_hoy}</span>{' '}
+              Tienes <span className="cifra font-semibold text-slate-900 underline decoration-marcador decoration-2 underline-offset-4 dark:text-slate-50">{resumen.pendientes_hoy}</span>{' '}
               {resumen.pendientes_hoy === 1 ? 'pregunta' : 'preguntas'} para repasar hoy
             </p>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">

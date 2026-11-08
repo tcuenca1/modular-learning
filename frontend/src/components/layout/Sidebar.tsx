@@ -45,15 +45,15 @@ const GRUPOS: { titulo: string; items: ItemNav[] }[] = [
   },
 ]
 
-function Marca() {
+function Marca({ className }: { className?: string }) {
   return (
-    <Link to="/" className="flex items-center gap-3 px-3">
-      <img src="/favicon.svg" alt="" className="h-8 w-8" />
-      <span className="leading-tight">
-        <span className="block font-display text-[1.05rem] font-semibold text-slate-900 dark:text-slate-50">
+    <Link to="/" className={cn('flex items-center gap-3 min-w-0', className)}>
+      <img src="/favicon.svg" alt="" className="h-8 w-8 shrink-0" />
+      <span className="min-w-0 leading-tight">
+        <span className="block truncate font-display text-[1.05rem] font-semibold text-slate-900 dark:text-slate-50">
           Modular Learning
         </span>
-        <span className="block text-xs text-slate-500 dark:text-slate-400">
+        <span className="block truncate text-xs text-slate-500 dark:text-slate-400">
           cuaderno de estudio
         </span>
       </span>
@@ -112,7 +112,7 @@ function ContenidoSidebar({ onNavegar }: { onNavegar?: () => void }) {
 
   return (
     <div className="flex h-full flex-col py-5">
-      <Marca />
+      <Marca className="px-3" />
 
       <nav className="mt-8 flex-1 space-y-7 px-3">
         {GRUPOS.map((grupo) => (
@@ -162,7 +162,7 @@ export function Sidebar() {
       {/* Móvil: cabecera + cajón */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-slate-200 bg-slate-50/95 px-4 backdrop-blur md:hidden dark:border-slate-800 dark:bg-slate-950/95">
         <Marca />
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle compacto />
           <button
             type="button"
