@@ -21,6 +21,7 @@ def run(container: bootstrap.Container | None = None) -> None:
         materia = datos["materia"]
         tema = datos["tema"]
         nivel_profundidad = datos["nivel_profundidad"]
+        clase_id = datos.get("clase_id")
 
         sesion_id = uuid.uuid4().hex
 
@@ -31,6 +32,7 @@ def run(container: bootstrap.Container | None = None) -> None:
                 materia=materia,
                 tema=tema,
                 nivel_profundidad=nivel_profundidad,
+                clase_id=clase_id,
             )
 
         print("\n" + "=" * 65)

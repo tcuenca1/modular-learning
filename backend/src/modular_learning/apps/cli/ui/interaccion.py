@@ -1,4 +1,5 @@
 import sys
+from typing import Any
 
 import questionary
 
@@ -29,7 +30,7 @@ def seleccionar_con_flechas(opciones: list[str]) -> str:
     return seleccion
 
 
-def pedir_datos_inicio(materias_service: MateriasService) -> dict[str, str]:
+def pedir_datos_inicio(materias_service: MateriasService) -> dict[str, Any]:
     """
     Solicita al usuario los datos de inicio seleccionando la materia interactivamente,
     ofreciendo las próximas clases del cronograma JSON si existen, y pidiendo profundidad.
@@ -58,17 +59,22 @@ def pedir_datos_inicio(materias_service: MateriasService) -> dict[str, str]:
 
     proximas_clases = materias_service.obtener_proximas_clases(materia)
     tema = ""
+    clase_id: str | None = None
 
     if proximas_clases:
         print("📅 Se encontraron clases pendientes en el cronograma de la asignatura:")
-        opciones_clases = [
-            f"📅 [{c.get('fecha', 'Sin fecha')}] {c.get('tema', 'Tema')}" for c in proximas_clases
+        choices: list[Any] = [
+            questionary.Choice(
+                title=f"📅 [{c.get('fecha', 'Sin fecha')}] {c.get('tema', 'Tema')}",
+                value=c,
+            )
+            for c in proximas_clases
         ]
-        opciones_clases.append("➕ Ingresar un tema manualmente")
+        choices.append(questionary.Choice(title="➕ Ingresar un tema manualmente", value=None))
 
         eleccion_clase = questionary.select(
             "Selecciona una clase pendiente o ingresa un tema manual:",
-            choices=opciones_clases,
+            choices=choices,
             style=questionary.Style(
                 [
                     ("pointer", "fg:cyan bold"),
@@ -78,11 +84,19 @@ def pedir_datos_inicio(materias_service: MateriasService) -> dict[str, str]:
             ),
         ).ask()
 
-        if eleccion_clase and "➕" not in eleccion_clase:
-            idx = opciones_clases.index(eleccion_clase)
-            clase_seleccionada = proximas_clases[idx]
-            tema = clase_seleccionada.get("tema", "")
-            print(f"🎯 Tema seleccionado del cronograma: \033[1;93m{tema}\033[0m")
+        if eleccion_clase:
+            if isinstance(eleccion_clase, dict):
+                tema = eleccion_clase.get("tema", "")
+                clase_id = eleccion_clase.get("id")
+            elif isinstance(eleccion_clase, str) and "➕" not in eleccion_clase:
+                for c in proximas_clases:
+                    label = f"📅 [{c.get('fecha', 'Sin fecha')}] {c.get('tema', 'Tema')}"
+                    if label == eleccion_clase:
+                        tema = c.get("tema", "")
+                        clase_id = c.get("id")
+                        break
+            if tema:
+                print(f"🎯 Tema seleccionado del cronograma: \033[1;93m{tema}\033[0m")
 
     if not tema:
         tema = input("🎯 Ingresa el tema específico que deseas estudiar hoy: ").strip()
@@ -101,7 +115,15 @@ def pedir_datos_inicio(materias_service: MateriasService) -> dict[str, str]:
     niveles_map = {"1": "BÁSICO", "2": "INTERMEDIO", "3": "AVANZADO"}
     nivel_profundidad = niveles_map.get(opcion_profundidad, "INTERMEDIO")
 
-    return {"materia": materia, "tema": tema, "nivel_profundidad": nivel_profundidad}
+    resultado: dict[str, Any] = {
+        "materia": materia,
+        "tema": tema,
+        "nivel_profundidad": nivel_profundidad,
+    }
+    if clase_id:
+        resultado["clase_id"] = clase_id
+
+    return resultado
 
 
 def mostrar_mensaje(mensaje: str, tipo: str = "info") -> None:
