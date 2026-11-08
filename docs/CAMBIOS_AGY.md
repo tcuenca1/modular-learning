@@ -82,6 +82,51 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P20. Asignaturas: un solo selector y acciones peligrosas apartadas
+
+- **Commit:** 01ff583 `refactor(web): P20 selector unico de asignaturas tres pestanas y zona peligrosa`
+- **Estado:** hecha
+- **Archivos:**
+  - `frontend/src/views/AsignaturasView.tsx`
+  - `frontend/src/views/MaterialView.tsx`
+  - `frontend/src/views/SilabosView.tsx`
+
+### Qué hice
+Reorganicé la pantalla de Asignaturas simplificando la navegación de 3 niveles a una sola estructura clara:
+1. **Selector compartido de asignatura arriba:** En `AsignaturasView`, un único selector `<select>` arriba permite elegir la asignatura activa, renombrarla con edición en línea o crear una nueva («+ Nueva asignatura»). Este selector es compartido por todas las pestañas y oculta el slug al usuario.
+2. **Tres pestañas principales:** Debajo del selector, tres pestañas limpias organizan el contenido: **Clases**, **Material** y **Proyectos**. La pestaña activa se refleja en la URL (`?tab=`) y se preserva compatibilidad con URLs antiguas (`?tab=cronogramas` redirige a `clases`, `/material` y `?tab=material` abren `material`).
+3. **Subida de sílabo integrada en Clases:** El botón «Subir sílabo» ahora está dentro de la cabecera de la tarjeta de clases y en el estado vacío cuando una asignatura no tiene clases, eliminando la pestaña separada «Subir e importar sílabo».
+4. **Acciones peligrosas apartadas:** Se retiraron los botones de borrado masivo/crítico de las cabeceras principales («Vaciar Cronograma» y «Eliminar Materia» que estaban junto a «Añadir Clase» en `SilabosView`, y «Vaciar todo» que estaba junto a «Procesar nuevos» en `MaterialView`). Ahora se ubican en una sección dedicada «Zona peligrosa» al final de la pantalla, manteniendo sus diálogos de confirmación y notificaciones toast.
+5. **Ocultamiento del slug:** Se eliminó la etiqueta `Slug: <code>{slug}</code>` de la interfaz para que el usuario solo vea nombres legibles.
+
+### Dónde quedó cada botón
+- **Selector de asignatura:** Arriba en `AsignaturasView`, compartido por las tres pestañas.
+- **Crear nueva asignatura:** Botón «+ Nueva asignatura» en la barra del selector superior.
+- **Renombrar asignatura:** Icono de edición junto al selector en la barra superior.
+- **Subir sílabo:** Botón «Subir sílabo» en la cabecera de la tarjeta de la clase seleccionada y en su estado vacío.
+- **Añadir clase:** Botón «Añadir clase» en la cabecera de la tarjeta en la pestaña Clases.
+- **Cortes de parcial:** En el acordeón / bloque de cortes de parcial dentro de la pestaña Clases.
+- **Subir archivo suelto de material:** Botón «Subir un archivo» en la pestaña Material.
+- **Revisar carpetas y procesar nuevos:** En los controles de sincronización de la pestaña Material.
+- **Vaciar cronograma:** Al final de la pestaña Clases en la sección «Zona peligrosa».
+- **Eliminar asignatura:** Al final de la pestaña Clases en la sección «Zona peligrosa».
+- **Vaciar todo el material:** Al final de las pestañas Material y Proyectos en la sección «Zona peligrosa».
+
+### Cómo lo verifiqué
+- pytest: 142 passed, 3 skipped
+- ruff check / ruff format: ok (All checks passed!)
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 warnings y 0 errors en oxlint, build exitoso con Vite/tsc, 30 passed en vitest
+- Tests nuevos: no aplica (reorganización de vistas y componentes de interfaz)
+- Prueba manual: Se verificó la navegación entre las tres pestañas (**Clases**, **Material**, **Proyectos**) con el selector compartido de asignatura, la carga sincronizada de datos de clase y material, la apertura del uploader de sílabo desde el botón de la cabecera y el estado vacío, y la ubicación de las acciones destructivas en la sección «Zona peligrosa» en escritorio y a 390 px.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P19. Hoy: desbordamiento en móvil y avisos agrupados
 
 - **Commit:** 30980dc `fix(web): P19 desbordamiento movil avisos agrupados y estilo de pendientes`
