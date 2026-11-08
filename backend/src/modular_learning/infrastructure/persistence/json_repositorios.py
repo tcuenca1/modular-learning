@@ -295,6 +295,15 @@ class JsonCronogramaRepo(CronogramaRepo):
         self._escribir(clave, data)
         return True
 
+    def limpiar_material_transversal(self, materia: str) -> None:
+        clave = self._encontrar_clave_cronograma(materia)
+        if not clave:
+            return
+        data = self._leer(clave)
+        if isinstance(data, dict) and "material_transversal" in data:
+            data["material_transversal"] = []
+            self._escribir(clave, data)
+
     def obtener_parciales(self, materia: str) -> list[dict[str, Any]]:
         clave = self._encontrar_clave_cronograma(materia)
         if not clave:

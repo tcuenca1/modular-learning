@@ -349,3 +349,54 @@ def test_ingestar_pptx_borra_temporal_si_llm_falla():
         service.ingestar_archivo("presentacion.pptx", "presentacion.pptx", "Redes")
 
     assert conversor.temporales_borrados == ["/tmp/error_slides.pdf"]
+
+
+def test_vaciar_materiales_limpia_referencias_en_cronograma_sin_tocar_clases_ni_estados():
+    cronograma_repo = InMemoryCronogramaRepo({
+        "redes": [
+            {
+                "id": "clase-1",
+                "tema": "Sockets y TCP",
+                "estado": "completado",
+                "materiales_asociados": ["Sockets.pdf", "Guia.docx"],
+            },
+            {
+                "id": "clase-2",
+                "tema": "Protocolo HTTP",
+                "estado": "pendiente",
+                "materiales_asociados": ["RFC2616.pdf"],
+            },
+        ]
+    })
+    cronograma_repo.agregar_material_transversal("redes", {"archivo": "Syllabus.pdf", "titulo": "Programa"})
+    registro_repo = InMemoryRegistroMaterialesRepo()
+    registro_repo.registrar_material("Sockets.pdf", "redes")
+    registro_repo.registrar_material("RFC2616.pdf", "redes")
+
+    service = IngestaService(
+        llm=FakeLLM(),
+        registro_repo=registro_repo,
+        boveda_port=InMemoryBovedaPort(),
+        lector_docs=InMemoryLectorDocumentosPort(),
+        ajustes_port=InMemoryAjustesPort(),
+        cronograma_repo=cronograma_repo,
+    )
+
+    resultado = service.vaciar_materiales(borrar_notas_obsidian=False)
+    assert resultado["total_materiales_eliminados"] == 2
+
+    # El cronograma conserva sus 2 clases y sus estados sin modificaciones
+    clases = cronograma_repo.obtener_cronograma("redes")
+    assert len(clases) == 2
+    assert clases[0]["id"] == "clase-1"
+    assert clases[0]["tema"] == "Sockets y TCP"
+    assert clases[0]["estado"] == "completado"
+    assert clases[0]["materiales_asociados"] == []
+
+    assert clases[1]["id"] == "clase-2"
+    assert clases[1]["tema"] == "Protocolo HTTP"
+    assert clases[1]["estado"] == "pendiente"
+    assert clases[1]["materiales_asociados"] == []
+
+    # El material transversal también se limpió
+    assert cronograma_repo.transversal.get("redes", []) == []

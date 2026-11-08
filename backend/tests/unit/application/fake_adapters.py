@@ -156,6 +156,10 @@ class InMemoryCronogramaRepo(CronogramaRepo):
         self.transversal[clave] = restantes
         return True
 
+    def limpiar_material_transversal(self, materia: str) -> None:
+        clave = self._resolver_clave(materia) or materia
+        self.transversal[clave] = []
+
     def obtener_parciales(self, materia: str) -> list[dict[str, Any]]:
         clave = self._resolver_clave(materia) or materia
         return list(self.parciales.get(clave, []))

@@ -6,6 +6,7 @@ from typing import Any
 
 from modular_learning.core.domain.cronograma import buscar_clase, nuevo_id_clase
 from modular_learning.core.domain.materias import Materia, resolver_materia, slug_materia
+from modular_learning.core.ports.proyectos import ProyectosRepo
 from modular_learning.core.ports.repositorios import (
     CronogramaRepo,
     MateriaRepo,
@@ -21,10 +22,14 @@ class MateriasService:
         materia_repo: MateriaRepo,
         cronograma_repo: CronogramaRepo | None = None,
         registro_repo: RegistroMaterialesRepo | None = None,
+        proyectos_repo: ProyectosRepo | None = None,
+        proyectos_service: Any = None,
     ):
         self.materia_repo = materia_repo
         self.cronograma_repo = cronograma_repo
         self.registro_repo = registro_repo
+        self.proyectos_repo = proyectos_repo
+        self.proyectos_service = proyectos_service
 
     # ------------------------------------------------------------------ Catálogo de materias
     def listar_materias(self) -> list[str]:
@@ -56,7 +61,8 @@ class MateriasService:
     def eliminar_materia(self, slug_o_nombre: str, borrar_cronograma: bool = True) -> bool:
         """
         Elimina la materia del catálogo. Si borrar_cronograma es True, también elimina
-        su cronograma y desvincula sus materiales registrados.
+        su cronograma y desvincula sus materiales registrados. Además elimina los proyectos
+        asociados a esa asignatura.
         """
         slug = slug_materia(slug_o_nombre)
         eliminada = self.materia_repo.eliminar(slug)
@@ -64,6 +70,12 @@ class MateriasService:
             self.cronograma_repo.eliminar_cronograma(slug)
         if self.registro_repo:
             self.registro_repo.eliminar_de_materia(slug)
+        if self.proyectos_service:
+            for p in self.proyectos_service.listar_proyectos(slug):
+                self.proyectos_service.eliminar_proyecto(p.id)
+        elif self.proyectos_repo:
+            for p in self.proyectos_repo.listar(slug):
+                self.proyectos_repo.eliminar(p.id)
         return eliminada
 
     # ------------------------------------------------------------------ Cronogramas y clases

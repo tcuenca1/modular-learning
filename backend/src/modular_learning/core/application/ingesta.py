@@ -329,6 +329,19 @@ class IngestaService:
         if self.proyectos_service:
             total_proyectos = self.proyectos_service.vaciar_proyectos(borrar_notas_obsidian)
 
+        if self.cronograma_repo:
+            cronogramas = self.cronograma_repo.listar_cronogramas()
+            for materia, clases in cronogramas.items():
+                if clases:
+                    hubo_cambio = False
+                    for c in clases:
+                        if c.get("materiales_asociados"):
+                            c["materiales_asociados"] = []
+                            hubo_cambio = True
+                    if hubo_cambio:
+                        self.cronograma_repo.guardar_cronograma(materia, clases)
+                self.cronograma_repo.limpiar_material_transversal(materia)
+
         return {
             "total_materiales_eliminados": total_materiales,
             "total_proyectos_eliminados": total_proyectos,

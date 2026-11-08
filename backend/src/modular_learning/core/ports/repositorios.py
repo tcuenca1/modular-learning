@@ -65,6 +65,10 @@ class CronogramaRepo(ABC):
         """Quita un material de la sección transversal; retorna False si no estaba."""
 
     @abstractmethod
+    def limpiar_material_transversal(self, materia: str) -> None:
+        """Elimina todos los materiales de la sección transversal del cronograma."""
+
+    @abstractmethod
     def obtener_parciales(self, materia: str) -> list[dict[str, Any]]:
         """Cortes de parcial de la materia: [{nombre, hasta}] con `hasta` = id de la clase."""
 

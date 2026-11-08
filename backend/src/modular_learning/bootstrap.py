@@ -189,6 +189,8 @@ def build_container(settings: Any | None = None) -> Container:
         materia_repo=materia_repo,
         cronograma_repo=cronograma_repo,
         registro_repo=registro_repo,
+        proyectos_repo=proyectos_repo,
+        proyectos_service=proyectos_service,
     )
 
     exportador_pdf = ExportadorPdfPyMuPDF()

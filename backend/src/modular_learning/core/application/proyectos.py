@@ -52,7 +52,15 @@ class ProyectosService:
     def obtener_proyecto(self, id_proyecto: str) -> Proyecto | None:
         return self.proyectos_repo.obtener(id_proyecto)
 
-    def eliminar_proyecto(self, id_proyecto: str) -> bool:
+    def eliminar_proyecto(self, id_proyecto: str, borrar_nota: bool = True) -> bool:
+        """Elimina un proyecto del registro, su entrada en materiales y su ficha en Obsidian."""
+        proyecto = self.proyectos_repo.obtener(id_proyecto)
+        if not proyecto:
+            return False
+        if borrar_nota and proyecto.ruta_nota_obsidian:
+            self.boveda_port.eliminar_nota(proyecto.ruta_nota_obsidian)
+        nombre_registro = f"[PROYECTO] {proyecto.nombre} ({proyecto.parcial})"
+        self.registro_repo.eliminar_material(nombre_registro)
         return self.proyectos_repo.eliminar(id_proyecto)
 
     def escanear_proyectos_en_carpeta(
@@ -200,10 +208,11 @@ class ProyectosService:
 
     def vaciar_proyectos(self, borrar_notas_obsidian: bool = True) -> int:
         """Elimina todos los proyectos registrados y, si se pide, sus fichas en Obsidian."""
-        if borrar_notas_obsidian:
-            for p in self.proyectos_repo.listar():
-                if p.ruta_nota_obsidian:
-                    self.boveda_port.eliminar_nota(p.ruta_nota_obsidian)
+        for p in self.proyectos_repo.listar():
+            if borrar_notas_obsidian and p.ruta_nota_obsidian:
+                self.boveda_port.eliminar_nota(p.ruta_nota_obsidian)
+            nombre_registro = f"[PROYECTO] {p.nombre} ({p.parcial})"
+            self.registro_repo.eliminar_material(nombre_registro)
         return self.proyectos_repo.vaciar()
 
 

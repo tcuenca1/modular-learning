@@ -89,3 +89,17 @@ def test_vaciar_proyectos_borra_sus_fichas(servicio, boveda):
     assert servicio.vaciar_proyectos() == 1
     assert boveda.notas == {}
     assert servicio.listar_proyectos() == []
+
+
+def test_eliminar_proyecto_quita_registro_y_nota_obsidian(servicio, boveda):
+    proyecto = servicio.analizar_e_ingestar_proyecto(
+        "Programacion Web", "mi_app", "primer_parcial", RUTA
+    )
+    nombre_reg = f"[PROYECTO] {proyecto.nombre} ({proyecto.parcial})"
+    assert servicio.registro_repo.verificar_material_ingestado(nombre_reg) is True
+    assert len(boveda.notas) == 1
+
+    assert servicio.eliminar_proyecto(proyecto.id) is True
+    assert servicio.obtener_proyecto(proyecto.id) is None
+    assert boveda.notas == {}
+    assert servicio.registro_repo.verificar_material_ingestado(nombre_reg) is False
