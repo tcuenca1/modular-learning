@@ -216,7 +216,7 @@ export function MaterialView({
           materiaFiltro ?? (materiaSeleccionada === '__todas__' ? undefined : materiaSeleccionada)
         const [resProy, resCand] = await Promise.all([
           api.getProyectos(mat).catch(() => ({ proyectos: [] })),
-          api.escanearProyectos(mat).catch(() => ({ candidatos: [] })),
+          enNube ? Promise.resolve({ candidatos: [] }) : api.escanearProyectos(mat).catch(() => ({ candidatos: [] })),
         ])
         const listaProyectos = resProy.proyectos || []
         setProyectos(listaProyectos)
@@ -231,7 +231,7 @@ export function MaterialView({
         setCargandoProyectos(false)
       }
     },
-    [materiaSeleccionada, verificarEstados]
+    [materiaSeleccionada, verificarEstados, enNube]
   )
 
   const {
@@ -312,19 +312,28 @@ export function MaterialView({
 
   useEffect(() => {
     let cancelado = false
-    const mat = materiaSeleccionada === '__todas__' ? undefined : materiaSeleccionada
-    Promise.all([
-      api.getProyectos(mat).catch(() => ({ proyectos: [] })),
-      api.escanearProyectos(mat).catch(() => ({ candidatos: [] })),
-    ])
-      .then(([resProy, resCand]) => {
-        if (!cancelado) {
-          const listaProyectos = resProy.proyectos || []
-          setProyectos(listaProyectos)
-          setCandidatos(resCand.candidatos || [])
-          if (listaProyectos.length > 0) {
-            verificarEstados(listaProyectos)
-          }
+    api
+      .getConfig()
+      .then((cfg) => {
+        if (cancelado) return
+        const enLaNube = Boolean(cfg.en_nube)
+        setEnNube(enLaNube)
+        const mat = materiaSeleccionada === '__todas__' ? undefined : materiaSeleccionada
+        return Promise.all([
+          api.getProyectos(mat).catch(() => ({ proyectos: [] })),
+          enLaNube
+            ? Promise.resolve({ candidatos: [] })
+            : api.escanearProyectos(mat).catch(() => ({ candidatos: [] })),
+        ])
+      })
+      .then((res) => {
+        if (!res || cancelado) return
+        const [resProy, resCand] = res
+        const listaProyectos = resProy.proyectos || []
+        setProyectos(listaProyectos)
+        setCandidatos(resCand.candidatos || [])
+        if (listaProyectos.length > 0) {
+          verificarEstados(listaProyectos)
         }
       })
       .catch((err) => {
@@ -578,11 +587,12 @@ export function MaterialView({
       )}
 
       {/* Barra de Controles y Escaneo */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle>Tus carpetas de asignatura</CardTitle>
+      {!enNube && (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle>Tus carpetas de asignatura</CardTitle>
               <CardDescription>
                 Detecta materiales de estudio, actividades y proyectos de parcial en <code>6. SEXTO/</code>.
               </CardDescription>
@@ -682,6 +692,7 @@ export function MaterialView({
           </CardContent>
         )}
       </Card>
+      )}
 
       {/* Selector de Sub-pestañas: solo si no está controlado externamente */}
       {!modo && (

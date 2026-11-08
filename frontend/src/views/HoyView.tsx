@@ -66,6 +66,7 @@ export function HoyView() {
   const [resumen, setResumen] = useState<ResumenRepaso | null>(null)
   const [clasesDeHoy, setClasesDeHoy] = useState<ClaseFechada[]>([])
   const [guiasPorConfirmar, setGuiasPorConfirmar] = useState<GuiaResumen[]>([])
+  const [enNube, setEnNube] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -107,11 +108,27 @@ export function HoyView() {
         setClasesDeHoy(clasesConFecha(cronogramas, materias).filter((c) => claveDia(c.fecha) === claveHoy))
       })
       .catch(() => undefined)
-    // El escaneo recorre carpetas locales y puede tardar: se carga aparte
+    // En la nube no se escanean carpetas locales; en local se carga aparte
     api
-      .escanearMaterial()
-      .then((r) => activo && setEscaneos(r.escaneos))
-      .catch(() => activo && setErrorEscaneo(true))
+      .getConfig()
+      .then((cfg) => {
+        if (!activo) return
+        if (cfg.en_nube) {
+          setEnNube(true)
+        } else {
+          api
+            .escanearMaterial()
+            .then((r) => activo && setEscaneos(r.escaneos))
+            .catch(() => activo && setErrorEscaneo(true))
+        }
+      })
+      .catch(() => {
+        if (!activo) return
+        api
+          .escanearMaterial()
+          .then((r) => activo && setEscaneos(r.escaneos))
+          .catch(() => activo && setErrorEscaneo(true))
+      })
     return () => {
       activo = false
     }
@@ -324,10 +341,11 @@ export function HoyView() {
             )}
           </section>
 
-          <section>
-            <h2 className="border-b border-slate-200 pb-2 text-xl text-slate-900 dark:border-slate-800 dark:text-slate-100">
-              Material nuevo
-            </h2>
+          {!enNube && (
+            <section>
+              <h2 className="border-b border-slate-200 pb-2 text-xl text-slate-900 dark:border-slate-800 dark:text-slate-100">
+                Material nuevo
+              </h2>
             <div className="mt-4 space-y-3 text-sm">
               {errorEscaneo ? (
                 <p className="text-slate-500">
@@ -360,6 +378,7 @@ export function HoyView() {
               )}
             </div>
           </section>
+          )}
         </aside>
       </div>
     </div>

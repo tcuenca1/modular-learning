@@ -223,7 +223,7 @@ def test_config_en_nube_con_variable(client, monkeypatch):
     assert res.json()["en_nube"] is False
 
 
-def test_escanear_material_endpoint(client, tmp_path):
+def test_escanear_material_endpoint(client, tmp_path, monkeypatch):
     carpeta_estudio = tmp_path / "Uni"
     materia_dir = carpeta_estudio / "Seguridad"
     materia_dir.mkdir(parents=True)
@@ -241,6 +241,16 @@ def test_escanear_material_endpoint(client, tmp_path):
     assert len(escaneos) == 1
     assert escaneos[0]["materia"] == "Seguridad"
     assert len(escaneos[0]["pendientes"]) == 1
+
+    # Con ML_EN_NUBE=1, los escaneos responden vacío
+    monkeypatch.setenv("ML_EN_NUBE", "1")
+    res_nube = client.get("/api/material/escanear?materia=Seguridad")
+    assert res_nube.status_code == 200
+    assert res_nube.json()["escaneos"] == []
+
+    res_proy_nube = client.get("/api/proyectos/escanear?materia=Seguridad")
+    assert res_proy_nube.status_code == 200
+    assert res_proy_nube.json()["candidatos"] == []
 
 
 def test_motor_evaluacion_mezclar_opciones():

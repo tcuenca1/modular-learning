@@ -57,6 +57,8 @@ def escanear_material(
     materias_srv: Annotated[MateriasService, Depends(get_materias_service)],
     materia: str | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
+    if os.getenv("ML_EN_NUBE") == "1":
+        return {"escaneos": []}
     materias = [materia] if materia and materia != "__todas__" else materias_srv.listar_materias()
     return {"escaneos": servicio.escanear(materias)}
 

@@ -36,6 +36,8 @@ def escanear_proyectos_disponibles(
     materias_srv: Annotated[MateriasService, Depends(get_materias_service)],
     materia: str | None = None,
 ) -> dict[str, Any]:
+    if os.getenv("ML_EN_NUBE") == "1":
+        return {"candidatos": []}
     ruta_material = config_srv.carpeta_material()
     materias = [materia] if materia and materia != "__todas__" else materias_srv.listar_materias()
 
