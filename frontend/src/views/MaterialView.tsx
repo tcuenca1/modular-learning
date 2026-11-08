@@ -131,6 +131,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
   const [uploadTipo, setUploadTipo] = useState('material_complementario')
   const [subiendo, setSubiendo] = useState(false)
   const [resultadoSubida, setResultadoSubida] = useState<IngestarResponse | null>(null)
+  const [mostrarSubida, setMostrarSubida] = useState(false)
 
   // Materiales registrados (ingestados)
   const [registrados, setRegistrados] = useState<MaterialRegistrado[]>([])
@@ -703,45 +704,98 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
       {/* CONTENIDO PESTAÑA 1: MATERIALES Y ACTIVIDADES */}
       {subpestaña === 'materiales' && (
         <div className="space-y-8">
-          {/* Resultados del Escaneo */}
-          {escaneos.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white">
-                Archivos encontrados en carpetas
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {escaneos.map((esc, i) => (
-                  <Card key={i} className={!esc.existe ? 'border-dashed opacity-75' : ''}>
-                    <CardHeader className="p-4 pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-semibold">{esc.materia}</CardTitle>
-                        <Badge variant={esc.existe ? 'secondary' : 'destructive'}>
-                          {esc.existe ? `${esc.pendientes.length} nuevos` : 'No existe la carpeta'}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-1 text-xs space-y-1 text-slate-500">
-                      <div className="flex justify-between">
-                        <span>Archivos totales:</span>
-                        <strong className="text-slate-700 dark:text-slate-300">{esc.total}</strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Ya procesados:</span>
-                        <strong className="text-emerald-600">{esc.omitidos}</strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>No soportados (ej. .pptx):</span>
-                        <strong className="text-amber-600">{esc.no_soportados}</strong>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                    {/* Historial de Materiales Ingestados */}
+          <Card>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <CardTitle>Materiales Ingestados ({registradosFiltrados.length})</CardTitle>
+                <CardDescription>
+                  Documentos individuales de estudio y actividades convertidos en notas vinculadas con el cronograma.
+                </CardDescription>
               </div>
-            </div>
-          )}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant={mostrarSubida ? 'secondary' : 'default'}
+                  size="sm"
+                  onClick={() => setMostrarSubida((v) => !v)}
+                  className="gap-1.5"
+                >
+                  <FileUp className="h-4 w-4" />
+                  {mostrarSubida ? 'Cerrar subida' : 'Subir un archivo'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setCargandoRegistrados(true); void cargarRegistrados(); }}
+                  disabled={cargandoRegistrados}
+                  className="gap-1.5"
+                >
+                  <RotateCw className={`h-4 w-4 ${cargandoRegistrados ? 'animate-spin' : ''}`} />
+                  Actualizar lista
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {registradosFiltrados.length === 0 ? (
+                <p className="text-sm text-slate-500 py-4 text-center">
+                  No hay materiales registrados para la selección actual.
+                </p>
+              ) : (
+                <div className="rounded-lg border border-slate-200 dark:border-slate-800">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Archivo</TableHead>
+                        <TableHead className="w-40">Asignatura</TableHead>
+                        <TableHead className="w-32">Tipo</TableHead>
+                        <TableHead>Nota Obsidian</TableHead>
+                        <TableHead className="w-16 text-right">Acción</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {registradosFiltrados.map((m, idx) => {
+                        const nombreArchivo = m.archivo || m.nombre || `material_${idx}`
+                        const estaEliminando = eliminandoArchivo === nombreArchivo
+                        return (
+                          <TableRow key={idx}>
+                            <TableCell className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-indigo-500 shrink-0" />
+                              <span className="truncate max-w-xs">{nombreArchivo}</span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{m.materia}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs text-slate-500">
+                              {m.tipo || 'complementario'}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs text-slate-500 truncate max-w-xs">
+                              {m.nota || '—'}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={estaEliminando}
+                                onClick={() => handleEliminarMaterial(nombreArchivo)}
+                                title="Desvincular y eliminar nota en Obsidian"
+                                className="h-8 w-8 text-slate-400 hover:text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Subida Individual y Anonimización */}
-          <Card>
+          {mostrarSubida && (
+            <Card>
             <CardHeader>
               <CardTitle>Subir un archivo suelto</CardTitle>
               <CardDescription>
@@ -849,84 +903,44 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
               )}
             </CardContent>
           </Card>
+          )}
 
-          {/* Historial de Materiales Ingestados */}
-          <Card>
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <CardTitle>Materiales Ingestados ({registradosFiltrados.length})</CardTitle>
-                <CardDescription>
-                  Documentos individuales de estudio y actividades convertidos en notas vinculadas con el cronograma.
-                </CardDescription>
+          {/* Resultados del Escaneo */}
+          {escaneos.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white">
+                Archivos encontrados en carpetas
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {escaneos.map((esc, i) => (
+                  <Card key={i} className={!esc.existe ? 'border-dashed opacity-75' : ''}>
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-semibold">{esc.materia}</CardTitle>
+                        <Badge variant={esc.existe ? 'secondary' : 'destructive'}>
+                          {esc.existe ? `${esc.pendientes.length} nuevos` : 'No existe la carpeta'}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-1 text-xs space-y-1 text-slate-500">
+                      <div className="flex justify-between">
+                        <span>Archivos totales:</span>
+                        <strong className="text-slate-700 dark:text-slate-300">{esc.total}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Ya procesados:</span>
+                        <strong className="text-emerald-600">{esc.omitidos}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>No soportados (ej. .pptx):</span>
+                        <strong className="text-amber-600">{esc.no_soportados}</strong>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { setCargandoRegistrados(true); void cargarRegistrados(); }}
-                disabled={cargandoRegistrados}
-                className="gap-1.5"
-              >
-                <RotateCw className={`h-4 w-4 ${cargandoRegistrados ? 'animate-spin' : ''}`} />
-                Actualizar lista
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {registradosFiltrados.length === 0 ? (
-                <p className="text-sm text-slate-500 py-4 text-center">
-                  No hay materiales registrados para la selección actual.
-                </p>
-              ) : (
-                <div className="rounded-lg border border-slate-200 dark:border-slate-800">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Archivo</TableHead>
-                        <TableHead className="w-40">Asignatura</TableHead>
-                        <TableHead className="w-32">Tipo</TableHead>
-                        <TableHead>Nota Obsidian</TableHead>
-                        <TableHead className="w-16 text-right">Acción</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {registradosFiltrados.map((m, idx) => {
-                        const nombreArchivo = m.archivo || m.nombre || `material_${idx}`
-                        const estaEliminando = eliminandoArchivo === nombreArchivo
-                        return (
-                          <TableRow key={idx}>
-                            <TableCell className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-indigo-500 shrink-0" />
-                              <span className="truncate max-w-xs">{nombreArchivo}</span>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{m.materia}</Badge>
-                            </TableCell>
-                            <TableCell className="text-xs text-slate-500">
-                              {m.tipo || 'complementario'}
-                            </TableCell>
-                            <TableCell className="font-mono text-xs text-slate-500 truncate max-w-xs">
-                              {m.nota || '—'}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                disabled={estaEliminando}
-                                onClick={() => handleEliminarMaterial(nombreArchivo)}
-                                title="Desvincular y eliminar nota en Obsidian"
-                                className="h-8 w-8 text-slate-400 hover:text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            </div>
+          )}
         </div>
       )}
 
