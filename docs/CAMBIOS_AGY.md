@@ -33,6 +33,39 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P24. Completar `.pptx` en la web y evitar notas inventadas
+
+- **Commit:** faf23ac `feat(core): P24 soporte pptx en web aviso plan b y rechazo sin texto`
+- **Estado:** hecha
+- **Archivos:**
+  - `backend/src/modular_learning/core/application/ingesta.py`
+  - `backend/src/modular_learning/infrastructure/documents/conversor_libreoffice.py`
+  - `backend/tests/integration/infrastructure/test_conversor_libreoffice.py`
+  - `backend/tests/unit/application/test_ingesta_service.py`
+  - `frontend/src/api/types.ts`
+  - `frontend/src/views/MaterialView.tsx`
+
+### Qué hice
+Habilité la aceptación de `.pptx` en el selector de `MaterialView` actualizando las etiquetas y removiendo la mención obsoleta a `.pptx` en los no soportados. Se añadió la visualización de los avisos del plan B en el resultado de subida individual y en el resumen de sincronización por lote. En `IngestaService`, las presentaciones con menos de 200 caracteres útiles en el plan B lanzan un error explícito («La presentación es solo imágenes: instala LibreOffice para procesarla») sin llamar al LLM ni guardar notas ni registrar el archivo. En `ConversorLibreOffice`, se configuró `-env:UserInstallation` con un perfil temporal aislado que se limpia tras la ejecución.
+
+### Cómo lo verifiqué
+- pytest: 142 passed, 3 skipped
+- ruff check / ruff format: ok (All checks passed!)
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 warnings y 0 errors en oxlint, build exitoso con Vite/tsc, 30 passed en vitest
+- Tests nuevos:
+  - `backend/tests/unit/application/test_ingesta_service.py::test_ingestar_pptx_plan_b_sin_texto_error_no_llama_llm_ni_guarda_nota`
+  - `backend/tests/integration/infrastructure/test_conversor_libreoffice.py::test_conversor_libreoffice_comando_incluye_user_installation`
+- Prueba manual: Se verificó la compilación de la interfaz con los nuevos avisos y el rechazo estricto ante diapositivas con texto menor al umbral.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
+
 ## P23. El archivo del sílabo no debe cambiar la asignatura elegida
 
 - **Commit:** 2f8fe52 `fix(web): P23 no cambiar la asignatura elegida al seleccionar archivo de silabo`
