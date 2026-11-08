@@ -45,122 +45,43 @@ Lee `CLAUDE.md` antes de empezar. Además:
 
 ## Tareas (en orden de prioridad)
 
-### P12. Seleccionar la asignatura recién guardada aunque lleve tildes
+### P23. El archivo del sílabo no debe cambiar la asignatura elegida
 
-En `frontend/src/views/SilabosView.tsx` (guardar sílabo), `slugGuardado` se calcula con
-`toLowerCase().replace(/\s+/g, '-')`, que no quita tildes: para «Ingeniería de Software» da
-`ingeniería-de-software` y no coincide con el slug del backend (`ingenieria-de-software`), así
-que se queda seleccionada la asignatura anterior.
+**Hazla antes de P19** (toca `SilabosView`, que P20 reorganiza). En
+`frontend/src/views/SilabosView.tsx`, al elegir un archivo, si su nombre no coincide con el
+catálogo se cambia el desplegable a «Nueva asignatura…» con el nombre del archivo, aunque el
+usuario ya hubiera elegido una asignatura. Con «Silabo_2026.pdf» se acabaría creando la
+asignatura «Silabo 2026».
 
-- Busca la asignatura en la lista que devuelve `api.getMaterias()` comparando con `clave()` de
-  `lib/asignaturas.ts` (nombre o slug), en vez de construir el slug a mano. Si hace falta,
-  `cargarCatalogo` puede aceptar el nombre además del slug.
+- Si el nombre del archivo coincide con una asignatura del catálogo, se selecciona esa.
+- Si no coincide, **no se toca** la selección. Solo si el desplegable ya estaba en «Nueva
+  asignatura…» y el campo de texto está vacío, se rellena con el nombre del archivo.
+- Lo mismo con el nombre que devuelve la extracción (`res.materia`).
 
-**Aceptación:** guardar un sílabo para una asignatura con tildes la deja seleccionada y muestra
-sus clases (prueba en el navegador, regla 10). `npm run lint` sin avisos.
+**Aceptación:** prueba en el navegador (regla 10): elegir «Programación Web» y luego un archivo
+llamado `Silabo_2026.pdf` mantiene «Programación Web»; elegir un archivo
+`PROGRAMACION_WEB.pdf` con «Nueva asignatura…» selecciona «Programación Web».
 
-### P13. «Vaciar cronograma» no debe borrar la asignatura
+### P24. Completar `.pptx` en la web y evitar notas inventadas
 
-`DELETE /api/materias/{materia}/cronograma` (`apps/api/routers/materias.py`) llama a
-`servicio.eliminar_cronograma(materia, borrar_materia=True)`, así que la asignatura desaparece
-del catálogo aunque el diálogo de `SilabosView` dice «se conservará la asignatura».
+**Hazla antes de P19.** Completa P16:
 
-- El endpoint usa `borrar_materia=False`. La asignatura sigue en el catálogo, sin clases, igual
-  que las que nunca tuvieron cronograma.
-- Revisa que `SilabosView` siga mostrando la asignatura seleccionada tras vaciar.
+- `MaterialView`: el selector de archivo acepta `.pptx` y la etiqueta lo menciona; quita el texto
+  «No soportados (ej. .pptx)» si ya no aplica.
+- El `aviso` que devuelve la ingesta (plan B) se muestra al usuario: en el resultado de la subida
+  individual y en el resumen del lote.
+- **Presentación sin texto:** si el plan B extrae menos de ~200 caracteres útiles (sin contar
+  las marcas «--- Diapositiva N ---»), **no se llama a Gemini ni se escribe la nota**: el
+  resultado es un error claro («La presentación es solo imágenes: instala LibreOffice para
+  procesarla») y el archivo no se registra como ingestado.
+- `ConversorLibreOffice`: lanza `soffice` con un perfil propio
+  (`-env:UserInstallation=file:///<tmp>/perfil`) para que funcione aunque LibreOffice esté
+  abierto, y borra ese perfil temporal al terminar.
 
-**Aceptación:** test de API: tras `DELETE /api/materias/redes/cronograma`, `GET /api/materias`
-sigue incluyendo «Redes» y `GET /api/materias/redes/cronograma` devuelve `{"clases": []}`.
-
-### P14. No sobrescribir el nombre de la asignatura del catálogo
-
-Al guardar un sílabo, `SilaboService.guardar_cronograma` llama a
-`materia_repo.agregar_materia(nombre)`, y `JsonMateriaRepo.guardar` sustituye el nombre si el
-slug ya existe. Si el campo Asignatura se deja vacío, el nombre sale del archivo
-(«INGENIERIA DE SOFTWARE II») y pisa «Ingeniería de Software II». Lo mismo pasa al crear una
-asignatura con otra escritura.
-
-- `agregar_materia` (repositorio JSON y fake) **no cambia** una asignatura que ya existe por
-  slug: solo añade las nuevas. El nombre solo cambia con «Renombrar» (`guardar`).
-- Los casos de uso que reciben una asignatura escrita por el usuario la traducen al nombre del
-  catálogo con `resolver_materia` antes de usarla: `SilaboService.guardar_cronograma`, la
-  ingesta (`core/application/ingesta.py`, que decide la carpeta de la nota en Obsidian) y
-  `TutoriaService.iniciar_sesion`. Si no está en el catálogo, se usa lo escrito.
-
-**Aceptación:** tests unitarios: con «Ingeniería de Software II» en el catálogo, guardar un
-sílabo como «INGENIERIA DE SOFTWARE II» deja el nombre del catálogo intacto y el cronograma en
-la misma clave; ingestar un archivo con «ingenieria de software ii» escribe la nota en la carpeta
-«Ingeniería de Software II».
-
-### P15. Desplegable de asignaturas al subir archivos
-
-En `MaterialView` (subida individual) y en `SilabosView` (subir sílabo) la asignatura se escribe
-a mano.
-
-- `MaterialView`: un `<select>` con el catálogo (`api.getMaterias()`), sin texto libre; se sube
-  solo a asignaturas que existen.
-- `SilabosView`: un `<select>` con el catálogo más una opción «Nueva asignatura…» que muestra el
-  campo de texto. Si al extraer se sugiere un nombre que coincide con una del catálogo
-  (comparando con `clave()`), se selecciona esa en vez de rellenar el texto.
-
-**Aceptación:** prueba en el navegador (regla 10) de los dos formularios, incluido un sílabo
-cuyo archivo está en mayúsculas: queda seleccionada la asignatura existente. `npm run lint` sin
-avisos.
-
-### P16. Ingestar `.pptx` convirtiéndolo a PDF
-
-Gemini no acepta presentaciones como archivo, y muchas diapositivas son imágenes sin texto, así
-que no basta con extraer el texto: hay que convertir a PDF y enviar el PDF, que Gemini lee
-también visualmente.
-
-- Puerto nuevo `ConversorPdfPort` en `core/ports/` con `convertir_a_pdf(ruta) -> str | None`
-  (ruta de un PDF temporal, o `None` si no se puede convertir) y su fake en
-  `fake_adapters.py`.
-- Adaptador `infrastructure/documents/conversor_libreoffice.py`: ejecuta
-  `soffice --headless --convert-to pdf --outdir <tmp> <archivo>` con `subprocess` (sin
-  `shell=True`, con `timeout`). Busca `soffice` en el `PATH` y en
-  `C:\Program Files\LibreOffice\program\`; ruta configurable con la variable `ML_SOFFICE`.
-- `IngestaService`: para `.pptx`, convierte y manda el PDF como hoy se manda un PDF. Si no hay
-  conversor disponible, **plan B**: extrae el texto con `python-pptx` (títulos, cuadros de texto,
-  tablas y notas del orador) y avisa en el resultado de que se perdieron las imágenes. Añade
-  `python-pptx` a `backend/pyproject.toml` y quita `.pptx` de `EXTENSIONES_NO_SOPORTADAS_WEB`.
-- Borra el PDF temporal al terminar, también si falla.
-- No añadas LibreOffice al `Dockerfile` (pesa cientos de MB); en la nube se usa el plan B.
-- Documenta en `README.md` que para las presentaciones hay que instalar LibreOffice.
-
-**Aceptación:** tests unitarios con fakes: con conversor se envía un PDF; sin conversor se envía
-el texto y el resultado lleva el aviso; el temporal se borra si el LLM falla. Test de
-integración del plan B con un `.pptx` creado con `python-pptx` en `tmp_path`. El test del
-adaptador de LibreOffice se salta (`pytest.skip`) si `soffice` no está instalado.
-
-### P17. Material: lo ingestado primero
-
-En `MaterialView`, revisar el material ingestado es lo principal y subir un archivo suelto es
-ocasional, pero hoy el orden es: resultados del escaneo → subida individual → historial.
-
-- El historial de materiales ingestados pasa arriba como bloque principal de la pestaña.
-- La subida individual queda plegada tras un botón «Subir un archivo» (cerrada por defecto).
-- Los resultados del escaneo solo se muestran cuando hay un escaneo en esta visita.
-- Solo se cambia la disposición: nada de cambios en la lógica ni en la API.
-
-**Aceptación:** prueba en el navegador (regla 10), en escritorio y en una ventana estrecha
-(móvil). `npm run lint` sin avisos.
-
-### P18. Docker Compose para pruebas tipo producción
-
-Complemento del venv, no sustituto: sirve para probar la misma imagen que Render y el modo
-Postgres sin tocar Neon.
-
-- `docker-compose.yml` en la raíz con dos servicios: `app` (el `Dockerfile` actual) y `db`
-  (`postgres:16-alpine`, volumen con nombre). `DATABASE_URL` apunta a `db`.
-- La app usa una copia de `data/examples` y una bóveda de ejemplo montadas como volúmenes;
-  **nunca** `data/` ni la bóveda real. `GEMINI_API_KEY` llega con `env_file: .env`, sin copiar
-  `.env` a la imagen (comprueba `.dockerignore`).
-- Sección nueva en `docs/DESPLIEGUE.md`: cómo levantarlo, cómo ensayar
-  `scripts/migrar_datos.py --simular` contra el Postgres del compose y cómo borrarlo todo.
-
-**Aceptación:** `docker compose up --build` arranca, `GET /api/salud` responde 200 en
-`localhost:8000` y la web carga. Pega en el informe la salida de `docker compose ps`.
+**Aceptación:** tests unitarios con fakes: plan B con texto vacío no llama al LLM ni escribe en
+la bóveda; plan B con texto sí, y devuelve el aviso. Test del adaptador comprobando que el
+comando incluye `-env:UserInstallation` (sin ejecutar `soffice`). Prueba en el navegador de la
+subida de un `.pptx` con una copia de `data/examples` y una bóveda de prueba.
 
 ### P19. Hoy: desbordamiento en móvil y avisos agrupados
 
@@ -232,65 +153,69 @@ Hazla al final de la interfaz (después de P21).
 **Aceptación:** `git grep -n "Materia\b\|materia " frontend/src/views` sin textos visibles con
 «materia»; capturas antes y después de 3 vistas en el informe. `npm run lint` sin avisos.
 
+### P25. En la nube, no escanear carpetas locales (DISC-08 del manual)
+
+`HoyView` llama a `api.escanearMaterial()` siempre y muestra «Material nuevo» aunque la app esté
+en Render; `MaterialView` muestra la tarjeta «Tus carpetas de asignatura» y llama a
+`api.escanearProyectos()` también en la nube.
+
+- Con `en_nube` (de `GET /api/config`), Hoy no escanea ni muestra «Material nuevo», y Material
+  oculta la tarjeta de carpetas y no llama a los escaneos. La subida de archivos sigue
+  disponible.
+- En el backend, los endpoints de escaneo responden vacío (o 409 con un mensaje claro) si
+  `ML_EN_NUBE=1`, para que no dependa solo del frontend.
+
+**Aceptación:** test de API con `ML_EN_NUBE=1` y sin ella; prueba en el navegador con la
+variable puesta.
+
+### P26. La CLI también debe identificar la clase por su id (DISC-09)
+
+`ml init` (`apps/cli/ui/interaccion.py` y `apps/cli/commands/init.py`) descarta el `id` de la
+clase elegida y llama a `iniciar_sesion` sin `clase_id`, así que al cerrar se marca la primera
+clase con ese tema (el mismo fallo que P1 corrigió en la web).
+
+- `pedir_datos_inicio` devuelve también `clase_id` cuando se eligió una clase del cronograma, y
+  `init` lo pasa a `iniciar_sesion`.
+
+**Aceptación:** test de la CLI (con `typer.testing.CliRunner` y servicios falsos, o un test de
+la función) en el que, con dos clases del mismo tema, elegir la segunda manda su `clase_id`.
+
+### P27. Cortes de parcial: guardar la clase, no una fecha (DISC-10)
+
+`SilabosView` guarda en `hasta` una fecha escrita a mano («15/10/2026»), pero `GuiaView` compara
+`hasta` con el `id` de la clase, así que un corte creado desde Sílabos nunca selecciona nada.
+
+- En el formulario de cortes, `hasta` se elige con un desplegable de las clases del cronograma
+  (mostrando fecha y tema) y se guarda el `id` de la clase.
+- Los cortes antiguos con fecha siguen funcionando: si `hasta` no es un id, `GuiaView` usa la
+  última clase con fecha menor o igual a esa fecha.
+- La lista de cortes muestra el tema y la fecha de la clase, no el id.
+
+**Aceptación:** tests de vitest para la función que resuelve `hasta` (id, fecha antigua y valor
+inválido) y prueba en el navegador: crear un corte en Sílabos y usarlo en Guía offline.
+
+### P28. Borrados consistentes (DISC-11)
+
+- `ProyectosService.eliminar_proyecto` también quita su entrada `[PROYECTO] …` del registro de
+  materiales y su nota en la bóveda (como hace `vaciar_proyectos`).
+- `MateriasService.eliminar_materia` también elimina los proyectos de esa asignatura.
+- `IngestaService.vaciar_materiales` limpia las referencias a materiales dentro de los
+  cronogramas (`materiales_asociados` y `material_transversal`), sin tocar clases ni estados.
+
+**Aceptación:** un test unitario con fakes por cada punto.
+
 ## Documentación funcional (tarea aparte, no toca código)
-
-### D1. Manual funcional del sistema en PDF
-
-Un documento que explique **qué hace el sistema y cómo debería comportarse**, para revisar los
-flujos de forma sistemática en vez de encontrar errores por casualidad. No sustituye a
-`README.md` ni a `ARCHITECTURE.md`: está escrito para el usuario y para quien revise.
-
-**Fuentes:** el código (`core/application/*`, `apps/api/routers/*`, `apps/cli/commands/*`,
-`frontend/src/views/*`), `README.md`, `CLAUDE.md`, `docs/*.md` y el historial de git. Lo que el
-sistema *debería* hacer sale de esas fuentes y de la lista «Comportamiento esperado» de abajo.
-**No ejecutes la app contra `data/`, no llames a Gemini y no modifiques código.**
-
-**Contenido** (en `docs/manual/MANUAL_FUNCIONAL.md`, en español):
-
-1. Qué es y para quién: propósito, interfaces (web y CLI), modo local, nube e híbrido.
-2. Conceptos: asignatura (slug y nombre), cronograma, clase (id, estado), parcial, material,
-   nota en Obsidian, proyecto, guía offline, repaso, plugin práctico.
-3. Datos: qué se guarda, dónde (archivo en `data/` o tabla en Postgres) y qué escribe fuera
-   (bóveda de Obsidian, cuota de Gemini).
-4. **Casos de uso**, uno por sección con id (`CU-01`…): actor, precondiciones, flujo principal
-   en pasos numerados, flujos alternativos y errores, datos que lee y escribe, resultado
-   esperado, y dónde está en el código (`archivo:línea`) y en la interfaz (vista o comando).
-   Como mínimo: gestionar asignaturas (crear, renombrar, eliminar), subir y extraer un sílabo,
-   editar el cronograma y los parciales, vaciar el cronograma, escanear e ingestar material,
-   subir un archivo suelto, revisar y quitar lo ingestado, proyectos, tutoría, quiz, repaso,
-   guía offline (crear, exportar, revisar, deshacer), plugins, ajustes, estadísticas, vaciar
-   datos, migración.
-5. Flujos de extremo a extremo del semestre (empezar el curso, una semana normal, antes de un
-   parcial), enlazando los casos de uso.
-6. **Discrepancias**: tabla con caso de uso, comportamiento esperado, comportamiento actual
-   según el código (con `archivo:línea`) y gravedad. Es la parte más importante. Si algo ya
-   está en `PENDIENTES.md`, cita la tarea.
-
-Sin diagramas Mermaid (no salen en el PDF): flujos en pasos numerados y tablas.
-
-**PDF:** `scripts/generar_manual.py` convierte el Markdown en `docs/manual/MANUAL_FUNCIONAL.pdf`
-con `markdown-it-py` y `fitz.Story` de PyMuPDF (ya son dependencias; mira cómo lo hace el
-exportador de guías en `infrastructure/`). Se versionan los dos.
-
-**Comportamiento esperado** (indicado por el usuario):
-- Una asignatura escrita con otra escritura (mayúsculas, sin tildes) es la misma; el nombre del
-  catálogo no cambia salvo al renombrar.
-- Vaciar el cronograma deja la asignatura en el catálogo, sin clases.
-- Lo principal de Material es revisar lo ingestado; subir un archivo suelto es ocasional.
-- Al subir archivos, la asignatura se elige de una lista.
-- Las presentaciones `.pptx` se pueden ingestar, incluidas las que son solo imágenes.
-- En la nube no se escanean carpetas locales; en modo híbrido sí.
-- Cerrar una tutoría o revisar una guía marca la clase concreta (por id), no otra con el mismo
-  tema; deshacer solo revierte lo que hizo esa acción.
-
-**Aceptación:** todos los endpoints de `apps/api/routers/` y los comandos de `apps/cli/`
-aparecen en algún caso de uso (al final, una tabla endpoint o comando → CU). Claude revisará una
-muestra de casos contra el código. Commit `docs: D1 manual funcional`; las discrepancias no se
-arreglan, solo se documentan.
 
 ### D2. Poner al día la documentación y limpiar restos
 
 Hazla **después de D1**: el manual te da el inventario de lo que existe de verdad.
+
+- **Manual al día:** D1 se escribió sobre el código anterior a P12–P18. Actualiza los casos de
+  uso afectados y marca DISC-01 a DISC-06 como resueltas (con el commit que las resolvió). Cada
+  vez que se apruebe una tarea que cambie un flujo, el manual se actualiza (lo pedirá Claude).
+- **DISC-12:** corrige en `docs/ARCHITECTURE.md` y `README.md` la ruta de `materias.json` y
+  `registro_materiales.json` (están en `data/config/`) y quita las «rachas de estudio», que no
+  existen. Regenera el PDF con `scripts/generar_manual.py`.
 
 - **Borrar** (están obsoletos): `docs/TECHNICAL_WRITER_REPORT.md` (informe de octubre que aún
   llama al proyecto `ml-cli`) y `docs/CHANGELOG.md` (habla de agentes CrewAI que ya no existen;
@@ -329,6 +254,11 @@ salida en el informe). Commit `docs: D2 documentacion al dia` y su informe apart
   en lugar de descartarlos, para no tener que definir a mano los cortes.
 - **Tests de las vistas** (repaso, guía offline, confirmación): hace falta elegir la
   herramienta (Testing Library + jsdom).
+
+- **Imágenes en `.docx` (DISC-07):** hoy solo se envía el texto de los párrafos (sin tablas ni
+  imágenes). Opciones: convertir `.docx` a PDF con el mismo conversor de P16, o extraer tablas.
+- **`apps/cli/commands/snapshot.py` (DISC-12):** no está registrado en la CLI y hace I/O fuera
+  de los puertos. ¿Se borra o se integra como comando?
 
 ## Hallazgos
 

@@ -64,7 +64,7 @@ Creé `docker-compose.yml` en la raíz con servicios `app` (usando el `Dockerfil
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada.** Además confirma que la imagen con PyMuPDF se construye y arranca, que estaba sin verificar. `environment` tiene prioridad sobre `env_file`, así que un `DATABASE_URL` de Neon en `.env` no se cuela.
 ---
 
 
@@ -90,7 +90,7 @@ Reorganicé la disposición de `MaterialView`: el historial de materiales ingest
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada.** Historial arriba, subida plegada y escaneo solo tras escanear.
 ---
 
 
@@ -127,7 +127,7 @@ Escribí `docs/manual/MANUAL_FUNCIONAL.md` siguiendo las 6 secciones requeridas 
     6. **`DISC-12` (Gravedad Baja — Desajustes en documentación y comando `snapshot.py` huérfano):** `docs/ARCHITECTURE.md` cita rutas antiguas (`data/materias.json`), `README.md` y `ARCHITECTURE.md` mencionan cálculo de «rachas de estudio» que `TelemetriaService` no implementa, y `apps/cli/commands/snapshot.py` no está registrado en `apps/cli/main.py` y usa `os.walk`/`open` directos.
 
 ### Revisión de Claude
-<lo rellena Claude: aprobada | cambios pedidos, con el motivo>
+**Aprobada, con una corrección para D2.** Buen trabajo: comprobé DISC-08, DISC-09 y DISC-10 contra el código y son ciertas. Pero el manual se escribió sobre el código anterior a P12–P16: DISC-01 a DISC-06 describen fallos que ya están corregidos, y los casos de uso afectados (CU-01, 02, 04, 05, 06, 10) también. En D2 hay que actualizar esas partes y marcar esas discrepancias como resueltas. Las nuevas (DISC-07 a DISC-12) pasan a tareas P25–P28 o a D2.
 
 ---
 
@@ -169,7 +169,7 @@ Si no hay conversor disponible, se ejecuta el plan B extrayendo el contenido tex
 ninguno
 
 ### Revisión de Claude
-
+**Cambios pedidos → P24.** El puerto, el adaptador y el plan B están bien, pero la web no deja subir `.pptx` (`accept` de `MaterialView` sin `.pptx`, y el texto «No soportados (ej. .pptx)» sigue ahí), el `aviso` del plan B no se muestra en ningún sitio, y con diapositivas que son solo imágenes el plan B manda un texto vacío a Gemini, que se inventaría la nota. Además, `soffice` falla en silencio si LibreOffice ya está abierto.
 ---
 
 ## P15. Desplegable de asignaturas al subir archivos
@@ -197,7 +197,7 @@ En `SilabosView.tsx`, se implementó un desplegable `<select>` con las asignatur
 ninguno
 
 ### Revisión de Claude
-
+**Cambios pedidos → P23.** Los desplegables están bien, pero al elegir un archivo de sílabo cuyo nombre no coincide con el catálogo («Silabo_2026.pdf»), la vista cambia la asignatura que el usuario ya había elegido a «Nueva asignatura» con el nombre del archivo; al guardar se crearía una asignatura nueva.
 ---
 
 ## P14. No sobrescribir el nombre de la asignatura del catálogo
@@ -235,7 +235,7 @@ En los casos de uso `SilaboService.guardar_cronograma`, `IngestaService` (al cal
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada.** Detalle menor: en `TutoriaService.iniciar_sesion` la resolución del nombre se hace después de buscar la clase y los fallos previos; funciona porque esas búsquedas no distinguen escritura, pero sería más claro resolverlo al principio.
 ---
 
 ## P13. «Vaciar cronograma» no debe borrar la asignatura
@@ -262,7 +262,7 @@ Se revisó `SilabosView.tsx`, verificando que al vaciar el cronograma se mantien
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada.**
 ---
 
 ## P12. Seleccionar la asignatura recién guardada aunque lleve tildes
@@ -293,7 +293,7 @@ En `SilabosView.tsx`, se adaptó `cargarCatalogo` para buscar el destino usando 
 ninguno
 
 ### Revisión de Claude
-
+**Aprobada.** `buscarMateriaPorClave` queda reutilizable y bien probada.
 ---
 
 ## P11. Estadísticas con el nombre del catálogo
