@@ -33,6 +33,45 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P22. Textos más cortos y consistentes
+
+- **Commit:** a8c5a14 `refactor(web): P22 textos cortos consistentes sin jerga y mayusculas en botones`
+- **Estado:** hecha
+- **Archivos:**
+  - `frontend/src/views/GuiaView.tsx`
+  - `frontend/src/views/MaterialView.tsx`
+  - `frontend/src/views/PluginsView.tsx`
+  - `frontend/src/views/QuizView.tsx`
+  - `frontend/src/views/SilabosView.tsx`
+  - `frontend/src/views/TutoriaView.tsx`
+
+### Qué hice
+1. **Introducciones breves:** Se redujeron las introducciones de vista a una sola línea concisa:
+   - En `GuiaView.tsx`: «Prepara clases en un cuaderno A5 descargable para estudiar sin pantalla.».
+   - En `QuizView.tsx`: «Preguntas de recuerdo activo sobre las clases completadas.».
+2. **Siempre «asignatura», nunca «materia» en la UI:** Se reemplazaron todas las ocurrencias visibles de «materia» en la interfaz por «asignatura» (ej. «Nombre de la nueva asignatura», «Renombrar asignatura», `Obsidian/<Asignatura>/Proyectos/<Nombre>.md`).
+3. **Botones en minúsculas (sentence case):** Mayúscula únicamente en la primera palabra: «Guardar clase», «Guardar cambios», «Guardar cronograma», «Nueva asignatura», «+ Añadir / editar cortes», «Siguiente paso», «Finalizar tutoría».
+4. **Sin jerga técnica («ingestar»):** Sustituido «Ingestar documento individual» y derivados por «Convertir en nota», «Materiales convertidos en notas» y «Proyectos detectados en disco (pendientes de convertir)».
+5. **Plugins condicional:** El panel «Registro de sincronización» en `PluginsView.tsx` solo se renderiza tras pulsar «Actualizar».
+
+### Cómo lo verifiqué
+- pytest: 142 passed, 3 skipped
+- ruff check / ruff format: ok (All checks passed!)
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 warnings y 0 errors en oxlint, build exitoso en 1.37s con Vite, 30 passed en vitest.
+- `git grep -n "Materia\b\|materia " frontend/src/views`: 0 textos visibles con «materia» (solo identificadores/parámetros en el código TSX y comentarios).
+- Comparativa antes/después en 3 vistas:
+  - *Guía offline:* Antes mostraba un párrafo descriptivo de 3 líneas; ahora una sola frase directa y tipografía proporcionada.
+  - *Repaso:* Antes explicaba la heurística de repaso espaciado en 4 líneas; ahora resume el propósito en una sola línea clara.
+  - *Plugins:* Antes mostraba una tarjeta terminal vacía fija; ahora solo aparece cuando el usuario acciona «Actualizar».
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## D2. Poner al día la documentación y limpiar restos
 
 - **Commit:** e9fcd78 `docs: D2 documentacion al dia`
