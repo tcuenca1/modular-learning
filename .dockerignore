@@ -1,6 +1,10 @@
 .git
 .github
 .gitignore
+.env
+.env.*
+data_ejemplo/
+boveda_ejemplo/
 .venv
 venv/
 __pycache__/

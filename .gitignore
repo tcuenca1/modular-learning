@@ -28,3 +28,7 @@ backend/src/modular_learning/apps/api/static/
 data/*
 !data/examples/
 !data/examples/**
+
+# Entorno Docker Compose de pruebas
+data_ejemplo/
+boveda_ejemplo/
