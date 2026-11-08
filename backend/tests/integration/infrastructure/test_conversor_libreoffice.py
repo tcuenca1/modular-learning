@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
+
 import pytest
 from pptx import Presentation
 
@@ -57,3 +60,38 @@ def test_plan_b_extraccion_pptx_con_python_pptx(tmp_path):
     assert "Cobertura" in texto
     assert "95%" in texto
     assert "Enfatizar la cobertura de pruebas" in texto
+
+
+def test_conversor_libreoffice_comando_incluye_user_installation(monkeypatch, tmp_path):
+    archivo_prueba = tmp_path / "presentacion.pptx"
+    archivo_prueba.write_text("dummy", encoding="utf-8")
+
+    comandos_ejecutados = []
+
+    def fake_run(cmd, **kwargs):
+        comandos_ejecutados.append(cmd)
+
+        class DummyResult:
+            returncode = 0
+            stderr = ""
+
+        outdir = cmd[cmd.index("--outdir") + 1]
+        pdf_falso = os.path.join(outdir, "presentacion.pdf")
+        with open(pdf_falso, "w", encoding="utf-8") as f:
+            f.write("dummy pdf")
+        return DummyResult()
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    conversor = ConversorLibreOffice(ruta_soffice="soffice_falso")
+    ruta_pdf = conversor.convertir_a_pdf(str(archivo_prueba))
+
+    assert ruta_pdf is not None
+    assert len(comandos_ejecutados) == 1
+    cmd = comandos_ejecutados[0]
+    arg_env = [arg for arg in cmd if arg.startswith("-env:UserInstallation=")]
+    assert len(arg_env) == 1
+    assert "file:///" in arg_env[0]
+    assert "perfil" in arg_env[0]
+
+    conversor.borrar_temporal(ruta_pdf)

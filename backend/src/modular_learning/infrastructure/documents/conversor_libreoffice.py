@@ -49,9 +49,12 @@ class ConversorLibreOffice(ConversorPdfPort):
             return None
 
         tmp_dir = tempfile.mkdtemp(prefix="ml_soffice_")
+        perfil_dir = os.path.join(tmp_dir, "perfil")
+        perfil_url = Path(perfil_dir).as_uri()
         try:
             cmd = [
                 self.ruta_soffice,
+                f"-env:UserInstallation={perfil_url}",
                 "--headless",
                 "--convert-to",
                 "pdf",
@@ -66,6 +69,8 @@ class ConversorLibreOffice(ConversorPdfPort):
                 timeout=self.timeout,
                 check=False,
             )
+            if os.path.isdir(perfil_dir):
+                shutil.rmtree(perfil_dir, ignore_errors=True)
             if resultado.returncode != 0:
                 logger.warning(
                     "Fallo al convertir con soffice (%s): %s",

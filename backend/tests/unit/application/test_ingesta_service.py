@@ -273,7 +273,14 @@ def test_ingestar_pptx_sin_conversor_plan_b_envia_texto_y_aviso():
     conversor = FakeConversorPdfPort(ruta_retorno=None)
     fake_llm = FakeLLM(texto_default="# Resumen PPTX")
     lector = InMemoryLectorDocumentosPort()
-    lector.materiales["presentacion.pptx"] = "Diapositiva 1: Conceptos clave"
+    texto_largo = (
+        "--- Diapositiva 1 ---\n"
+        "Arquitectura de Software y Sistemas Distribuidos en la Nube. "
+        "En esta sesión analizamos los principios de diseño de microservicios, "
+        "patrones de integración de datos, desacoplamiento de componentes mediante eventos, "
+        "resiliencia ante fallos y escalabilidad horizontal de servicios."
+    )
+    lector.materiales["presentacion.pptx"] = texto_largo
     service = IngestaService(
         llm=fake_llm,
         registro_repo=InMemoryRegistroMaterialesRepo(),
@@ -287,9 +294,39 @@ def test_ingestar_pptx_sin_conversor_plan_b_envia_texto_y_aviso():
     assert "aviso" in res
     assert "imágenes" in res["aviso"] or "imagenes" in res["aviso"]
     assert any(
-        "Diapositiva 1: Conceptos clave" in llamada.get("prompt", "")
+        "Arquitectura de Software" in llamada.get("prompt", "")
         for llamada in fake_llm.llamadas_texto
     )
+
+
+def test_ingestar_pptx_plan_b_sin_texto_error_no_llama_llm_ni_guarda_nota():
+    conversor = FakeConversorPdfPort(ruta_retorno=None)
+    fake_llm = FakeLLM(texto_default="# Resumen PPTX")
+    boveda = InMemoryBovedaPort()
+    registro = InMemoryRegistroMaterialesRepo()
+    lector = InMemoryLectorDocumentosPort()
+    # Solo marcas o menos de 200 caracteres utiles
+    lector.materiales["presentacion.pptx"] = (
+        "--- Diapositiva 1 ---\n--- Diapositiva 2 ---\nTitulo corto"
+    )
+
+    service = IngestaService(
+        llm=fake_llm,
+        registro_repo=registro,
+        boveda_port=boveda,
+        lector_docs=lector,
+        ajustes_port=InMemoryAjustesPort(),
+        conversor_pdf=conversor,
+    )
+
+    with pytest.raises(
+        ValueError, match="La presentación es solo imágenes: instala LibreOffice para procesarla"
+    ):
+        service.ingestar_archivo("presentacion.pptx", "presentacion.pptx", "Redes")
+
+    assert len(fake_llm.llamadas_texto) == 0
+    assert len(boveda.notas) == 0
+    assert len(registro.listar_materiales()) == 0
 
 
 def test_ingestar_pptx_borra_temporal_si_llm_falla():

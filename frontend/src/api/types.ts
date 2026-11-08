@@ -123,6 +123,7 @@ export interface IngestarResponse {
   tipo: string
   ruta_salida: string
   contenido_md: string
+  aviso?: string
   alineacion?: {
     clase_asignada?: number | string
     peso_afinidad?: number
@@ -143,6 +144,7 @@ export interface SincronizarEvento {
   afinidad?: number
   ruta_salida?: string
   error?: string
+  aviso?: string
   exitosos?: number
   fallidos?: number
   omitidos?: number

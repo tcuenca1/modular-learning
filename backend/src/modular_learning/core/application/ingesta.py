@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import mimetypes
 import os
+import re
 import time
 from collections.abc import Iterator
 from typing import Any
@@ -107,6 +108,14 @@ class IngestaService:
                         self.conversor_pdf.borrar_temporal(pdf_temporal)
             else:
                 texto = self.lector_docs.extraer_texto(ruta)
+                texto_util = re.sub(
+                    r"---\s*Diapositiva\s*\d+\s*---", "", texto, flags=re.IGNORECASE
+                ).strip()
+                if len(texto_util) < 200:
+                    raise ValueError(
+                        "La presentación es solo imágenes: instala LibreOffice para procesarla"
+                    )
+
                 aviso = (
                     "Se extrajo únicamente el texto de la presentación (plan B con python-pptx). "
                     "Las imágenes y diagramas visuales no se pudieron procesar (LibreOffice no disponible)."
@@ -354,13 +363,16 @@ class IngestaService:
                     )
                     exitosos += 1
                     al = r.get("alineacion") or {}
-                    yield {
+                    evento: dict[str, Any] = {
                         **base,
                         "ok": True,
                         "clase_asignada": al.get("clase_asignada"),
                         "afinidad": al.get("peso_afinidad"),
                         "ruta_salida": r["ruta_salida"],
                     }
+                    if r.get("aviso"):
+                        evento["aviso"] = r["aviso"]
+                    yield evento
                 except Exception as e:
                     fallidos += 1
                     yield {**base, "ok": False, "error": str(e)}

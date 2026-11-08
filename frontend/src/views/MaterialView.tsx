@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import {
+  AlertCircle,
   AlertTriangle,
   CheckCircle2,
   Clock,
@@ -154,12 +155,14 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
     archivoActual: string
     exitosos: number
     fallidos: number
+    avisos: { archivo: string; aviso: string }[]
   }>({
     total: 0,
     hecho: 0,
     archivoActual: '',
     exitosos: 0,
     fallidos: 0,
+    avisos: [],
   })
 
   const cargarRegistrados = useCallback(async () => {
@@ -235,6 +238,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
           hecho: 0,
           exitosos: 0,
           fallidos: 0,
+          avisos: [],
         }))
       } else if (ev.evento === 'archivo') {
         setStreamProgress((prev) => ({
@@ -243,6 +247,9 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
           archivoActual: ev.archivo || '',
           exitosos: ev.ok ? prev.exitosos + 1 : prev.exitosos,
           fallidos: !ev.ok ? prev.fallidos + 1 : prev.fallidos,
+          avisos: ev.aviso
+            ? [...prev.avisos, { archivo: ev.archivo || '', aviso: ev.aviso }]
+            : prev.avisos,
         }))
       } else if (ev.evento === 'fin') {
         toast.success('Material procesado', {
@@ -350,6 +357,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
       archivoActual: 'Preparando análisis...',
       exitosos: 0,
       fallidos: 0,
+      avisos: [],
     })
     startStream({ materia: materiaSeleccionada })
   }
@@ -650,6 +658,22 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
                 Errores: {streamProgress.fallidos}
               </span>
             </div>
+
+            {streamProgress.avisos.length > 0 && (
+              <div className="mt-3 space-y-1.5 rounded-md border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/20 dark:text-amber-300">
+                <div className="font-semibold flex items-center gap-1.5">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                  Avisos de procesamiento ({streamProgress.avisos.length}):
+                </div>
+                <ul className="list-disc pl-5 space-y-1">
+                  {streamProgress.avisos.map((item, idx) => (
+                    <li key={idx}>
+                      <span className="font-medium">{item.archivo}:</span> {item.aviso}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </CardContent>
         )}
       </Card>
@@ -845,11 +869,11 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
 
                   <div>
                     <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                      Archivo (.pdf, .docx, .txt, .md)
+                      Archivo (.pdf, .docx, .pptx, .txt, .md)
                     </label>
                     <Input
                       type="file"
-                      accept=".pdf,.docx,.txt,.md"
+                      accept=".pdf,.docx,.pptx,.txt,.md"
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
                           setUploadFile(e.target.files[0])
@@ -886,6 +910,12 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
                     <CheckCircle2 className="h-4 w-4" />
                     Material Ingestado: {resultadoSubida.archivo}
                   </div>
+                  {resultadoSubida.aviso && (
+                    <div className="mt-2 flex items-start gap-1.5 rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+                      <span>{resultadoSubida.aviso}</span>
+                    </div>
+                  )}
                   <div className="mt-2 grid gap-2 sm:grid-cols-2 text-xs text-emerald-700 dark:text-emerald-400">
                     <div>
                       <span className="font-medium">Alineación Curricular:</span> Clase{' '}
@@ -932,7 +962,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
                         <strong className="text-emerald-600">{esc.omitidos}</strong>
                       </div>
                       <div className="flex justify-between">
-                        <span>No soportados (ej. .pptx):</span>
+                        <span>No soportados:</span>
                         <strong className="text-amber-600">{esc.no_soportados}</strong>
                       </div>
                     </CardContent>
