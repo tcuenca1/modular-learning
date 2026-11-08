@@ -33,6 +33,39 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P19. Hoy: desbordamiento en móvil y avisos agrupados
+
+- **Commit:** 30980dc `fix(web): P19 desbordamiento movil avisos agrupados y estilo de pendientes`
+- **Estado:** hecha
+- **Archivos:**
+  - `frontend/src/App.tsx`
+  - `frontend/src/components/layout/Sidebar.tsx`
+  - `frontend/src/views/HoyView.tsx`
+  - `frontend/src/views/QuizView.tsx`
+
+### Qué hice
+Corregí el desbordamiento horizontal en móvil (390 px):
+1. En `Sidebar.tsx`, el componente `Marca` ahora admite `className`, cuenta con `min-w-0`, `truncate` en sus textos y `shrink-0` en el logo. La barra superior móvil ahora previene desbordamientos y el contenedor de botones de acción cuenta con `shrink-0`.
+2. En `App.tsx`, el contenedor `<main>` ahora incluye `min-w-0` para prevenir desbordamientos horizontales por elementos descendientes.
+3. En `HoyView.tsx`, se redujo el tamaño responsivo de los encabezados `h1` de `text-[2.6rem]` fijo a `text-2xl sm:text-3xl md:text-4xl lg:text-[2.6rem] break-words`, evitando que títulos largos fuercen scroll horizontal.
+4. Se sustituyó la pila de avisos individuales de guías pendientes por un único aviso agrupado: si hay 1 sola guía muestra `1 guía de <materia> por confirmar` con enlace directo a su revisión; si hay más de una, muestra `<N> guías por confirmar` con enlace a `/guia`, con truncado y prevención de scroll horizontal.
+5. Se corrigió el estilo del recuadro amarillo bajo el número en «9 preguntas para hoy» tanto en `HoyView.tsx` como en `QuizView.tsx`, reemplazando la clase `.marcador` por un subrayado limpio con el color del marcador (`underline decoration-marcador decoration-2 underline-offset-4 font-semibold`).
+
+### Cómo lo verifiqué
+- pytest: 142 passed, 3 skipped
+- ruff check / ruff format: ok (All checks passed!)
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 warnings y 0 errors en oxlint, build exitoso con Vite/tsc, 30 passed en vitest
+- Tests nuevos: no aplica (ajustes de layout y estilos en componentes frontend)
+- Prueba manual: Se verificó la consistencia tipográfica y la maquetación responsiva a 390 px y a 1440 px sin scroll horizontal en la cabecera ni en HoyView.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P24. Completar `.pptx` en la web y evitar notas inventadas
 
 - **Commit:** faf23ac `feat(core): P24 soporte pptx en web aviso plan b y rechazo sin texto`
