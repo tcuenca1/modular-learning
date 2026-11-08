@@ -38,11 +38,12 @@ variable, todo sigue en `data/`.
 Cada push a la rama vuelve a desplegar. En el plan gratuito el servicio se duerme tras 15
 minutos sin uso: la primera visita después tarda alrededor de un minuto.
 
-## Qué no funciona en la nube
+## Qué cambia o no funciona en la nube
 
-- **Ingesta desde carpetas y sincronización de material**: leen carpetas de este equipo.
-- **Bóveda de Obsidian**: las guías de las tutorías se escriben en el disco temporal del
-  servidor y se pierden al reiniciar; la clase sí queda marcada como completada en Postgres.
+- **Arranque del contenedor (`deploy/arranque.sh`)**: el punto de entrada `arranque` del `Dockerfile` crea `/app/data/boveda` y `/app/data/material`, siembra `/app/data` una única vez desde `/app/semilla` cuando no existe `DATABASE_URL` y lanza `ml-web` con `ML_REQUIERE_ACCESO=1` (autenticación HTTP Basic obligatoria salvo en `GET /api/salud`).
+- **Ingesta desde carpetas y sincronización de material**: leen carpetas locales del equipo del estudiante, por lo que no están disponibles en Render (`ML_EN_NUBE=1`).
+- **Presentaciones `.pptx` sin LibreOffice**: la imagen `python:3.12-slim` del `Dockerfile` no incluye LibreOffice para mantener bajo el consumo de memoria en el plan gratuito; si se sube un `.pptx` individual, `IngestaService` aplica automáticamente el plan B (`python-pptx`) extrayendo texto, tablas y notas del orador sin renderizado visual de diapositivas.
+- **Bóveda de Obsidian**: las notas generadas durante las tutorías se escriben en el disco temporal del contenedor (`/app/data/boveda`) y se pierden al reiniciar el servicio en Render; la clase y las tarjetas de repaso sí quedan guardadas en Postgres.
 
 ## 3. Pruebas locales con Docker Compose (tipo producción)
 
