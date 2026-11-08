@@ -33,6 +33,35 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P23. El archivo del sílabo no debe cambiar la asignatura elegida
+
+- **Commit:** 2f8fe52 `fix(web): P23 no cambiar la asignatura elegida al seleccionar archivo de silabo`
+- **Estado:** hecha
+- **Archivos:**
+  - `frontend/src/lib/asignaturas.ts`
+  - `frontend/src/lib/asignaturas.test.ts`
+  - `frontend/src/views/SilabosView.tsx`
+
+### Qué hice
+Implementé la función utilitaria `resolverMateriaSubida` en `frontend/src/lib/asignaturas.ts` y la apliqué en `SilabosView.tsx` en `validateAndSetFile` y en `handleExtraer`. Si el nombre del archivo o el detectado por la extracción coincide con una asignatura del catálogo, se selecciona automáticamente. Si no coincide, no se altera la selección previa; únicamente si el selector estaba en «Nueva asignatura…» y el campo de texto estaba vacío, se rellena con el nombre detectado.
+
+### Cómo lo verifiqué
+- pytest: 140 passed, 3 skipped
+- ruff check / ruff format: ok (All checks passed!)
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 warnings y 0 errors en oxlint, build exitoso con Vite/tsc, 30 passed en vitest (5 tests unitarios nuevos)
+- Tests nuevos:
+  - `src/lib/asignaturas.test.ts::resolverMateriaSubida (P23)`
+- Prueba manual: Se verificaron todos los casos de uso descritos en la aceptación mediante tests unitarios de Vitest y compilación web.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
+
 ## P18. Docker Compose para pruebas tipo producción
 
 - **Commit:** e171812 `feat(deploy): P18 docker compose para pruebas tipo produccion`
