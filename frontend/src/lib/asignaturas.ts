@@ -107,3 +107,36 @@ export function buscarMateriaPorClave(materias: MateriaItem[], buscado: string):
   return materias.find((m) => m.slug === buscado || clave(m.slug) === norm || clave(m.nombre) === norm)
 }
 
+/**
+ * Resuelve la asignatura tras seleccionar un archivo de sílabo o extraer su contenido:
+ * - Si el nombre coincide con una asignatura del catálogo, se selecciona esa.
+ * - Si no coincide, no se altera la selección existente salvo que el desplegable
+ *   estuviera en «__nueva__» y el texto estuviera vacío, en cuyo caso se rellena con el nombre detectado.
+ */
+export function resolverMateriaSubida(
+  materias: MateriaItem[],
+  nombreDetectado: string,
+  seleccionActual: { materiaSelect: string; subidaMateria: string }
+): { materiaSelect: string; subidaMateria: string } {
+  const detectado = nombreDetectado.trim()
+  if (!detectado) return seleccionActual
+
+  const coincidencia = buscarMateriaPorClave(materias, detectado)
+  if (coincidencia) {
+    return {
+      materiaSelect: coincidencia.nombre,
+      subidaMateria: coincidencia.nombre,
+    }
+  }
+
+  if (seleccionActual.materiaSelect === '__nueva__' && !seleccionActual.subidaMateria.trim()) {
+    return {
+      materiaSelect: '__nueva__',
+      subidaMateria: detectado,
+    }
+  }
+
+  return seleccionActual
+}
+
+

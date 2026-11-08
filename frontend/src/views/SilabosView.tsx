@@ -14,7 +14,7 @@ import {
 import { toast } from 'sonner'
 import { api } from '@/api/client'
 import type { ClaseCronograma, MateriaItem, ParcialItem } from '@/api/types'
-import { buscarMateriaPorClave } from '@/lib/asignaturas'
+import { buscarMateriaPorClave, resolverMateriaSubida } from '@/lib/asignaturas'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -438,14 +438,9 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
       .replace(/SYLLABUS/gi, '')
       .replace(/[-_]/g, ' ')
       .trim()
-    const coincidencia = buscarMateriaPorClave(materias, base)
-    if (coincidencia) {
-      setMateriaSelect(coincidencia.nombre)
-      setSubidaMateria(coincidencia.nombre)
-    } else {
-      setMateriaSelect('__nueva__')
-      setSubidaMateria(base)
-    }
+    const nueva = resolverMateriaSubida(materias, base, { materiaSelect, subidaMateria })
+    setMateriaSelect(nueva.materiaSelect)
+    setSubidaMateria(nueva.subidaMateria)
     toast.info(`Archivo seleccionado: ${f.name}`)
   }
 
@@ -458,13 +453,13 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
     try {
       setExtracting(true)
       const res = await api.extraerSilabo(file, subidaMateria)
-      const coincidencia = buscarMateriaPorClave(materias, res.materia)
-      if (coincidencia) {
-        setMateriaSelect(coincidencia.nombre)
-        setSubidaMateria(coincidencia.nombre)
-      } else {
-        setMateriaSelect('__nueva__')
-        setSubidaMateria(res.materia)
+      if (res.materia) {
+        const nueva = resolverMateriaSubida(materias, res.materia, {
+          materiaSelect,
+          subidaMateria,
+        })
+        setMateriaSelect(nueva.materiaSelect)
+        setSubidaMateria(nueva.subidaMateria)
       }
       setClasesExtraidas(res.datos.clases || [])
       toast.success('Clases extraídas', {

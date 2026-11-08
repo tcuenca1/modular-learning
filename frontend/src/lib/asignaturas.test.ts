@@ -8,6 +8,7 @@ import {
   esCompletada,
   materiasConCronograma,
   parsearFecha,
+  resolverMateriaSubida,
 } from './asignaturas'
 
 describe('clave', () => {
@@ -154,4 +155,57 @@ describe('buscarMateriaPorClave', () => {
     expect(buscarMateriaPorClave(catalogo, '')).toBeUndefined()
   })
 })
+
+describe('resolverMateriaSubida (P23)', () => {
+  const catalogo = [
+    { slug: 'programacion-web', nombre: 'Programación Web' },
+    { slug: 'redes-de-computadores', nombre: 'Redes de Computadores' },
+  ]
+
+  it('mantiene la asignatura elegida si el archivo no coincide con el catalogo', () => {
+    const res = resolverMateriaSubida(catalogo, 'Silabo 2026', {
+      materiaSelect: 'Programación Web',
+      subidaMateria: 'Programación Web',
+    })
+    expect(res.materiaSelect).toBe('Programación Web')
+    expect(res.subidaMateria).toBe('Programación Web')
+  })
+
+  it('selecciona la asignatura si el archivo coincide con el catalogo', () => {
+    const res = resolverMateriaSubida(catalogo, 'PROGRAMACION_WEB', {
+      materiaSelect: '__nueva__',
+      subidaMateria: '',
+    })
+    expect(res.materiaSelect).toBe('Programación Web')
+    expect(res.subidaMateria).toBe('Programación Web')
+  })
+
+  it('si esta en nueva asignatura y texto vacio, rellena con el nombre detectado', () => {
+    const res = resolverMateriaSubida(catalogo, 'Sistemas Operativos', {
+      materiaSelect: '__nueva__',
+      subidaMateria: '',
+    })
+    expect(res.materiaSelect).toBe('__nueva__')
+    expect(res.subidaMateria).toBe('Sistemas Operativos')
+  })
+
+  it('si esta en nueva asignatura pero el usuario ya escribio un nombre, no lo sobreescribe', () => {
+    const res = resolverMateriaSubida(catalogo, 'Silabo_2026', {
+      materiaSelect: '__nueva__',
+      subidaMateria: 'Mi Asignatura Personalizada',
+    })
+    expect(res.materiaSelect).toBe('__nueva__')
+    expect(res.subidaMateria).toBe('Mi Asignatura Personalizada')
+  })
+
+  it('si el nombre detectado esta vacio, conserva la seleccion actual', () => {
+    const res = resolverMateriaSubida(catalogo, '   ', {
+      materiaSelect: 'Programación Web',
+      subidaMateria: 'Programación Web',
+    })
+    expect(res.materiaSelect).toBe('Programación Web')
+    expect(res.subidaMateria).toBe('Programación Web')
+  })
+})
+
 
