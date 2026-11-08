@@ -33,6 +33,37 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P25. En la nube, no escanear carpetas locales (DISC-08)
+
+- **Commit:** 7da3dab `feat(api): P25 omitir escaneo de carpetas locales en la nube`
+- **Estado:** hecha
+- **Archivos:**
+  - `backend/src/modular_learning/apps/api/routers/material.py`
+  - `backend/src/modular_learning/apps/api/routers/proyectos.py`
+  - `backend/tests/integration/api/test_api.py`
+  - `frontend/src/views/HoyView.tsx`
+  - `frontend/src/views/MaterialView.tsx`
+
+### Qué hice
+1. **Protección en backend contra escaneo local en la nube:** En `material.py` y `proyectos.py`, si `ML_EN_NUBE=1` los endpoints `GET /api/material/escanear` y `GET /api/proyectos/escanear` devuelven colecciones vacías (`{"escaneos": []}` y `{"candidatos": []}`), garantizando que no se intente recorrer el disco local en Render.
+2. **Vista Hoy adaptada:** `HoyView.tsx` consulta la configuración vía `GET /api/config`. Si `en_nube` está activo, omite la llamada a `api.escanearMaterial()` y oculta la sección «Material nuevo».
+3. **Vista Material adaptada:** `MaterialView.tsx` oculta la tarjeta «Tus carpetas de asignatura» con sus acciones de escaneo/revisión cuando `enNube` es verdadero, y evita invocar `api.escanearProyectos()`. La carga manual de documentos individuales («Subir un archivo») permanece disponible.
+
+### Cómo lo verifiqué
+- pytest: 142 passed, 3 skipped
+- ruff check / ruff format: ok (All checks passed!)
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 warnings y 0 errors en oxlint, build exitoso en 1.25s con Vite, 30 passed en vitest.
+- Tests nuevos: `backend/tests/integration/api/test_api.py::test_escanear_material_endpoint` ampliado con validación explícita de `ML_EN_NUBE=1` (comprobando que tanto el escaneo de material como el de proyectos devuelven colecciones vacías).
+- Prueba manual: Se verificó que con la variable de entorno activa, la API responde vacío y el frontend oculta la tarjeta de carpetas y la sección de material nuevo, manteniendo operativa la subida individual.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P22. Textos más cortos y consistentes
 
 - **Commit:** a8c5a14 `refactor(web): P22 textos cortos consistentes sin jerga y mayusculas en botones`
