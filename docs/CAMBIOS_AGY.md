@@ -33,6 +33,55 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## D2. Poner al día la documentación y limpiar restos
+
+- **Commit:** e9fcd78 `docs: D2 documentacion al dia`
+- **Estado:** hecha
+- **Archivos:**
+  - `docs/manual/MANUAL_FUNCIONAL.md`
+  - `docs/manual/MANUAL_FUNCIONAL.pdf`
+  - `README.md`
+  - `docs/ARCHITECTURE.md`
+  - `docs/DESPLIEGUE.md`
+  - `GEMINI.md`
+  - `docs/CHANGELOG.md` *(eliminado con `git rm`)*
+  - `docs/TECHNICAL_WRITER_REPORT.md` *(eliminado con `git rm`)*
+
+### Qué hice
+- **Manual funcional al día (`MANUAL_FUNCIONAL.md` + `MANUAL_FUNCIONAL.pdf`):** actualicé la sección 1.4, la sección 2.5 (soporte `.pptx` con `ConversorLibreOffice` y plan B `python-pptx`), los casos de uso afectados por `P12`–`P18` y `P23`–`P24` (`CU-01`, `CU-02`, `CU-04`, `CU-05`, `CU-06`, `CU-07`, `CU-10`, `CU-18`, `CU-19`, `CU-20`) y la tabla de discrepancias (sección 6.1), marcando `DISC-01` a `DISC-06` como resueltas con sus commits (`bb1a30f`, `bf2ac35`, `a9b71aa`, `1384372`+`2f8fe52`, `d40428d`+`faf23ac`, `2d6f757`), vinculando `DISC-08`–`DISC-11` con `P25`–`P28` y marcando `DISC-12` como resuelta en documentación. Regeneré `docs/manual/MANUAL_FUNCIONAL.pdf` (27 páginas).
+- **Eliminación de documentos obsoletos y restos sin versionar:** eliminé con `git rm` `docs/TECHNICAL_WRITER_REPORT.md` y `docs/CHANGELOG.md`; borré de la raíz los restos sin versionar (`build/`, `modular_learning_cli.egg-info/`, `tests/` en raíz que solo tenía `__pycache__`, `__pycache__/`, `.import_linter_cache/` y `.aider.chat.history.md`) sin tocar `data/` ni `obsidian_vault/`.
+- **Puesta al día de `README.md`, `docs/ARCHITECTURE.md`, `docs/DESPLIEGUE.md` y `GEMINI.md`:** reescribí `README.md` (requisitos incluido LibreOffice opcional de P16, enlaces al manual en MD/PDF, arquitectura y despliegue, comandos CLI y de verificación copiables tal cual, sin menciones a «rachas de estudio» ni extracción de diagramas en `.docx`), sincronicé `docs/ARCHITECTURE.md` con los 7 módulos de dominio, 10 módulos de puertos, 11 servicios de aplicación, `AlmacenDocumentos`, rutas reales `data/config/` y contratos `import-linter`, completé `docs/DESPLIEGUE.md` (`deploy/arranque.sh` y plan B `.pptx` en contenedor) y reduje `GEMINI.md` para remitir a `CLAUDE.md` y `docs/PENDIENTES.md` sin duplicar reglas.
+
+### Cómo lo verifiqué
+- pytest: `142 passed, 3 skipped in 14.94s`
+- ruff check / ruff format: `All checks passed!`
+- import-linter: `3 kept, 0 broken` (`Analyzed 140 files, 527 dependencies`)
+- npm run lint / build / test: `oxlint: 0 warnings and 0 errors`, `vite build: ok (1.26s)`, `vitest: 3 passed (30 tests)`
+- Tests nuevos: no aplica (tarea de documentación y limpieza).
+- Prueba manual (ejecución literal de los comandos de `README.md`, regeneración del PDF y comprobación con `git grep`):
+  - `venv/Scripts/python.exe scripts/generar_manual.py`:
+    `PDF generado correctamente en ...\docs\manual\MANUAL_FUNCIONAL.pdf (27 paginas, 2156887 bytes, 123152 caracteres extraibles).`
+  - `ml --help`:
+    `Usage: ml [OPTIONS] COMMAND [ARGS]... Commands: init, es, im, quiz, stats, up (exit=0)`
+  - `python -m pytest -q backend`:
+    `142 passed, 3 skipped in 14.94s`
+  - `python -m ruff check backend`:
+    `All checks passed!`
+  - `python -c "import sys; from importlinter.cli import lint_imports_command; sys.argv=['lint-imports','--config','backend/pyproject.toml']; lint_imports_command()"`:
+    `Contracts: 3 kept, 0 broken.`
+  - `cd frontend && npm run lint && npm run build && npm test && cd ..`:
+    `Found 0 warnings and 0 errors. / ✓ built in 1.26s / Test Files 3 passed (3), Tests 30 passed (30)`
+  - `git grep -n -i "ml-cli\|crewai\|TECHNICAL_WRITER_REPORT\|CHANGELOG\|lector_multimodal\|data/materias\.json\|data/registro_materiales\.json"`:
+    Solo aparecen la nota histórica de `CLAUDE.md:7`, el enunciado de `docs/PENDIENTES.md:220-243` y el informe histórico de D1 en `docs/CAMBIOS_AGY.md`.
+
+### Dudas o hallazgos
+- Ninguno adicional: los puntos pendientes de decisión (`DISC-07` sobre tablas/imágenes en `.docx` y el archivo huérfano `apps/cli/commands/snapshot.py` de `DISC-12`) ya figuran en la sección «Para decidir con el usuario» de `docs/PENDIENTES.md`.
+
+### Revisión de Claude
+
+
+---
+
 ## P19. Hoy: desbordamiento en móvil y avisos agrupados
 
 - **Commit:** 30980dc `fix(web): P19 desbordamiento movil avisos agrupados y estilo de pendientes`
