@@ -9,6 +9,7 @@ import pytest
 
 from modular_learning.core.application.ingesta import IngestaService
 from tests.unit.application.fake_adapters import (
+    FakeConversorPdfPort,
     FakeLLM,
     InMemoryAjustesPort,
     InMemoryBovedaPort,
@@ -113,11 +114,13 @@ def test_escanear_materia():
 
     assert escaneo["materia"] == "Redes"
     assert escaneo["existe"] is True
-    assert escaneo["total"] == 2  # lab1.pdf y lab2.docx
+    assert escaneo["total"] == 3  # lab1.pdf, lab2.docx y presentacion.pptx
     assert escaneo["omitidos"] == 1  # lab1.pdf
-    assert escaneo["no_soportados"] == 1  # presentacion.pptx
-    assert len(escaneo["pendientes"]) == 1
-    assert escaneo["pendientes"][0]["nombre"] == "lab2.docx"
+    assert escaneo["no_soportados"] == 0
+    assert len(escaneo["pendientes"]) == 2
+    nombres_pendientes = [p["nombre"] for p in escaneo["pendientes"]]
+    assert "lab2.docx" in nombres_pendientes
+    assert "presentacion.pptx" in nombres_pendientes
 
 
 @pytest.mark.parametrize(("peso", "asignado"), [(90, True), (30, False)])
@@ -241,3 +244,71 @@ def test_ingesta_usa_nombre_catalogo_para_carpeta_obsidian():
     nota_path = res["ruta_salida"]
     assert "Ingeniería de Software II" in nota_path
     assert any("/Ingeniería de Software II/" in k for k in boveda.notas)
+
+
+def test_ingestar_pptx_con_conversor_envia_pdf():
+    conversor = FakeConversorPdfPort(ruta_retorno="/tmp/slides.pdf")
+    fake_llm = FakeLLM()
+    service = IngestaService(
+        llm=fake_llm,
+        registro_repo=InMemoryRegistroMaterialesRepo(),
+        boveda_port=InMemoryBovedaPort(),
+        lector_docs=InMemoryLectorDocumentosPort(),
+        ajustes_port=InMemoryAjustesPort(),
+        conversor_pdf=conversor,
+    )
+
+    res = service.ingestar_archivo("presentacion.pptx", "presentacion.pptx", "Redes")
+    assert res is not None
+    assert conversor.archivos_convertidos == ["presentacion.pptx"]
+    assert any(
+        llamada.get("archivo", {}).get("mime_type") == "application/pdf"
+        and llamada.get("archivo", {}).get("path") == "/tmp/slides.pdf"
+        for llamada in fake_llm.llamadas_texto
+    )
+    assert conversor.temporales_borrados == ["/tmp/slides.pdf"]
+
+
+def test_ingestar_pptx_sin_conversor_plan_b_envia_texto_y_aviso():
+    conversor = FakeConversorPdfPort(ruta_retorno=None)
+    fake_llm = FakeLLM(texto_default="# Resumen PPTX")
+    lector = InMemoryLectorDocumentosPort()
+    lector.materiales["presentacion.pptx"] = "Diapositiva 1: Conceptos clave"
+    service = IngestaService(
+        llm=fake_llm,
+        registro_repo=InMemoryRegistroMaterialesRepo(),
+        boveda_port=InMemoryBovedaPort(),
+        lector_docs=lector,
+        ajustes_port=InMemoryAjustesPort(),
+        conversor_pdf=conversor,
+    )
+
+    res = service.ingestar_archivo("presentacion.pptx", "presentacion.pptx", "Redes")
+    assert "aviso" in res
+    assert "imágenes" in res["aviso"] or "imagenes" in res["aviso"]
+    assert any(
+        "Diapositiva 1: Conceptos clave" in llamada.get("prompt", "")
+        for llamada in fake_llm.llamadas_texto
+    )
+
+
+def test_ingestar_pptx_borra_temporal_si_llm_falla():
+    conversor = FakeConversorPdfPort(ruta_retorno="/tmp/error_slides.pdf")
+
+    class LLMConFallo(FakeLLM):
+        def generar_texto_con_archivo(self, archivo_inline: dict, prompt: str) -> str:
+            raise RuntimeError("Fallo simulado del LLM")
+
+    service = IngestaService(
+        llm=LLMConFallo(),
+        registro_repo=InMemoryRegistroMaterialesRepo(),
+        boveda_port=InMemoryBovedaPort(),
+        lector_docs=InMemoryLectorDocumentosPort(),
+        ajustes_port=InMemoryAjustesPort(),
+        conversor_pdf=conversor,
+    )
+
+    with pytest.raises(RuntimeError, match="Fallo simulado del LLM"):
+        service.ingestar_archivo("presentacion.pptx", "presentacion.pptx", "Redes")
+
+    assert conversor.temporales_borrados == ["/tmp/error_slides.pdf"]

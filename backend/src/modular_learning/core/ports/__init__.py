@@ -2,6 +2,7 @@
 
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
+from modular_learning.core.ports.conversor_pdf import ConversorPdfPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.llm import LLMAdapterBase, LLMPort
 from modular_learning.core.ports.plugin_practico import PluginConfigRepoPort, PluginPracticoBase
@@ -15,6 +16,7 @@ from modular_learning.core.ports.repositorios import (
 __all__ = [
     "AjustesPort",
     "BovedaNotasPort",
+    "ConversorPdfPort",
     "CronogramaRepo",
     "InspectorProyectosPort",
     "LLMAdapterBase",

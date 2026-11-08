@@ -53,6 +53,35 @@ class LectorDocumentosLocal(LectorDocumentosPort):
 
             documento = docx.Document(ruta_archivo)
             return "\n".join(p.text for p in documento.paragraphs)
+        if ext == ".pptx":
+            from pptx import Presentation
+
+            try:
+                prs = Presentation(ruta_archivo)
+                bloques: list[str] = []
+                for i, slide in enumerate(prs.slides, start=1):
+                    partes: list[str] = [f"--- Diapositiva {i} ---"]
+                    for shape in slide.shapes:
+                        if shape.has_text_frame:
+                            for paragraph in shape.text_frame.paragraphs:
+                                t = paragraph.text.strip()
+                                if t:
+                                    partes.append(t)
+                        if shape.has_table:
+                            for row in shape.table.rows:
+                                celdas = [
+                                    cell.text.strip() for cell in row.cells if cell.text.strip()
+                                ]
+                                if celdas:
+                                    partes.append(" | ".join(celdas))
+                    if slide.has_notes_slide and slide.notes_slide.notes_text_frame:
+                        notas = slide.notes_slide.notes_text_frame.text.strip()
+                        if notas:
+                            partes.append(f"[Notas del orador: {notas}]")
+                    bloques.append("\n".join(partes))
+                return "\n\n".join(bloques)
+            except Exception as e:
+                raise RuntimeError(f"No se pudo extraer texto del PPTX con python-pptx: {e}") from e
         try:
             with open(ruta_archivo, encoding="utf-8") as f:
                 return f.read()

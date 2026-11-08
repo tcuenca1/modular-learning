@@ -12,6 +12,7 @@ from modular_learning.core.domain.proyectos import HuellaProyecto, Proyecto, Tip
 from modular_learning.core.domain.repaso_espaciado import Tarjeta
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
+from modular_learning.core.ports.conversor_pdf import ConversorPdfPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.guias import ExportadorPdfPort, GuiasRepo
 from modular_learning.core.ports.llm import LLMPort
@@ -513,3 +514,19 @@ class InMemoryInspectorProyectos(InspectorProyectosPort):
 
     def extraer_contexto(self, ruta: str) -> str:
         return f"Contexto simulado de {ruta}"
+
+
+class FakeConversorPdfPort(ConversorPdfPort):
+    """Conversor a PDF simulado para pruebas unitarias."""
+
+    def __init__(self, ruta_retorno: str | None = None) -> None:
+        self.ruta_retorno = ruta_retorno
+        self.archivos_convertidos: list[str] = []
+        self.temporales_borrados: list[str] = []
+
+    def convertir_a_pdf(self, ruta_archivo: str) -> str | None:
+        self.archivos_convertidos.append(ruta_archivo)
+        return self.ruta_retorno
+
+    def borrar_temporal(self, ruta_pdf: str) -> None:
+        self.temporales_borrados.append(ruta_pdf)

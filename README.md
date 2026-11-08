@@ -100,6 +100,10 @@ pip install -e "./backend[dev]"
 pip install -e "./backend[all]"
 ```
 
+### 4. Presentaciones PPTX (LibreOffice)
+
+Para ingestar presentaciones `.pptx` aprovechando la lectura visual completa de Gemini, se recomienda instalar [LibreOffice](https://www.libreoffice.org/) (`soffice`). En su ausencia o en entornos en la nube, el sistema activa automáticamente un plan B que extrae únicamente el texto (títulos, cuadros de texto, tablas y notas del orador) mediante `python-pptx`.
+
 ---
 
 ## 💻 Uso de la Aplicación

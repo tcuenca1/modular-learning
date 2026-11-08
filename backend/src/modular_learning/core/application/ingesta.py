@@ -15,6 +15,7 @@ from modular_learning.core.domain import alineador_curricular
 from modular_learning.core.domain.materias import resolver_materia
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
+from modular_learning.core.ports.conversor_pdf import ConversorPdfPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.llm import LLMPort
 from modular_learning.core.ports.repositorios import (
@@ -25,8 +26,8 @@ from modular_learning.core.ports.repositorios import (
 
 logger = logging.getLogger(__name__)
 
-EXTENSIONES_MATERIAL = (".pdf", ".docx", ".txt", ".md")
-EXTENSIONES_NO_SOPORTADAS_WEB = (".pptx",)
+EXTENSIONES_MATERIAL = (".pdf", ".docx", ".txt", ".md", ".pptx")
+EXTENSIONES_NO_SOPORTADAS_WEB: tuple[str, ...] = ()
 TIPOS_MATERIAL = ("actividad", "diapositiva", "lectura", "material_complementario")
 
 REGLA_PRIVACIDAD = (
@@ -51,6 +52,7 @@ class IngestaService:
         cronograma_repo: CronogramaRepo | None = None,
         proyectos_service: ProyectosService | None = None,
         materia_repo: MateriaRepo | None = None,
+        conversor_pdf: ConversorPdfPort | None = None,
     ):
         self.llm = llm
         self.registro_repo = registro_repo
@@ -61,6 +63,7 @@ class IngestaService:
         self.cronograma_repo = cronograma_repo
         self.proyectos_service = proyectos_service
         self.materia_repo = materia_repo
+        self.conversor_pdf = conversor_pdf
 
     def clasificar_tipo_material(self, ruta_archivo: str, ruta_raiz_lote: str) -> str:
         """Clasifica el material según su ubicación en la carpeta de la asignatura."""
@@ -79,16 +82,45 @@ class IngestaService:
             return "lectura"
         return "material_complementario"
 
-    def _generar_contenido(self, ruta: str, prompt: str) -> str:
+    def _generar_contenido(self, ruta: str, prompt: str) -> tuple[str, str | None]:
         ext = os.path.splitext(ruta)[1].lower()
         if ext in (".docx", ".txt", ".md"):
             texto = self.lector_docs.extraer_texto(ruta)
-            return self.llm.generar_texto(f"{prompt}\n\nCONTENIDO DEL DOCUMENTO:\n{texto}")
+            return (
+                self.llm.generar_texto(f"{prompt}\n\nCONTENIDO DEL DOCUMENTO:\n{texto}"),
+                None,
+            )
+
+        if ext == ".pptx":
+            pdf_temporal = None
+            if self.conversor_pdf:
+                pdf_temporal = self.conversor_pdf.convertir_a_pdf(ruta)
+
+            if pdf_temporal:
+                try:
+                    contenido = self.llm.generar_texto_con_archivo(
+                        {"mime_type": "application/pdf", "path": pdf_temporal}, prompt
+                    )
+                    return contenido, None
+                finally:
+                    if self.conversor_pdf:
+                        self.conversor_pdf.borrar_temporal(pdf_temporal)
+            else:
+                texto = self.lector_docs.extraer_texto(ruta)
+                aviso = (
+                    "Se extrajo únicamente el texto de la presentación (plan B con python-pptx). "
+                    "Las imágenes y diagramas visuales no se pudieron procesar (LibreOffice no disponible)."
+                )
+                contenido = self.llm.generar_texto(f"{prompt}\n\nCONTENIDO DEL DOCUMENTO:\n{texto}")
+                return contenido, aviso
 
         mime = (
             "application/pdf" if ext == ".pdf" else (mimetypes.guess_type(ruta)[0] or "text/plain")
         )
-        return self.llm.generar_texto_con_archivo({"mime_type": mime, "path": ruta}, prompt)
+        return (
+            self.llm.generar_texto_con_archivo({"mime_type": mime, "path": ruta}, prompt),
+            None,
+        )
 
     def _alinear_con_cronograma(
         self, materia: str, contenido_md: str, nombre_archivo: str
@@ -141,7 +173,7 @@ class IngestaService:
             + REGLA_PRIVACIDAD
         )
 
-        contenido_md = self._generar_contenido(ruta_archivo, prompt)
+        contenido_md, aviso = self._generar_contenido(ruta_archivo, prompt)
 
         base = os.path.splitext(nombre_original)[0].replace(" ", "_")
         ruta_salida = self.boveda_port.guardar_nota(
@@ -173,7 +205,7 @@ class IngestaService:
                 except Exception as e:
                     logger.warning("No se pudo actualizar la memoria del plugin: %s", e)
 
-        return {
+        resultado_final: dict[str, Any] = {
             "archivo": nombre_original,
             "materia": materia,
             "tipo": tipo,
@@ -182,6 +214,9 @@ class IngestaService:
             "alineacion": alineacion,
             "plugin_actualizado": plugin_actualizado,
         }
+        if aviso:
+            resultado_final["aviso"] = aviso
+        return resultado_final
 
     def listar_materiales_ingestados(self) -> list[dict[str, Any]]:
         """Retorna todos los archivos registrados en la auditoría de ingesta."""

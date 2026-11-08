@@ -29,6 +29,7 @@ from modular_learning.core.ports.repositorios import (
     MateriaRepo,
     RegistroMaterialesRepo,
 )
+from modular_learning.infrastructure.documents.conversor_libreoffice import ConversorLibreOffice
 from modular_learning.infrastructure.documents.lector_documentos import LectorDocumentosLocal
 from modular_learning.infrastructure.llm.gemini_adapter import LLM_GeminiAdapter
 from modular_learning.infrastructure.obsidian.boveda_obsidian import BovedaObsidianAdapter
@@ -100,6 +101,7 @@ def build_container(settings: Any | None = None) -> Container:
     ajustes_repo = JsonAjustesRepo()
     boveda_port = BovedaObsidianAdapter(ajustes=ajustes_repo)
     lector_docs = LectorDocumentosLocal()
+    conversor_pdf = ConversorLibreOffice()
     tarjetas_repo = JsonTarjetasRepo()
     historial_repo = JsonHistorialRepo()
     guias_repo = JsonGuiasRepo()
@@ -170,6 +172,7 @@ def build_container(settings: Any | None = None) -> Container:
         cronograma_repo=cronograma_repo,
         proyectos_service=proyectos_service,
         materia_repo=materia_repo,
+        conversor_pdf=conversor_pdf,
     )
 
     telemetria_service = TelemetriaService(
