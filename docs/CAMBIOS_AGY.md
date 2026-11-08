@@ -33,6 +33,35 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P26. La CLI también debe identificar la clase por su id (DISC-09)
+
+- **Commit:** 511c3ab `fix(cli): P26 enviar clase_id al iniciar tutoria desde la consola`
+- **Estado:** hecha
+- **Archivos:**
+  - `backend/src/modular_learning/apps/cli/commands/init.py`
+  - `backend/src/modular_learning/apps/cli/ui/interaccion.py`
+  - `backend/tests/unit/cli/test_init_clase_id.py`
+
+### Qué hice
+1. **Preservación de `clase_id` en la UI interactiva de la CLI:** En `apps/cli/ui/interaccion.py`, se ajustó `pedir_datos_inicio` utilizando `questionary.Choice` para asociar cada elemento visual con el diccionario íntegro de la clase. Al elegir una clase del cronograma, se captura su `id` y se incluye como `clase_id` en el diccionario de datos de inicio devuelto.
+2. **Propagación hacia el servicio de tutoría:** En `apps/cli/commands/init.py`, se recupera `clase_id` de los datos de inicio y se suministra a `tutoria_service.iniciar_sesion(..., clase_id=clase_id)`. De este modo, la sesión almacena el identificador unívoco de la clase y `finalizar_sesion` marca como completada exactamente la clase elegida y no la primera que coincida por nombre de tema.
+
+### Cómo lo verifiqué
+- pytest: 144 passed, 3 skipped
+- ruff check / ruff format: ok (All checks passed!)
+- import-linter: 3 kept, 0 broken
+- Tests nuevos:
+  - `backend/tests/unit/cli/test_init_clase_id.py::test_pedir_datos_inicio_devuelve_clase_id_de_la_segunda_clase`
+  - `backend/tests/unit/cli/test_init_clase_id.py::test_init_run_pasa_clase_id_a_iniciar_sesion`
+- Prueba manual: Pruebas unitarias que simulan la selección de la segunda de dos clases con idéntico tema ("Enrutamiento"), verificando que el `clase_id` devuelto y enviado al servicio corresponde efectivamente a la segunda.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P25. En la nube, no escanear carpetas locales (DISC-08)
 
 - **Commit:** 7da3dab `feat(api): P25 omitir escaneo de carpetas locales en la nube`
