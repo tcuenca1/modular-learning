@@ -82,6 +82,47 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P21. Menú de 9 entradas a 5
+
+- **Commit:** 14da5de `refactor(web): P21 unificar menu en cinco entradas vistas estudiar y ajustes`
+- **Estado:** hecha
+- **Archivos:**
+  - `frontend/src/App.tsx`
+  - `frontend/src/components/layout/Sidebar.tsx`
+  - `frontend/src/lib/asignaturas.ts`
+  - `frontend/src/lib/asignaturas.test.ts`
+  - `frontend/src/views/AjustesView.tsx`
+  - `frontend/src/views/EstudiarView.tsx`
+  - `frontend/src/views/GuiaImprimirView.tsx`
+  - `frontend/src/views/HoyView.tsx`
+  - `frontend/src/views/ProgresoView.tsx`
+  - `frontend/src/views/QuizView.tsx`
+  - `frontend/src/views/RevisionGuiaView.tsx`
+
+### Qué hice
+Reduje las opciones de navegación principal de 9 a 5 entradas consolidadas:
+1. **Menú consolidado (5 entradas):** En `Sidebar.tsx`, el menú ahora contiene exactamente 5 elementos: **Hoy** (`/`), **Estudiar** (`/estudiar`), **Calendario** (`/calendario`), **Asignaturas** (`/asignaturas`) y **Ajustes** (`/ajustes`).
+2. **Vista Estudiar (`EstudiarView.tsx`):** Agrupa en una sola pantalla con pestañas superiores los tres modos de estudio: **Tutoría** (`?tab=tutoria`), **Repaso** (`?tab=repaso`) y **Guía offline** (`?tab=guia`).
+3. **Vista Ajustes (`AjustesView.tsx`):** Agrupa en una sola pantalla con pestañas superiores: **Configuración** (`?tab=config`) y **Plugins** (`?tab=plugins`).
+4. **Progreso incorporado en Hoy:** Se integró el avance porcentual global y por asignatura en la sección «Tus asignaturas» de `HoyView.tsx`, y se eliminó la vista obsoleta `ProgresoView.tsx`.
+5. **Redirecciones retrocompatibles con query:** En `App.tsx`, las rutas antiguas (`/tutoria`, `/repaso`, `/guia`, `/quiz`, `/plugins`, `/config`, `/progreso`) redirigen a su nueva ubicación mediante `RedirigirConQuery`, preservando todos los parámetros de búsqueda (`/tutoria?materia=…&clase_id=…` redirige a `/estudiar?tab=tutoria&materia=…&clase_id=…`).
+6. **Enlaces internos y helper:** Se actualizó `enlaceTutoria` para apuntar a `/estudiar?tab=tutoria&…` y se actualizaron los enlaces internos de la app y sus pruebas unitarias.
+
+### Cómo lo verifiqué
+- pytest: 142 passed, 3 skipped
+- ruff check / ruff format: ok (All checks passed!)
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 warnings y 0 errors en oxlint, build exitoso con Vite/tsc, 30 passed en vitest
+- Tests nuevos: `frontend/src/lib/asignaturas.test.ts` actualizado para los nuevos enlaces `/estudiar?tab=tutoria...`
+- Prueba manual: Se verificó la navegación directa a las 5 entradas del menú, las redirecciones desde las rutas antiguas conservando `materia` y `clase_id`, y el funcionamiento de las pestañas en Estudiar y Ajustes.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P20. Asignaturas: un solo selector y acciones peligrosas apartadas
 
 - **Commit:** 01ff583 `refactor(web): P20 selector unico de asignaturas tres pestanas y zona peligrosa`
