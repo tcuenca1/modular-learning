@@ -445,7 +445,7 @@ export function MaterialView({
       })
       await cargarProyectos()
     } catch (err) {
-      toast.error('No se pudo ingestar el proyecto', {
+      toast.error('No se pudo procesar el proyecto', {
         description: err instanceof Error ? err.message : String(err),
       })
     } finally {
@@ -493,7 +493,7 @@ export function MaterialView({
   const handleVaciarTodo = async () => {
     const conf = window.confirm(
       '⚠️ ATENCIÓN: VACIADO DE MATERIALES Y PROYECTOS\n\n' +
-      '¿Estás seguro de que deseas vaciar TODOS los materiales y proyectos ingestados?\n\n' +
+      '¿Estás seguro de que deseas vaciar todos los materiales y proyectos convertidos en notas?\n\n' +
       '• Se limpiará el registro de materiales y proyectos.\n' +
       '• Se borrarán las notas autogeneradas en Obsidian (Material, Actividades, Proyectos).\n' +
       '• Tu configuración (.obsidian/), sílabos y cronogramas quedarán intactos.\n' +
@@ -550,7 +550,7 @@ export function MaterialView({
       {!embebido && (
         <div>
           <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">
-            Gestión e Ingesta Multimodal de Material
+            Gestión de material
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Escanea directorios de clase, procesa proyectos universales y sincroniza notas estructuradas en Obsidian.
@@ -739,7 +739,7 @@ export function MaterialView({
           <Card>
             <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <CardTitle>Materiales Ingestados ({registradosFiltrados.length})</CardTitle>
+                <CardTitle>Materiales convertidos en notas ({registradosFiltrados.length})</CardTitle>
                 <CardDescription>
                   Documentos individuales de estudio y actividades convertidos en notas vinculadas con el cronograma.
                 </CardDescription>
@@ -904,7 +904,7 @@ export function MaterialView({
                     </>
                   ) : (
                     <>
-                      <FileUp className="h-4 w-4" /> Ingestar Documento Individual
+                      <FileUp className="h-4 w-4" /> Convertir en nota
                     </>
                   )}
                 </Button>
@@ -915,7 +915,7 @@ export function MaterialView({
                 <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900 dark:bg-emerald-950/20">
                   <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
                     <CheckCircle2 className="h-4 w-4" />
-                    Material Ingestado: {resultadoSubida.archivo}
+                    Material convertido en nota: {resultadoSubida.archivo}
                   </div>
                   {resultadoSubida.aviso && (
                     <div className="mt-2 flex items-start gap-1.5 rounded border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
@@ -996,7 +996,7 @@ export function MaterialView({
                   Las carpetas de proyecto (código fuente, flujos Node-RED, auditorías SGSI o documentos rectores) se conservan
                   en <strong>solo lectura</strong> en tu OneDrive. Cada proyecto genera una ficha técnica de arquitectura en{' '}
                   <code className="text-indigo-700 dark:text-indigo-300 font-mono">
-                    Obsidian/&lt;Materia&gt;/Proyectos/&lt;Nombre&gt;.md
+                    Obsidian/&lt;Asignatura&gt;/Proyectos/&lt;Nombre&gt;.md
                   </code>{' '}
                   con seguimiento continuo de modificaciones en disco para mantenerla siempre al día.
                 </p>
@@ -1004,7 +1004,7 @@ export function MaterialView({
             </div>
           </div>
 
-          {/* Proyectos Detectados en Disco (Candidatos por Ingestar) */}
+          {/* Proyectos detectados en disco (pendientes de convertir) */}
           <Card>
             <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
@@ -1084,7 +1084,7 @@ export function MaterialView({
                             ) : (
                               <>
                                 <Sparkles className="h-3.5 w-3.5" />
-                                Ingestar y Generar Ficha
+                                Convertir en nota
                               </>
                             )}
                           </Button>
@@ -1122,7 +1122,7 @@ export function MaterialView({
             <CardContent>
               {proyectosFiltrados.length === 0 ? (
                 <p className="text-sm text-slate-500 py-6 text-center">
-                  No hay proyectos registrados para la asignatura seleccionada. Ingesta uno desde la sección superior.
+                  No hay proyectos registrados para la asignatura seleccionada. Convierte uno desde la sección superior.
                 </p>
               ) : (
                 <div className="rounded-lg border border-slate-200 dark:border-slate-800">

@@ -382,11 +382,10 @@ export function GuiaView() {
 
   return (
     <div className="max-w-3xl space-y-10">
-      <header className="space-y-3">
+      <header className="space-y-1">
         <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Guía offline</h1>
-        <p className="text-lg leading-relaxed text-slate-600 dark:text-slate-400">
-          Prepara una o varias clases para leerlas sin conexión. Cuantas más clases o menor el tiempo disponible,
-          más condensada sale cada una. Al volver, me dices cuáles entendiste y las marco como vistas.
+        <p className="text-base text-slate-600 dark:text-slate-400">
+          Prepara clases en un cuaderno A5 descargable para estudiar sin pantalla.
         </p>
       </header>
 

@@ -573,7 +573,7 @@ export function SilabosView({
                       <Input
                         value={nombreNuevaMateria}
                         onChange={(e) => setNombreNuevaMateria(e.target.value)}
-                        placeholder="Nombre de la nueva materia"
+                        placeholder="Nombre de la nueva asignatura"
                         className="h-8 text-xs w-56"
                       />
                       <Button size="sm" onClick={handleCrearMateria} className="h-8 px-2 text-xs">
@@ -595,7 +595,7 @@ export function SilabosView({
                       onClick={() => setCreandoMateria(true)}
                       className="h-8 gap-1.5 text-xs"
                     >
-                      <Plus className="h-3.5 w-3.5" /> Nueva Asignatura
+                      <Plus className="h-3.5 w-3.5" /> Nueva asignatura
                     </Button>
                   )}
                 </div>
@@ -658,7 +658,7 @@ export function SilabosView({
                           variant="ghost"
                           size="icon"
                           onClick={() => { setNuevoNombreMateria(materiaSeleccionadaObj?.nombre || ""); setRenombrando(true); }}
-                          title="Renombrar materia"
+                          title="Renombrar asignatura"
                           className="h-7 w-7 text-slate-400 hover:text-slate-600"
                         >
                           <Edit2 className="h-3.5 w-3.5" />
@@ -710,7 +710,7 @@ export function SilabosView({
                       onClick={() => setEditandoParciales(!editandoParciales)}
                       className="text-xs h-7"
                     >
-                      {editandoParciales ? 'Cerrar' : '+ Añadir / Editar cortes'}
+                      {editandoParciales ? 'Cerrar' : '+ Añadir / editar cortes'}
                     </Button>
                   </div>
 
@@ -759,7 +759,7 @@ export function SilabosView({
                 {mostrandoNuevaClase && (
                   <div className="rounded-lg border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900 dark:bg-indigo-950/20 space-y-3">
                     <h4 className="text-xs font-semibold text-indigo-900 dark:text-indigo-200">
-                      Nueva Clase para {materiaSeleccionadaObj.nombre}
+                      Nueva clase para {materiaSeleccionadaObj.nombre}
                     </h4>
                     <div className="grid gap-3 sm:grid-cols-4">
                       <div className="sm:col-span-2">
@@ -802,7 +802,7 @@ export function SilabosView({
                         disabled={guardandoClase}
                         className="h-8 text-xs bg-indigo-600 hover:bg-indigo-500 text-white"
                       >
-                        Guardar Clase
+                        Guardar clase
                       </Button>
                     </div>
                   </div>
@@ -1132,7 +1132,7 @@ export function SilabosView({
                       </>
                     ) : (
                       <>
-                        <Save className="h-4 w-4" /> Guardar Cronograma
+                        <Save className="h-4 w-4" /> Guardar cronograma
                       </>
                     )}
                   </Button>

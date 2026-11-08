@@ -490,12 +490,10 @@ export function QuizView() {
   // ------------------------- ESTADO 3: PANTALLA INICIAL -------------------------
   return (
     <div className="mx-auto max-w-2xl space-y-8 pb-12">
-      <div className="space-y-3">
+      <div className="space-y-1">
         <h1 className="text-3xl font-semibold text-slate-900 dark:text-white">Repaso</h1>
-        <p className="text-lg leading-relaxed text-slate-600 dark:text-slate-400">
-          Preguntas sobre las clases que ya terminaste. Las que falles vuelven pronto; las que
-          aciertes, cada vez más espaciadas. Las opciones están pensadas para que no se pueda
-          adivinar la respuesta por su forma: hay que saberla.
+        <p className="text-base text-slate-600 dark:text-slate-400">
+          Preguntas de recuerdo activo sobre las clases completadas.
         </p>
       </div>
 

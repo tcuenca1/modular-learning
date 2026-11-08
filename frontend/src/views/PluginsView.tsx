@@ -53,6 +53,7 @@ export function PluginsView() {
   const [logOutput, setLogOutput] = useState<string>(
     'Aquí aparece el resultado cuando actualizas un plugin.'
   )
+  const [haActualizado, setHaActualizado] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const cargarPlugins = useCallback(async () => {
@@ -96,6 +97,7 @@ export function PluginsView() {
 
   const handleActualizar = async (opcion: string) => {
     try {
+      setHaActualizado(true)
       setUpdatingPlugin(opcion)
       toast.info(`Actualizando ${opcion}…`)
       const res = await api.actualizarPlugin(opcion)
@@ -311,31 +313,33 @@ export function PluginsView() {
         })}
       </div>
 
-      {/* Visor de Logs con fuente Monoespaciada */}
-      <Card>
-        <CardHeader className="p-4 pb-2 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Terminal className="h-4 w-4 text-indigo-500" />
-            <CardTitle className="text-sm font-semibold">Registro de Sincronización</CardTitle>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCopyLogs}
-            className="h-8 gap-1.5 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white"
-          >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied ? 'Copiado' : 'Copiar'}
-          </Button>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="bg-slate-950 p-4 rounded-b-xl overflow-x-auto min-h-[260px] max-h-[450px]">
-            <pre className="font-mono text-xs leading-relaxed text-slate-200 whitespace-pre-wrap">
-              {logOutput}
-            </pre>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Visor de Logs con fuente Monoespaciada: solo aparece tras pulsar Actualizar */}
+      {haActualizado && (
+        <Card>
+          <CardHeader className="p-4 pb-2 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Terminal className="h-4 w-4 text-indigo-500" />
+              <CardTitle className="text-sm font-semibold">Registro de sincronización</CardTitle>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopyLogs}
+              className="h-8 gap-1.5 text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white"
+            >
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? 'Copiado' : 'Copiar'}
+            </Button>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="bg-slate-950 p-4 rounded-b-xl overflow-x-auto min-h-[260px] max-h-[450px]">
+              <pre className="font-mono text-xs leading-relaxed text-slate-200 whitespace-pre-wrap">
+                {logOutput}
+              </pre>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

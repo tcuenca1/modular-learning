@@ -488,7 +488,7 @@ export function TutoriaView() {
                       onClick={() => setPasoActual((p) => p + 1)}
                       className="gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs"
                     >
-                      Siguiente Paso <ArrowRight className="h-3.5 w-3.5" />
+                      Siguiente paso <ArrowRight className="h-3.5 w-3.5" />
                     </Button>
                   ) : (
                     <Button
@@ -497,7 +497,7 @@ export function TutoriaView() {
                       disabled={finalizando}
                       className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs"
                     >
-                      Finalizar Tutoría <CheckCircle2 className="h-3.5 w-3.5" />
+                      Finalizar tutoría <CheckCircle2 className="h-3.5 w-3.5" />
                     </Button>
                   )}
                 </div>
