@@ -70,6 +70,47 @@ Escribí `docs/manual/MANUAL_FUNCIONAL.md` siguiendo las 6 secciones requeridas 
 
 ---
 
+## P16. Ingestar `.pptx` convirtiéndolo a PDF
+
+- **Commit:** d40428d `feat(core): P16 ingestar pptx con conversion a pdf y plan b`
+- **Estado:** hecha
+- **Archivos:**
+  - README.md
+  - backend/pyproject.toml
+  - backend/src/modular_learning/bootstrap.py
+  - backend/src/modular_learning/core/application/ingesta.py
+  - backend/src/modular_learning/core/ports/__init__.py
+  - backend/src/modular_learning/core/ports/conversor_pdf.py
+  - backend/src/modular_learning/infrastructure/documents/conversor_libreoffice.py
+  - backend/src/modular_learning/infrastructure/documents/lector_documentos.py
+  - backend/tests/unit/application/fake_adapters.py
+  - backend/tests/unit/application/test_ingesta_service.py
+  - backend/tests/integration/infrastructure/test_conversor_libreoffice.py
+
+### Qué hice
+Se definió el puerto `ConversorPdfPort` en `core/ports/` y su adaptador `ConversorLibreOffice` en `infrastructure/documents/` que ejecuta `soffice` de forma no interactiva con timeout sin invocar shell, buscando la ruta en `ML_SOFFICE`, `PATH` o ubicaciones estándar.
+En `IngestaService`, si hay conversor disponible se transforma el `.pptx` a PDF temporal y se envía al LLM para su lectura visual multimodal, garantizando la eliminación del PDF temporal incluso en caso de fallo.
+Si no hay conversor disponible, se ejecuta el plan B extrayendo el contenido textual (títulos, cuadros de texto, tablas y notas del orador) mediante `python-pptx` (agregado a dependencias) y se incluye una advertencia en el resultado informando de la omisión de imágenes. Se documentó el requisito opcional de LibreOffice en `README.md`.
+
+### Cómo lo verifiqué
+- pytest: 140 passed, 3 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 kept, 0 broken
+- Tests nuevos:
+  - backend/tests/unit/application/test_ingesta_service.py::test_ingestar_pptx_con_conversor_envia_pdf
+  - backend/tests/unit/application/test_ingesta_service.py::test_ingestar_pptx_sin_conversor_plan_b_envia_texto_y_aviso
+  - backend/tests/unit/application/test_ingesta_service.py::test_ingestar_pptx_borra_temporal_si_llm_falla
+  - backend/tests/integration/infrastructure/test_conversor_libreoffice.py::test_conversor_libreoffice_salta_si_no_instalado
+  - backend/tests/integration/infrastructure/test_conversor_libreoffice.py::test_plan_b_extraccion_pptx_con_python_pptx
+- Prueba manual: Ejecución de la prueba de integración con un archivo `.pptx` generado dinámicamente con `python-pptx`, verificando que el plan B extrae títulos, cuadros, tablas y notas del orador, emitiendo el aviso en el resultado de ingesta.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P15. Desplegable de asignaturas al subir archivos
 
 - **Commit:** 1384372 `feat(web): P15 desplegable de asignaturas al subir archivos`
