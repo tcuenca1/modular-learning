@@ -33,6 +33,45 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P27. Cortes de parcial: guardar la clase, no una fecha (DISC-10)
+
+- **Commit:** 2cead9e `feat(web): P27 cortes de parcial asociados a clase del cronograma`
+- **Estado:** hecha
+- **Archivos:**
+  - `frontend/src/lib/asignaturas.ts`
+  - `frontend/src/lib/parciales.ts`
+  - `frontend/src/lib/parciales.test.ts`
+  - `frontend/src/views/GuiaView.tsx`
+  - `frontend/src/views/SilabosView.tsx`
+
+### Qué hice
+1. **Lógica de resolución y presentación de cortes (`frontend/src/lib/parciales.ts`):** Implementé `resolverIndiceHasta` y `describirCorte`. La resolución prioriza coincidencia exacta por `id` de clase; ante cortes antiguos con fecha (ej. "15/10/2026" o "2026-10-15"), busca la última clase con fecha menor o igual al corte; si es inválido, devuelve -1. `describirCorte` formatea el tema y fecha de la clase asociada en vez de exponer el id crudo.
+2. **Soporte de fechas ISO locales (`frontend/src/lib/asignaturas.ts`):** Ajusté `parsearFecha` para interpretar cadenas `YYYY-MM-DD` en hora local sin sesgos de zona horaria UTC.
+3. **Selector de clase en Sílabos (`frontend/src/views/SilabosView.tsx`):** Sustituí el campo de texto libre del corte por un `<select>` que lista las clases del cronograma con fecha y tema, almacenando el `id` de la clase seleccionada. Las etiquetas de cortes existentes muestran ahora el tema y fecha de la clase.
+4. **Retrocompatibilidad en Guía offline (`frontend/src/views/GuiaView.tsx`):** `seleccionarCorteParcial` invoca `resolverIndiceHasta`, resolviendo de forma consistente cortes nuevos con `id` y cortes preexistentes con fecha límite.
+
+### Cómo lo verifiqué
+- pytest: 144 passed, 3 skipped
+- ruff check / ruff format: ok (All checks passed!)
+- import-linter: 3 kept, 0 broken
+- npm run lint / build / test: 0 warnings y 0 errors en oxlint, build exitoso en 1.19s con Vite/tsc, 37 passed en vitest (4 archivos de test).
+- Tests nuevos (`frontend/src/lib/parciales.test.ts`):
+  - `resolverIndiceHasta > resuelve correctamente por id de clase`
+  - `resolverIndiceHasta > resuelve correctamente por fecha antigua en formato dd/mm/aaaa`
+  - `resolverIndiceHasta > resuelve correctamente por fecha antigua en formato ISO`
+  - `resolverIndiceHasta > devuelve -1 ante valores invalidos o no encontrados`
+  - `describirCorte > muestra la fecha y el tema de la clase identificada por id`
+  - `describirCorte > muestra la fecha y el tema cuando se consulta por fecha antigua`
+  - `describirCorte > devuelve el valor original o fallback si no se puede resolver`
+- Prueba manual: Verificación del flujo de creación de cortes asociados a clases y su correcta selección de rango en la Guía offline.
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+
+---
+
 ## P26. La CLI también debe identificar la clase por su id (DISC-09)
 
 - **Commit:** 511c3ab `fix(cli): P26 enviar clase_id al iniciar tutoria desde la consola`
