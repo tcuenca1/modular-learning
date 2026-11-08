@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { api } from '@/api/client'
 import type { ClaseCronograma, MateriaItem, ParcialItem } from '@/api/types'
 import { buscarMateriaPorClave, resolverMateriaSubida } from '@/lib/asignaturas'
+import { describirCorte } from '@/lib/parciales'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -284,7 +285,7 @@ export function SilabosView({
   // --- Handlers Parciales ---
   const handleGuardarParcial = async () => {
     if (!nuevoParcialNombre.trim() || !nuevoParcialHasta.trim()) {
-      toast.error('Indica el nombre del parcial y la fecha o tema límite.')
+      toast.error('Indica el nombre del corte y selecciona la clase límite.')
       return
     }
     const actualizados = [...parciales.filter((p) => p.nombre !== nuevoParcialNombre), {
@@ -294,10 +295,12 @@ export function SilabosView({
     try {
       await api.guardarParciales(materiaActiva, actualizados)
       setParciales(actualizados)
+      setNuevoParcialNombre('')
       setNuevoParcialHasta('')
+      setEditandoParciales(false)
       toast.success('Corte de parcial guardado')
     } catch (err) {
-      toast.error('No pude guardar el parcial', {
+      toast.error('No pude guardar el corte', {
         description: err instanceof Error ? err.message : String(err),
       })
     }
@@ -721,7 +724,7 @@ export function SilabosView({
                           key={p.nombre}
                           className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-white px-3 py-1 text-xs font-medium text-indigo-900 dark:border-indigo-800 dark:bg-slate-950 dark:text-indigo-200"
                         >
-                          <span>{p.nombre}: hasta {p.hasta || 'final'}</span>
+                          <span>{p.nombre}: hasta {describirCorte(clasesCronograma, p.hasta)}</span>
                           <button
                             type="button"
                             onClick={() => handleEliminarParcial(p.nombre)}
@@ -742,14 +745,20 @@ export function SilabosView({
                         placeholder="Ej. Parcial 1"
                         className="h-8 text-xs w-36"
                       />
-                      <Input
+                      <select
                         value={nuevoParcialHasta}
                         onChange={(e) => setNuevoParcialHasta(e.target.value)}
-                        placeholder="Fecha límite (ej. 15/10/2026)"
-                        className="h-8 text-xs w-48"
-                      />
-                      <Button size="sm" onClick={handleGuardarParcial} className="h-8 text-xs">
-                        Guardar Parcial
+                        className="h-8 rounded-md border border-slate-200 bg-white px-2 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 max-w-xs"
+                      >
+                        <option value="">Selecciona clase límite…</option>
+                        {clasesCronograma.map((c, i) => (
+                          <option key={c.id || i} value={c.id ? String(c.id) : String(i)}>
+                            {c.fecha ? `[${c.fecha}] ` : ''}{c.tema}
+                          </option>
+                        ))}
+                      </select>
+                      <Button size="sm" onClick={handleGuardarParcial} disabled={!nuevoParcialNombre.trim() || !nuevoParcialHasta.trim()} className="h-8 text-xs">
+                        Guardar corte
                       </Button>
                     </div>
                   )}

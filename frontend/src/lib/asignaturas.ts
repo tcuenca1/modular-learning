@@ -17,6 +17,8 @@ export function parsearFecha(valor: unknown): Date | undefined {
   if (typeof valor !== 'string') return undefined
   const dmy = valor.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
   if (dmy) return new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]))
+  const ymd = valor.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
+  if (ymd) return new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]))
   const iso = new Date(valor)
   return Number.isNaN(iso.getTime()) ? undefined : iso
 }

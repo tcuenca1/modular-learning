@@ -7,6 +7,7 @@ import type { Guia, GuiaResumen, ParcialItem } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import type { MateriaConCronograma } from '@/lib/asignaturas'
 import { clave, esCompletada, formatoCorto, materiasConCronograma, parsearFecha } from '@/lib/asignaturas'
+import { describirCorte, resolverIndiceHasta } from '@/lib/parciales'
 import { MAXIMO_CLASES_GUIA, NOMBRE_EXTENSION, extensionPara } from '@/lib/guias'
 import { cn } from '@/lib/utils'
 
@@ -343,11 +344,13 @@ export function GuiaView() {
 
   const seleccionarCorteParcial = (p: ParcialItem) => {
     if (!actual) return
-    const idx = actual.clases.findIndex((c) => String(c.id) === String(p.hasta))
+    const idx = resolverIndiceHasta(actual.clases, p.hasta)
     if (idx >= 0) {
       setDesde(0)
       setHasta(idx)
       toast.info(`Seleccionado hasta ${p.nombre} (clase ${idx + 1})`)
+    } else {
+      toast.error(`No se pudo localizar el corte ${p.nombre}`)
     }
   }
 
@@ -455,6 +458,7 @@ export function GuiaView() {
                       key={p.nombre}
                       type="button"
                       onClick={() => seleccionarCorteParcial(p)}
+                      title={describirCorte(actual.clases, p.hasta)}
                       className="cursor-pointer rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-900/60 dark:bg-indigo-950/40 dark:text-indigo-300"
                     >
                       {p.nombre}
