@@ -117,10 +117,23 @@ function formatearFecha(iso: string) {
   }
 }
 
-export function MaterialView({ embebido = false }: { embebido?: boolean }) {
-  const [subpestaña, setSubpestaña] = useState<'materiales' | 'proyectos'>('materiales')
+export function MaterialView({
+  embebido = false,
+  modo,
+  materiaFiltro,
+}: {
+  embebido?: boolean
+  modo?: 'materiales' | 'proyectos'
+  materiaFiltro?: string
+}) {
+  const [internalSubpestaña, setInternalSubpestaña] = useState<'materiales' | 'proyectos'>('materiales')
+  const subpestaña = modo || internalSubpestaña
+  const setSubpestaña = setInternalSubpestaña
+
   const [materias, setMaterias] = useState<string[]>([])
-  const [materiaSeleccionada, setMateriaSeleccionada] = useState<string>('__todas__')
+  const [internalMateriaSeleccionada, setInternalMateriaSeleccionada] = useState<string>('__todas__')
+  const materiaSeleccionada = materiaFiltro !== undefined ? materiaFiltro : internalMateriaSeleccionada
+  const setMateriaSeleccionada = setInternalMateriaSeleccionada
   const [escaneos, setEscaneos] = useState<EscaneoMaterial[]>([])
   const [escaneando, setEscaneando] = useState(false)
   const [enNube, setEnNube] = useState(false)
@@ -575,18 +588,20 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={materiaSeleccionada}
-                onChange={(e) => { setCargandoProyectos(true); setMateriaSeleccionada(e.target.value); }}
-                className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
-              >
-                <option value="__todas__">Todas las asignaturas</option>
-                {materias.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+              {!embebido && (
+                <select
+                  value={materiaSeleccionada}
+                  onChange={(e) => { setCargandoProyectos(true); setMateriaSeleccionada(e.target.value); }}
+                  className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+                >
+                  <option value="__todas__">Todas las asignaturas</option>
+                  {materias.map((m) => (
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
+                  ))}
+                </select>
+              )}
 
               <Button
                 variant="outline"
@@ -619,17 +634,7 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
                 </Button>
               )}
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleVaciarTodo}
-                disabled={vaciando || isStreaming}
-                className="gap-1.5 text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900/60 dark:hover:bg-rose-950/40"
-                title="Vacía de forma segura el registro y notas de Obsidian de Material, Actividades y Proyectos"
-              >
-                <Trash2 className={`h-4 w-4 ${vaciando ? 'animate-spin' : ''}`} />
-                {vaciando ? 'Vaciando…' : 'Vaciar todo'}
-              </Button>
+
             </div>
           </div>
         </CardHeader>
@@ -678,52 +683,54 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
         )}
       </Card>
 
-      {/* Selector de Sub-pestañas: Materiales vs Proyectos */}
-      <div className="flex items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-1">
-        <button
-          type="button"
-          onClick={() => setSubpestaña('materiales')}
-          className={cn(
-            'flex items-center gap-2 pb-2 text-sm font-medium border-b-2 transition-colors',
-            subpestaña === 'materiales'
-              ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-          )}
-        >
-          <Layers className="h-4 w-4" />
-          Materiales y Actividades
-          <Badge variant="secondary" className="text-xs px-1.5 py-0">
-            {registradosFiltrados.length}
-          </Badge>
-        </button>
+      {/* Selector de Sub-pestañas: solo si no está controlado externamente */}
+      {!modo && (
+        <div className="flex items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-1">
+          <button
+            type="button"
+            onClick={() => setSubpestaña('materiales')}
+            className={cn(
+              'flex items-center gap-2 pb-2 text-sm font-medium border-b-2 transition-colors',
+              subpestaña === 'materiales'
+                ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            )}
+          >
+            <Layers className="h-4 w-4" />
+            Materiales y Actividades
+            <Badge variant="secondary" className="text-xs px-1.5 py-0">
+              {registradosFiltrados.length}
+            </Badge>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setSubpestaña('proyectos')}
-          className={cn(
-            'flex items-center gap-2 pb-2 text-sm font-medium border-b-2 transition-colors',
-            subpestaña === 'proyectos'
-              ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
-              : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-          )}
-        >
-          <FolderGit2 className="h-4 w-4" />
-          Proyectos de Asignatura
-          <Badge variant="secondary" className="text-xs px-1.5 py-0">
-            {proyectosFiltrados.length}
-          </Badge>
-          {candidatosSinRegistrar.length > 0 && (
-            <Badge className="bg-amber-500/15 text-amber-600 border border-amber-300 dark:border-amber-800 text-[10px] px-1.5 py-0">
-              {candidatosSinRegistrar.length} pendientes
+          <button
+            type="button"
+            onClick={() => setSubpestaña('proyectos')}
+            className={cn(
+              'flex items-center gap-2 pb-2 text-sm font-medium border-b-2 transition-colors',
+              subpestaña === 'proyectos'
+                ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400'
+                : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            )}
+          >
+            <FolderGit2 className="h-4 w-4" />
+            Proyectos de Asignatura
+            <Badge variant="secondary" className="text-xs px-1.5 py-0">
+              {proyectosFiltrados.length}
             </Badge>
-          )}
-          {proyectosConCambios.length > 0 && (
-            <Badge className="bg-rose-500/15 text-rose-600 border border-rose-300 dark:border-rose-800 text-[10px] px-1.5 py-0">
-              {proyectosConCambios.length} con cambios
-            </Badge>
-          )}
-        </button>
-      </div>
+            {candidatosSinRegistrar.length > 0 && (
+              <Badge className="bg-amber-500/15 text-amber-600 border border-amber-300 dark:border-amber-800 text-[10px] px-1.5 py-0">
+                {candidatosSinRegistrar.length} pendientes
+              </Badge>
+            )}
+            {proyectosConCambios.length > 0 && (
+              <Badge className="bg-rose-500/15 text-rose-600 border border-rose-300 dark:border-rose-800 text-[10px] px-1.5 py-0">
+                {proyectosConCambios.length} con cambios
+              </Badge>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* CONTENIDO PESTAÑA 1: MATERIALES Y ACTIVIDADES */}
       {subpestaña === 'materiales' && (
@@ -1233,6 +1240,29 @@ export function MaterialView({ embebido = false }: { embebido?: boolean }) {
           </Card>
         </div>
       )}
+
+      {/* Zona peligrosa */}
+      <div className="rounded-lg border border-rose-200 bg-rose-50/20 p-5 dark:border-rose-950 dark:bg-rose-950/10">
+        <h3 className="text-sm font-semibold text-rose-900 dark:text-rose-200">
+          Zona peligrosa
+        </h3>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Acciones destructivas que afectan al registro de documentos y notas en Obsidian.
+        </p>
+        <div className="mt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleVaciarTodo}
+            disabled={vaciando || isStreaming}
+            className="gap-1.5 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900/60 dark:hover:bg-rose-950/40"
+            title="Vacía de forma segura el registro y notas de Obsidian de Material, Actividades y Proyectos"
+          >
+            <Trash2 className={`h-4 w-4 ${vaciando ? 'animate-spin' : ''}`} />
+            {vaciando ? 'Vaciando…' : 'Vaciar todo el material'}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

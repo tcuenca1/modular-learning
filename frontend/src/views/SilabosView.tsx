@@ -34,12 +34,22 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-export function SilabosView({ embebido = false }: { embebido?: boolean }) {
+export function SilabosView({
+  embebido = false,
+  materiaActivaSlug,
+  onRecargarCatalogo,
+}: {
+  embebido?: boolean
+  materiaActivaSlug?: string
+  onRecargarCatalogo?: (seleccionar?: string) => Promise<void>
+}) {
   const [tabActiva, setTabActiva] = useState<'gestionar' | 'subir'>('gestionar')
+  const [mostrandoSubirSilabo, setMostrandoSubirSilabo] = useState(false)
 
   // Catálogo de asignaturas
   const [materias, setMaterias] = useState<MateriaItem[]>([])
-  const [materiaActiva, setMateriaActiva] = useState<string>('')
+  const [internalMateriaActiva, setMateriaActiva] = useState<string>('')
+  const materiaActiva = materiaActivaSlug || internalMateriaActiva
 
   // Renombrar y crear asignatura
   const [renombrando, setRenombrando] = useState(false)
@@ -238,6 +248,9 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
       await api.eliminarMateria(materiaActiva)
       toast.success(`Asignatura "${nombre}" eliminada`)
       await cargarCatalogo()
+      if (onRecargarCatalogo) {
+        await onRecargarCatalogo()
+      }
     } catch (err) {
       toast.error('No se pudo eliminar la asignatura', {
         description: err instanceof Error ? err.message : String(err),
@@ -492,7 +505,11 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
       })
       setClasesExtraidas([])
       setFile(null)
+      setMostrandoSubirSilabo(false)
       await cargarCatalogo(subidaMateria.trim())
+      if (onRecargarCatalogo) {
+        await onRecargarCatalogo(subidaMateria.trim())
+      }
       setTabActiva('gestionar')
     } catch (err) {
       toast.error('No pude guardar el cronograma', {
@@ -518,32 +535,35 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
         </div>
       )}
 
-      {/* Selector de modo: Gestionar vs Subir */}
-      <div className="flex gap-2 border-b border-slate-200 pb-3 dark:border-slate-800">
-        <Button
-          variant={tabActiva === 'gestionar' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setTabActiva('gestionar')}
-          className="gap-2"
-        >
-          <Calendar className="h-4 w-4" />
-          Gestionar Asignaturas y Clases
-        </Button>
-        <Button
-          variant={tabActiva === 'subir' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => setTabActiva('subir')}
-          className="gap-2"
-        >
-          <UploadCloud className="h-4 w-4" />
-          Subir e Importar Sílabo
-        </Button>
-      </div>
+      {/* Selector de modo: Gestionar vs Subir (solo si no está embebido) */}
+      {!embebido && (
+        <div className="flex gap-2 border-b border-slate-200 pb-3 dark:border-slate-800">
+          <Button
+            variant={tabActiva === 'gestionar' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => { setTabActiva('gestionar'); setMostrandoSubirSilabo(false); }}
+            className="gap-2"
+          >
+            <Calendar className="h-4 w-4" />
+            Gestionar Asignaturas y Clases
+          </Button>
+          <Button
+            variant={tabActiva === 'subir' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => { setTabActiva('subir'); setMostrandoSubirSilabo(true); }}
+            className="gap-2"
+          >
+            <UploadCloud className="h-4 w-4" />
+            Subir e Importar Sílabo
+          </Button>
+        </div>
+      )}
 
-      {tabActiva === 'gestionar' ? (
+      {(tabActiva === 'gestionar' && !mostrandoSubirSilabo) ? (
         <div className="space-y-6">
-          {/* Fila de Asignaturas */}
-          <Card>
+          {/* Fila de Asignaturas (solo si no está embebido) */}
+          {!embebido && (
+            <Card>
             <CardHeader className="p-4 pb-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <CardTitle className="text-base font-semibold">Tus Asignaturas</CardTitle>
@@ -603,9 +623,11 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
               </div>
             </CardContent>
           </Card>
+          )}
 
           {/* Gestión de la Asignatura Seleccionada */}
           {materiaSeleccionadaObj && (
+            <>
             <Card>
               <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="space-y-1">
@@ -645,34 +667,27 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
                     )}
                   </div>
                   <CardDescription>
-                    {clasesCronograma.length} clases en el cronograma · Slug: <code>{materiaSeleccionadaObj.slug}</code>
+                    {clasesCronograma.length} {clasesCronograma.length === 1 ? 'clase' : 'clases'} en el cronograma
                   </CardDescription>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant={mostrandoSubirSilabo ? 'secondary' : 'default'}
+                    size="sm"
+                    onClick={() => setMostrandoSubirSilabo(!mostrandoSubirSilabo)}
+                    className="gap-1.5 text-xs"
+                  >
+                    <UploadCloud className="h-3.5 w-3.5" />
+                    {mostrandoSubirSilabo ? 'Volver a clases' : 'Subir sílabo'}
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setMostrandoNuevaClase(true)}
                     className="gap-1.5 text-xs"
                   >
-                    <Plus className="h-3.5 w-3.5" /> Añadir Clase
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEliminarCronograma}
-                    className="gap-1.5 text-xs text-amber-600 hover:text-amber-700"
-                  >
-                    Vaciar Cronograma
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEliminarMateria}
-                    className="gap-1.5 text-xs text-rose-600 hover:text-rose-700"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" /> Eliminar Materia
+                    <Plus className="h-3.5 w-3.5" /> Añadir clase
                   </Button>
                 </div>
               </CardHeader>
@@ -861,10 +876,29 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
                 ) : clasesCronograma.length === 0 ? (
                   <div className="rounded-lg border border-slate-200/80 bg-slate-50/50 p-6 text-center text-slate-500 dark:border-slate-800 dark:bg-slate-900/50">
                     <AlertCircle className="mx-auto h-8 w-8 text-slate-400" />
-                    <p className="mt-2 text-sm font-medium">No hay clases registradas en este cronograma</p>
-                    <p className="text-xs text-slate-400">
-                      Añade una clase manualmente o sube un sílabo para generarlas.
+                    <p className="mt-2 text-sm font-medium text-slate-800 dark:text-slate-200">
+                      No hay clases registradas en este cronograma
                     </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Sube el sílabo oficial para estructurar las sesiones automáticamente o añade clases manualmente.
+                    </p>
+                    <div className="mt-4 flex justify-center gap-3">
+                      <Button
+                        size="sm"
+                        onClick={() => setMostrandoSubirSilabo(true)}
+                        className="gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white"
+                      >
+                        <UploadCloud className="h-3.5 w-3.5" /> Subir sílabo
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setMostrandoNuevaClase(true)}
+                        className="gap-1.5 text-xs"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Añadir clase
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="rounded-lg border border-slate-200 dark:border-slate-800">
@@ -946,6 +980,36 @@ export function SilabosView({ embebido = false }: { embebido?: boolean }) {
                 )}
               </CardContent>
             </Card>
+
+            {/* Zona peligrosa */}
+            <div className="rounded-lg border border-rose-200 bg-rose-50/20 p-5 dark:border-rose-950 dark:bg-rose-950/10">
+              <h3 className="text-sm font-semibold text-rose-900 dark:text-rose-200">
+                Zona peligrosa
+              </h3>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Acciones destructivas e irreversibles para los datos de esta asignatura.
+              </p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEliminarCronograma}
+                  className="gap-1.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-900/60 dark:hover:bg-amber-950/40"
+                >
+                  Vaciar cronograma de {materiaSeleccionadaObj.nombre}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEliminarMateria}
+                  className="gap-1.5 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900/60 dark:hover:bg-rose-950/40"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Eliminar asignatura {materiaSeleccionadaObj.nombre}
+                </Button>
+              </div>
+            </div>
+            </>
           )}
         </div>
       ) : (
