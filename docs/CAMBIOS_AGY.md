@@ -33,6 +33,36 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## D3. Documentación al día tras P19 a P29 (Argon)
+
+- **Commit:** e36ecf4 `docs: D3 documentacion tras P19 a P29`
+- **Estado:** hecha
+- **Archivos:**
+  - `docs/ARCHITECTURE.md`
+  - `docs/manual/MANUAL_FUNCIONAL.md`
+  - `docs/manual/MANUAL_FUNCIONAL.pdf`
+
+### Qué hice
+- En `docs/ARCHITECTURE.md`, actualicé la sección de adaptadores del frontend para reflejar exactamente las 11 vistas de `frontend/src/views/` (eliminando las menciones obsoletas a `IngestaView`, `ProyectosView` y `ProgresoView`), describiendo el menú lateral de 5 entradas (`Hoy`, `Estudiar`, `Calendario`, `Asignaturas`, `Ajustes`), qué vista se renderiza en cada pestaña, las vistas de guías offline y las rutas heredadas con `RedirigirConQuery`.
+- En `docs/manual/MANUAL_FUNCIONAL.md`, actualicé todos los casos de uso (`CU-01` a `CU-20`) y los flujos del semestre a la interfaz reorganizada en P20–P29 (menú de 5 entradas, `Estudiar` con Tutoría/Repaso/Guía, `Calendario` mensual, `Asignaturas` con selector único compartido y pestañas Clases/Material/Proyectos, secciones colapsables «Zona peligrosa», `Ajustes` con Carpetas y clave / Plugins, progreso integrado en `Hoy` y redirecciones con query).
+- Marqué `DISC-08` (`7da3dab`), `DISC-09` (`511c3ab`), `DISC-10` (`2cead9e`), `DISC-11` (`58bf149`) y `DISC-12` (`e9fcd78` / `D3`) como resueltas, actualicé los flujos de escaneo en la nube, `ml init` con `clase_id`, cortes de parcial por `id` de clase y borrados consistentes, verifiqué las 803 referencias `archivo:línea` contra el árbol actual y regeneré `docs/manual/MANUAL_FUNCIONAL.pdf` con `scripts/generar_manual.py`.
+
+### Cómo lo verifiqué
+- pytest: 147 passed, 3 skipped
+- ruff check / ruff format: ok (`All checks passed!`)
+- import-linter: 3 contratos cumplidos (3 kept, 0 broken)
+- npm run lint / build / test: no aplica (solo documentación)
+- Tests nuevos: ninguno
+- Prueba manual: comprobé con `git grep -n "ProgresoView\|IngestaView\|ProyectosView" docs/ARCHITECTURE.md docs/DESPLIEGUE.md docs/manual/ README.md` (0 coincidencias), verifiqué las 803 citas `archivo:línea` mediante script contra los archivos reales (0 errores) y abrí `docs/manual/MANUAL_FUNCIONAL.pdf` con PyMuPDF (28 páginas, 127.659 caracteres extraíbles sin errores).
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+Pendiente.
+
+---
+
 ## P29. Remates de P20 a P28
 
 - **Commit:** 670143a `fix(web): P29 formato ruff redirecciones con query carga unica y titulos`
