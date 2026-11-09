@@ -91,10 +91,10 @@ Contratos (`typing.Protocol` y clases base abstractas) que definen cómo se comu
 
 ### 3. Aplicación (`modular_learning.core.application`)
 Once servicios de casos de uso que orquestan el dominio y los puertos mediante inyección de dependencias:
-- **`MateriasService` (`materias.py`)**: Alta, renombrado (con preservación del `slug`) y eliminación de asignaturas y sus cronogramas asociados.
+- **`MateriasService` (`materias.py`)**: Alta, renombrado (con preservación del `slug`) y eliminación de asignaturas junto con sus cronogramas, proyectos y registro de materiales asociados.
 - **`SilaboService` (`silabo.py`)**: Extracción asistida por IA de sesiones desde sílabos `.pdf` o `.docx` y guardado del cronograma.
-- **`IngestaService` (`ingesta.py`)**: Clasificación e ingesta de materiales (`.pdf`, `.docx`, `.pptx`, `.txt`, `.md`), generación de apuntes en Obsidian, alineación con el cronograma y limpieza de huérfanos.
-- **`ProyectosService` (`proyectos.py`)**: Extracción de guías de proyectos prácticos, seguimiento de fases, inspección de entregas de código y generación de notas del proyecto en Obsidian.
+- **`IngestaService` (`ingesta.py`)**: Clasificación e ingesta de materiales (`.pdf`, `.docx`, `.pptx`, `.txt`, `.md`), generación de apuntes en Obsidian, alineación con el cronograma y limpieza consistente de materiales y referencias en cronogramas.
+- **`ProyectosService` (`proyectos.py`)**: Extracción de guías de proyectos prácticos, seguimiento de cambios por huella, inspección de entregas de código, generación de notas del proyecto en Obsidian y eliminación sincronizada con el registro de materiales.
 - **`TutoriaService` (`tutoria.py`)**: Generación del mapa de ruta de estudio, explicación paso a paso en *streaming*, resolución de dudas con contexto curricular/práctico y cierre de clase con resumen en Obsidian y tarjetas iniciales de repaso.
 - **`GuiaOfflineService` (`guias.py`)**: Generación de cuadernos de estudio offline por clase o lote de clases, exportación a PDF A5 y confirmación posterior de clases entendidas o con dudas.
 - **`EvaluacionService` (`evaluacion.py`)**: Generación de cuestionarios de recuerdo activo (opción múltiple y preguntas abiertas), calificación de respuestas abiertas con IA y registro del intento en el sistema de repaso espaciado.
@@ -133,7 +133,24 @@ Implementaciones concretas de los puertos secundarios:
 - **`apps/api/` (Servidor Web `ml-web`)**:
   - Aplicación FastAPI (`apps/api/main.py`) con 11 routers en `apps/api/routers/` (`config`, `materias`, `silabo`, `material`, `proyectos`, `tutoria`, `guias`, `quiz`, `repaso`, `plugins`, `stats`), almacén de sesiones en memoria (`SessionStore`), middleware opcional de autenticación HTTP Basic (`AccesoBasico` en `apps/api/acceso.py`), endpoint de healthcheck `GET /api/salud` y servicio de archivos estáticos de la SPA desde `backend/src/modular_learning/apps/api/static/`.
 - **`frontend/` (SPA en React 19 + TypeScript + Tailwind CSS v4 + Vite)**:
-  - Vistas en `frontend/src/views/`: `HoyView`, `AsignaturasView`, `SilabosView`, `IngestaView`, `ProyectosView`, `TutoriaView`, `GuiaView`, `QuizView`, `ProgresoView`, `PluginsView` y `ConfigView`.
+  - **Menú lateral de 5 entradas (`frontend/src/components/layout/Sidebar.tsx` y `frontend/src/App.tsx`)**:
+    1. **Hoy** (`/` → `HoyView.tsx`): portada diaria con la clase de hoy o próxima, guías pendientes de confirmar, tarjetas de repaso vencidas, aviso de material sin convertir (en modo local/híbrido) y progreso por asignatura con resumen desplegable («Ver progreso completo»).
+    2. **Estudiar** (`/estudiar` → `EstudiarView.tsx`): contenedor con tres pestañas:
+       - **Tutoría** (`?tab=tutoria`, por defecto → `TutoriaView.tsx`).
+       - **Repaso** (`?tab=repaso` → `QuizView.tsx`).
+       - **Guía** (`?tab=guia` → `GuiaView.tsx`).
+    3. **Calendario** (`/calendario` → `CalendarioView.tsx`): cuadrícula mensual con navegación entre meses y panel de detalle del día seleccionado.
+    4. **Asignaturas** (`/asignaturas` → `AsignaturasView.tsx`): selector único de asignatura con alta/renombrado y tres pestañas:
+       - **Clases** (por defecto → `SilabosView.tsx` embebido: cronograma, subida de sílabo, cortes de parcial y «Zona peligrosa» para vaciar clases o eliminar la asignatura).
+       - **Material** (`?tab=material` → `MaterialView.tsx` en modo `materiales`: materiales convertidos en notas, subida de archivo suelto, escaneo de carpetas locales y «Zona peligrosa» para vaciar materiales y proyectos).
+       - **Proyectos** (`?tab=proyectos` → `MaterialView.tsx` en modo `proyectos`: detección e ingesta de proyectos de asignatura y fichas registradas).
+    5. **Ajustes** (`/ajustes` → `AjustesView.tsx`): contenedor con dos pestañas:
+       - **Carpetas y clave** (`?tab=config`, por defecto → `ConfigView.tsx`).
+       - **Plugins** (`?tab=plugins` → `PluginsView.tsx`).
+  - **Vistas adicionales para guías offline** (`frontend/src/views/`):
+    - `RevisionGuiaView.tsx` (`/guia/:id/revision`): confirmación de clases entendidas o con dudas al regresar del estudio desconectado.
+    - `GuiaImprimirView.tsx` (`/guia/:id/imprimir`): vista limpia sin barra lateral para imprimir o guardar el cuaderno en PDF A5.
+  - **Rutas anteriores con redirección (`RedirigirConQuery` en `frontend/src/App.tsx`)**: `/tutoria`, `/repaso`, `/quiz`, `/guia`, `/progreso`, `/plugins`, `/config`, `/silabos` y `/material` redirigen a su ubicación en el menú de 5 entradas conservando los parámetros de búsqueda (`?materia=...`, etc.).
 
 ### 6. Contenedor de Inversión de Control (`modular_learning.bootstrap`)
 La función `build_container(settings: Any | None = None) -> Container` en `backend/src/modular_learning/bootstrap.py` es el único **Composition Root** del sistema:
