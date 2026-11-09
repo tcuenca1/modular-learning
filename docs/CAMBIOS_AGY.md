@@ -33,6 +33,41 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P29. Remates de P20 a P28
+
+- **Commit:** 670143a `fix(web): P29 formato ruff redirecciones con query carga unica y titulos`
+- **Estado:** hecha
+- **Archivos:**
+  - `backend/tests/unit/application/test_ingesta_service.py`
+  - `backend/tests/unit/application/test_otros_servicios.py`
+  - `backend/tests/unit/cli/test_init_clase_id.py`
+  - `frontend/src/App.tsx`
+  - `frontend/src/views/AsignaturasView.tsx`
+  - `frontend/src/views/MaterialView.tsx`
+  - `frontend/src/views/SilabosView.tsx`
+
+### Qué hice
+- Ejecuté `ruff format` sobre los 5 archivos indicados de P20–P28 (`material.py` y `proyectos.py` ya cumplían formato; se formatearon los 3 archivos de tests).
+- En `frontend/src/App.tsx`, actualicé las rutas heredadas `/silabos` y `/material` para que usen `RedirigirConQuery` conservando cualquier parámetro de búsqueda (`?materia=<slug>`) y fijando `tab=material` en `/material`.
+- En `frontend/src/views/AsignaturasView.tsx`, unifiqué la carga del catálogo en una sola función `cargarMaterias` memorizada sin dependencia del objeto `params` completo (capturando `materia` inicial con `useRef`), evitando que cambiar de pestaña vuelva a pedir `/api/materias`.
+- Ajusté los títulos restantes en `SilabosView.tsx` y `MaterialView.tsx` a mayúscula solo al principio («Tus asignaturas», «Cortes de parcial», «Tema académico», «Nota de Obsidian», «Último análisis», «Proyectos detectados en carpeta», «Fichas de proyectos registradas»).
+
+### Cómo lo verifiqué
+- pytest: 147 passed, 3 skipped
+- ruff check / ruff format: ok (`All checks passed!`, `5 files already formatted`)
+- import-linter: 3 contratos cumplidos (3 kept, 0 broken)
+- npm run lint / build / test: ok (0 warnings, 0 errors; build limpio; 4 archivos de test, 37 passed)
+- Tests nuevos: ninguno
+- Prueba manual: levanté la aplicación en puerto 8099 con `ML_DATA_DIR` apuntando a una copia temporal de `data/examples` y verifiqué que `/material?materia=algoritmos-y-estructuras-de-datos` sirve la SPA, redirige a `/asignaturas?materia=algoritmos-y-estructuras-de-datos&tab=material` con la asignatura seleccionada y que cambiar entre pestañas (`Clases`, `Material`, `Proyectos`) solo actualiza `?tab=` sin volver a invocar `cargarMaterias` (`/api/materias`).
+
+### Dudas o hallazgos
+ninguno
+
+### Revisión de Claude
+Pendiente.
+
+---
+
 ## P28. Borrados consistentes (DISC-11)
 
 - **Commit:** 58bf149 `fix(core): P28 borrados consistentes de proyectos materias y materiales`
