@@ -352,23 +352,27 @@ def test_ingestar_pptx_borra_temporal_si_llm_falla():
 
 
 def test_vaciar_materiales_limpia_referencias_en_cronograma_sin_tocar_clases_ni_estados():
-    cronograma_repo = InMemoryCronogramaRepo({
-        "redes": [
-            {
-                "id": "clase-1",
-                "tema": "Sockets y TCP",
-                "estado": "completado",
-                "materiales_asociados": ["Sockets.pdf", "Guia.docx"],
-            },
-            {
-                "id": "clase-2",
-                "tema": "Protocolo HTTP",
-                "estado": "pendiente",
-                "materiales_asociados": ["RFC2616.pdf"],
-            },
-        ]
-    })
-    cronograma_repo.agregar_material_transversal("redes", {"archivo": "Syllabus.pdf", "titulo": "Programa"})
+    cronograma_repo = InMemoryCronogramaRepo(
+        {
+            "redes": [
+                {
+                    "id": "clase-1",
+                    "tema": "Sockets y TCP",
+                    "estado": "completado",
+                    "materiales_asociados": ["Sockets.pdf", "Guia.docx"],
+                },
+                {
+                    "id": "clase-2",
+                    "tema": "Protocolo HTTP",
+                    "estado": "pendiente",
+                    "materiales_asociados": ["RFC2616.pdf"],
+                },
+            ]
+        }
+    )
+    cronograma_repo.agregar_material_transversal(
+        "redes", {"archivo": "Syllabus.pdf", "titulo": "Programa"}
+    )
     registro_repo = InMemoryRegistroMaterialesRepo()
     registro_repo.registrar_material("Sockets.pdf", "redes")
     registro_repo.registrar_material("RFC2616.pdf", "redes")

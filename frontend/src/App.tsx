@@ -54,8 +54,8 @@ export default function App() {
           <Route path="/progreso" element={<Navigate to="/" replace />} />
           <Route path="/plugins" element={<RedirigirConQuery ruta="/ajustes" tab="plugins" />} />
           <Route path="/config" element={<RedirigirConQuery ruta="/ajustes" tab="config" />} />
-          <Route path="/silabos" element={<Navigate to="/asignaturas" replace />} />
-          <Route path="/material" element={<Navigate to="/asignaturas?tab=material" replace />} />
+          <Route path="/silabos" element={<RedirigirConQuery ruta="/asignaturas" />} />
+          <Route path="/material" element={<RedirigirConQuery ruta="/asignaturas" tab="material" />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

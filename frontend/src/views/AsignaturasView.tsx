@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { BookMarked, Check, Edit2, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -36,6 +36,7 @@ export function AsignaturasView() {
   // Catálogo de asignaturas
   const [materias, setMaterias] = useState<MateriaItem[]>([])
   const [materiaActiva, setMateriaActiva] = useState<string>('')
+  const materiaQueryInicial = useRef(params.get('materia'))
 
   // Acciones sobre la asignatura activa
   const [renombrando, setRenombrando] = useState(false)
@@ -43,75 +44,50 @@ export function AsignaturasView() {
   const [creando, setCreando] = useState(false)
   const [nombreNueva, setNombreNueva] = useState('')
 
-  const cargarMaterias = useCallback(async (seleccionarNombreOSlug?: string) => {
-    try {
-      const res = await api.getMaterias()
-      const lista: MateriaItem[] =
-        res.catalogo && res.catalogo.length > 0
-          ? res.catalogo
-          : (res.materias || []).map((m) => ({
-              slug: m.toLowerCase().replace(/\s+/g, '-'),
-              nombre: m,
-            }))
-      setMaterias(lista)
+  const cargarMaterias = useCallback((seleccionarNombreOSlug?: string) => {
+    return api
+      .getMaterias()
+      .then((res) => {
+        const lista: MateriaItem[] =
+          res.catalogo && res.catalogo.length > 0
+            ? res.catalogo
+            : (res.materias || []).map((m) => ({
+                slug: m.toLowerCase().replace(/\s+/g, '-'),
+                nombre: m,
+              }))
+        setMaterias(lista)
 
-      if (lista.length > 0) {
-        if (seleccionarNombreOSlug) {
-          const match = buscarMateriaPorClave(lista, seleccionarNombreOSlug)
-          if (match) {
-            setMateriaActiva(match.slug)
-            return
+        if (lista.length > 0) {
+          if (seleccionarNombreOSlug) {
+            const match = buscarMateriaPorClave(lista, seleccionarNombreOSlug)
+            if (match) {
+              setMateriaActiva(match.slug)
+              return
+            }
           }
+          setMateriaActiva((prev) => {
+            if (prev && lista.some((m) => m.slug === prev)) return prev
+            const queryMateria = materiaQueryInicial.current
+            if (queryMateria) {
+              const encontrada = buscarMateriaPorClave(lista, queryMateria)
+              if (encontrada) return encontrada.slug
+            }
+            return lista[0].slug
+          })
+        } else {
+          setMateriaActiva('')
         }
-        setMateriaActiva((prev) => {
-          if (prev && lista.some((m) => m.slug === prev)) return prev
-          const queryMateria = params.get('materia')
-          if (queryMateria) {
-            const encontrada = buscarMateriaPorClave(lista, queryMateria)
-            if (encontrada) return encontrada.slug
-          }
-          return lista[0].slug
-        })
-      } else {
-        setMateriaActiva('')
-      }
-    } catch (e) {
-      toast.error('No pude cargar el catálogo de asignaturas', {
-        description: e instanceof Error ? e.message : String(e),
       })
-    }
-  }, [params])
+      .catch((e) => {
+        toast.error('No pude cargar el catálogo de asignaturas', {
+          description: e instanceof Error ? e.message : String(e),
+        })
+      })
+  }, [])
 
   useEffect(() => {
-    let activo = true
-    api.getMaterias().then((res) => {
-      if (!activo) return
-      const lista: MateriaItem[] =
-        res.catalogo && res.catalogo.length > 0
-          ? res.catalogo
-          : (res.materias || []).map((m) => ({
-              slug: m.toLowerCase().replace(/\s+/g, '-'),
-              nombre: m,
-            }))
-      setMaterias(lista)
-
-      if (lista.length > 0) {
-        setMateriaActiva((prev) => {
-          if (prev && lista.some((m) => m.slug === prev)) return prev
-          const queryMateria = params.get('materia')
-          if (queryMateria) {
-            const encontrada = buscarMateriaPorClave(lista, queryMateria)
-            if (encontrada) return encontrada.slug
-          }
-          return lista[0].slug
-        })
-      }
-    }).catch(() => undefined)
-
-    return () => {
-      activo = false
-    }
-  }, [params])
+    void cargarMaterias()
+  }, [cargarMaterias])
 
   const materiaActivaObj = materias.find((m) => m.slug === materiaActiva)
 

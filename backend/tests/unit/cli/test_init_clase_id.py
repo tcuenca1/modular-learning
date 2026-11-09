@@ -19,7 +19,9 @@ def test_pedir_datos_inicio_devuelve_clase_id_de_la_segunda_clase():
     mock_select_obj.ask.return_value = clase_2
 
     with (
-        patch("modular_learning.apps.cli.ui.interaccion.seleccionar_con_flechas", return_value="Redes"),
+        patch(
+            "modular_learning.apps.cli.ui.interaccion.seleccionar_con_flechas", return_value="Redes"
+        ),
         patch("questionary.select", return_value=mock_select_obj),
         patch("builtins.input", return_value="2"),
     ):

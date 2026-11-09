@@ -569,7 +569,7 @@ export function SilabosView({
             <Card>
             <CardHeader className="p-4 pb-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle className="text-base font-semibold">Tus Asignaturas</CardTitle>
+                <CardTitle className="text-base font-semibold">Tus asignaturas</CardTitle>
                 <div className="flex items-center gap-2">
                   {creandoMateria ? (
                     <div className="flex items-center gap-2">
@@ -701,7 +701,7 @@ export function SilabosView({
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                        Cortes de Parcial
+                        Cortes de parcial
                       </h3>
                       <p className="text-xs text-slate-500">
                         Define hasta qué fecha o clase abarca cada parcial para generar guías de todo el corte.
@@ -916,7 +916,7 @@ export function SilabosView({
                         <TableRow>
                           <TableHead className="w-12 text-center">#</TableHead>
                           <TableHead className="w-24">Fecha</TableHead>
-                          <TableHead>Tema Académico</TableHead>
+                          <TableHead>Tema académico</TableHead>
                           <TableHead className="w-28 text-center">Estado</TableHead>
                           <TableHead className="w-24 text-center">Materiales</TableHead>
                           <TableHead className="w-20 text-right">Acción</TableHead>
@@ -1154,7 +1154,7 @@ export function SilabosView({
                       <TableRow>
                         <TableHead className="w-16">#</TableHead>
                         <TableHead className="w-28">Semana</TableHead>
-                        <TableHead>Tema Académico</TableHead>
+                        <TableHead>Tema académico</TableHead>
                         <TableHead className="w-32">Estado</TableHead>
                         <TableHead className="w-16 text-right">Acción</TableHead>
                       </TableRow>

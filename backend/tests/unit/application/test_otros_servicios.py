@@ -112,34 +112,36 @@ def test_eliminar_materia_elimina_proyectos_asociados():
     from tests.unit.application.fake_adapters import InMemoryProyectosRepo
 
     materia_repo = InMemoryMateriaRepo(["Redes", "IoT"])
-    proyectos_repo = InMemoryProyectosRepo([
-        Proyecto(
-            id="redes--app1",
-            nombre="App Redes",
-            materia="Redes",
-            parcial="primer_parcial",
-            tipo="software",
-            ruta_origen="/rutas/app1",
-            ruta_nota_obsidian="Redes/Proyectos/App.md",
-            fecha_analisis="2026-10-01T10:00:00",
-            mtime_archivos=1000.0,
-            total_archivos=1,
-            hash_estado="abc",
-        ),
-        Proyecto(
-            id="iot--sensor",
-            nombre="Sensor IoT",
-            materia="IoT",
-            parcial="segundo_parcial",
-            tipo="iot",
-            ruta_origen="/rutas/sensor",
-            ruta_nota_obsidian="IoT/Proyectos/Sensor.md",
-            fecha_analisis="2026-10-01T10:00:00",
-            mtime_archivos=1000.0,
-            total_archivos=1,
-            hash_estado="def",
-        ),
-    ])
+    proyectos_repo = InMemoryProyectosRepo(
+        [
+            Proyecto(
+                id="redes--app1",
+                nombre="App Redes",
+                materia="Redes",
+                parcial="primer_parcial",
+                tipo="software",
+                ruta_origen="/rutas/app1",
+                ruta_nota_obsidian="Redes/Proyectos/App.md",
+                fecha_analisis="2026-10-01T10:00:00",
+                mtime_archivos=1000.0,
+                total_archivos=1,
+                hash_estado="abc",
+            ),
+            Proyecto(
+                id="iot--sensor",
+                nombre="Sensor IoT",
+                materia="IoT",
+                parcial="segundo_parcial",
+                tipo="iot",
+                ruta_origen="/rutas/sensor",
+                ruta_nota_obsidian="IoT/Proyectos/Sensor.md",
+                fecha_analisis="2026-10-01T10:00:00",
+                mtime_archivos=1000.0,
+                total_archivos=1,
+                hash_estado="def",
+            ),
+        ]
+    )
 
     service = MateriasService(materia_repo, proyectos_repo=proyectos_repo)
     assert len(proyectos_repo.listar("redes")) == 1

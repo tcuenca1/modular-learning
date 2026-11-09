@@ -790,7 +790,7 @@ export function MaterialView({
                         <TableHead>Archivo</TableHead>
                         <TableHead className="w-40">Asignatura</TableHead>
                         <TableHead className="w-32">Tipo</TableHead>
-                        <TableHead>Nota Obsidian</TableHead>
+                        <TableHead>Nota de Obsidian</TableHead>
                         <TableHead className="w-16 text-right">Acción</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1019,7 +1019,7 @@ export function MaterialView({
           <Card>
             <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <CardTitle>Proyectos Detectados en Carpeta ({candidatosSinRegistrar.length} pendientes)</CardTitle>
+                <CardTitle>Proyectos detectados en carpeta ({candidatosSinRegistrar.length} pendientes)</CardTitle>
                 <CardDescription>
                   Escaneados automáticamente en <code>PROYECTO/</code> (General) o <code>PROYECTOS/</code> (1er y 2do Parcial).
                 </CardDescription>
@@ -1112,7 +1112,7 @@ export function MaterialView({
           <Card>
             <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <CardTitle>Fichas de Proyectos Registradas ({proyectosFiltrados.length})</CardTitle>
+                <CardTitle>Fichas de proyectos registradas ({proyectosFiltrados.length})</CardTitle>
                 <CardDescription>
                   Trazabilidad de cambios en disco, total de artefactos y fichas técnicas generadas en Obsidian.
                 </CardDescription>
@@ -1145,7 +1145,7 @@ export function MaterialView({
                         <TableHead className="w-28">Parcial</TableHead>
                         <TableHead className="w-36">Tipo</TableHead>
                         <TableHead className="w-32">Trazabilidad</TableHead>
-                        <TableHead>Último Análisis</TableHead>
+                        <TableHead>Último análisis</TableHead>
                         <TableHead className="w-28 text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
