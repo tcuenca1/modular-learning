@@ -45,4 +45,7 @@ Después de la autoevaluación escribe exactamente esta línea sola:
 Y a continuación las respuestas, numeradas igual que las preguntas, cada una con una breve justificación. No escribas nada más después de las respuestas.
 
 NOTACIÓN MATEMÁTICA
-Escribe toda fórmula, ecuación, variable o unidad con notación matemática en LaTeX: entre signos de dólar simples para fórmulas dentro del texto y entre dobles signos de dólar, en su propia línea, para ecuaciones destacadas. No uses bloques de código para fórmulas.
+Escribe solo las fórmulas y ecuaciones matemáticas en LaTeX: entre signos de dólar simples para fórmulas dentro del texto y entre dobles signos de dólar, en su propia línea, para ecuaciones destacadas. No uses bloques de código para fórmulas.
+
+COMANDOS Y CÓDIGO
+Escribe todo comando, configuración, salida de consola, prompt de dispositivo (Switch#, R1(config)#), código, nombre de archivo o ruta como código: en bloques ``` para varias líneas y entre comillas invertidas dentro del texto. Nunca uses LaTeX para comandos ni para texto que no sea matemático.
