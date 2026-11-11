@@ -33,6 +33,48 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P41. Textos sin jerga y acciones con IA avisadas
+
+- **Commit:** 87423c1 `feat(web): P41 textos sin jerga y avisos de uso de IA`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/lib/rutas.ts, frontend/src/lib/rutas.test.ts (nuevos)
+  - frontend/src/components/AvisoIA.tsx (nuevo)
+  - frontend/src/components/layout/Sidebar.tsx
+  - frontend/src/views/{ConfigView,GuiaView,HoyView,MaterialView,PluginsView,QuizView,SilabosView,TutoriaView}.tsx
+
+### Qué hice
+- **Jerga:** «Bóveda de Obsidian» pasa a «Carpeta de notas (Obsidian)», con la ayuda «Aquí se guardan las notas y las guías de cada tutoría: es la carpeta de tu bóveda en la app Obsidian.». «Cortes de parcial» pasa a «Fin de cada parcial» con su línea de ayuda («Elige la última clase de cada parcial…»), y los textos que dependían de «corte» se ajustaron (botones «+ Definir parcial», «+ Añadir / editar parciales», «Guardar parcial» y avisos). «Profundidad» pasa a «Nivel de detalle», con «Qué tan a fondo explica el tutor cada paso.» enlazada con `aria-describedby`.
+- **Rutas:** `ultimoTramo` (POSIX y Windows) se usa donde se mostraba una ruta del equipo: carpeta del plugin, destino de la nota al subir un archivo, ruta del proyecto candidato, nota de Obsidian del proyecto, nota del material registrado y el aviso «Guardado en…» del sílabo. La ruta completa queda en el `title`. Los campos editables de Ajustes conservan la ruta entera (hay que poder editarla).
+- **IA:** componente `AvisoIA` («· usa IA») en «Empezar» (tutoría), «Generar guía», «Preguntas nuevas» (Repaso y el enlace de Hoy), «Extraer clases» y «Procesar nuevos». Añadí los dos últimos por ser acciones que llaman a la IA aunque la tarea solo citaba los tres primeros como ejemplos.
+- **Iconos:** Hoy usa `ListChecks` en vez del sol, que ya es el del tema claro.
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint sin avisos, build ok, vitest 66 passed (3 nuevos)
+- `git grep -n "Bóveda de Obsidian\|Cortes de parcial\|Cortes de Parcial\|Profundidad\|Definir corte\|Guardar corte" -- frontend/src`: sin resultados. No toqué `docs/manual/` (documentación generada en D3), donde esos textos siguen apareciendo.
+- Tests nuevos: frontend/src/lib/rutas.test.ts (rutas POSIX y Windows, separadores finales y repetidos, vacíos)
+- Prueba manual (servidor local con copia de `data/examples`, carpeta de material de prueba y Chromium; leí los textos de cada vista):
+  - Ajustes › Carpetas: «Carpeta de notas (Obsidian)» y su ayuda.
+  - Tutoría: «Nivel de detalle» con la ayuda y «Empezar · usa IA» (captura revisada a ojo).
+  - Estudiar › Guía: «Fin de cada parcial», «+ Definir parcial» y el botón «Generar guía · usa IA».
+  - Repaso y Hoy: «Preguntas nuevas · usa IA». Asignaturas › Clases: «Fin de cada parcial» y «+ Añadir / editar parciales»; el panel de sílabo, «Extraer clases · usa IA»; Material: «Procesar nuevos · usa IA».
+  - Iconos: Hoy `lucide-list-checks`, tema claro `lucide-sun`.
+  - Ajustes › Plugins con una carpeta configurada (`…/uni/Redes/laboratorios`): la tarjeta muestra «laboratorios» y el `title` lleva la ruta completa.
+  - axe-core 4.10.2: 0 nodos serious/critical a 1100 y 375 px; medición táctil: 0 controles bajo 44 px.
+  No vi en pantalla las rutas de «Nota de Obsidian», proyectos candidatos ni el destino de un archivo subido, porque exigen ingestar con IA; ahí solo está cubierto el cambio de código y el test de `ultimoTramo`.
+
+### Dudas o hallazgos
+- Quedan otros textos técnicos que no estaban en la tarea («Opción A», «Trazabilidad Fija», «Fichas Técnicas Universales», «Re-analizar archivos y actualizar ficha en Obsidian»).
+- «Obsidian» sigue apareciendo en varios textos y avisos: se explica en Ajustes, pero un estudiante nuevo no sabe qué es hasta ahí.
+- La clave del cronograma sigue llamándose `parciales` con `hasta` en la API y los datos; solo cambió el texto visible.
+
+### Revisión de Claude
+
+---
+
 ## P40. Rendimiento del frontend
 
 - **Commit:** 8216b58 `perf(web): P40 vistas con React.lazy y KaTeX solo en woff2`
