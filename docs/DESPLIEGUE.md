@@ -32,6 +32,16 @@ variable, todo sigue en `data/`.
    - `GEMINI_API_KEY`: tu clave de Gemini.
    - `ML_USUARIO` y `ML_CONTRASENA`: el acceso a la web (sin contraseña responde 503).
    - `ML_EN_NUBE`: definida automáticamente como `1` en `render.yaml` (indica a la app que oculte el escaneo e ingesta de carpetas locales). En modo híbrido (app local conectada a Neon con `DATABASE_URL`), se deja sin definir para conservar el escaneo local de material. Con `ML_EN_NUBE=1`, `GET /api/config` no devuelve las rutas del servidor (`carpeta_material` y `ruta_obsidian` van vacías) y los errores del API muestran mensajes sin rutas absolutas (el detalle queda en el log).
+   - `ML_HOSTS_PERMITIDOS` (opcional): hosts que acepta el servidor, separados por comas
+     (`mi-app.onrender.com,localhost`); un `Host` distinto recibe 400, salvo `/api/salud`. Por
+     defecto `localhost,127.0.0.1` y, si existe, `RENDER_EXTERNAL_HOSTNAME` (Render lo define solo,
+     así que en Render no hace falta tocarla). Para abrir la web local desde otro equipo de la red
+     hay que añadir su IP o nombre; `*` desactiva la comprobación.
+
+   Además, el servidor envía cabeceras de seguridad (CSP, `X-Content-Type-Options`,
+   `X-Frame-Options`, `Referrer-Policy`), comprime las respuestas con gzip y da caché de un año a
+   `/assets/` (los archivos llevan hash). Con `ML_EN_NUBE=1` añade HSTS y no publica `/docs`,
+   `/redoc` ni `/openapi.json`.
 4. **Apply**. El primer build tarda unos minutos; la URL queda como
    `https://modular-learning-xxxx.onrender.com`.
 

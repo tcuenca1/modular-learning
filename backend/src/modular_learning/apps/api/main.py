@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
 
 from modular_learning import bootstrap
 from modular_learning.apps.api.acceso import AccesoBasico, parametros_acceso
@@ -28,6 +29,12 @@ from modular_learning.apps.api.routers import (
     stats,
     tutoria,
 )
+from modular_learning.apps.api.seguridad import (
+    CabecerasSeguridad,
+    HostsConfiables,
+    en_nube,
+    hosts_permitidos,
+)
 from modular_learning.apps.api.session_store import SessionStore
 
 load_dotenv()
@@ -43,7 +50,9 @@ def create_app(
 
     Si no se provee contenedor, se resuelve de forma perezosa con `bootstrap.get_container()`.
     """
-    app = FastAPI(title="Modular Learning Web", version="2.0.0")
+    # En la nube la documentación interactiva de la API no se publica
+    sin_docs = {"docs_url": None, "redoc_url": None, "openapi_url": None} if en_nube() else {}
+    app = FastAPI(title="Modular Learning Web", version="2.0.0", **sin_docs)
 
     # Inyección del contenedor IoC y almacén de sesiones en el estado de la aplicación
     app.state.container = container
@@ -53,6 +62,11 @@ def create_app(
     acceso = parametros_acceso()
     if acceso is not None:
         app.add_middleware(AccesoBasico, **acceso)
+
+    # De dentro hacia fuera: compresión, cabeceras de seguridad y, la primera barrera, el Host
+    app.add_middleware(GZipMiddleware, minimum_size=1024)
+    app.add_middleware(CabecerasSeguridad, hsts=en_nube())
+    app.add_middleware(HostsConfiables, allowed_hosts=hosts_permitidos())
 
     @app.get("/api/salud", include_in_schema=False)
     def salud() -> dict[str, bool]:
