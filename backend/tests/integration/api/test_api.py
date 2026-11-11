@@ -449,3 +449,29 @@ def test_proyectos_endpoints(client, tmp_path):
     r_vac = client.post("/api/material/vaciar", json={"borrar_notas_obsidian": False})
     assert r_vac.status_code == 200
     assert r_vac.json()["ok"] is True
+
+
+@pytest.mark.parametrize("nombre", ["   ", "!!!", "😀", "a/b", "..", "x" * 81])
+def test_crear_materia_nombre_invalido_422(client, nombre):
+    antes = client.get("/api/materias").json()["catalogo"]
+    r = client.post("/api/materias", json={"nombre": nombre})
+    assert r.status_code == 422
+    assert isinstance(r.json()["detail"], str)
+    assert client.get("/api/materias").json()["catalogo"] == antes
+
+
+def test_crear_materia_duplicada_409(client):
+    assert client.post("/api/materias", json={"nombre": "Bases de Datos"}).status_code == 201
+    r = client.post("/api/materias", json={"nombre": "bases DE datos"})
+    assert r.status_code == 409
+    nombres = client.get("/api/materias").json()["materias"]
+    assert nombres.count("Bases de Datos") == 1
+
+
+def test_materia_inexistente_da_404_en_put_clases_y_parciales(client):
+    assert client.put("/api/materias/fantasma", json={"nombre": "Fantasma"}).status_code == 404
+    assert client.post("/api/materias/fantasma/clases", json={"tema": "T"}).status_code == 404
+    r = client.post("/api/materias/fantasma/parciales", json={"parciales": []})
+    assert r.status_code == 404
+    assert client.get("/api/materias/cronogramas").json()["cronogramas"].get("fantasma") is None
+    assert "fantasma" not in [m["slug"] for m in client.get("/api/materias").json()["catalogo"]]

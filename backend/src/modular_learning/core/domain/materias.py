@@ -19,6 +19,46 @@ def slug_materia(texto: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", sin_tildes.lower()).strip("-")
 
 
+LONGITUD_MAXIMA_NOMBRE = 80
+_SIGNOS_PERMITIDOS = frozenset(" -_.,()'&+:#ºª°")
+
+
+class NombreMateriaInvalido(ValueError):
+    """El nombre de la asignatura no cumple las reglas (vacío, largo o con caracteres no válidos)."""
+
+
+class MateriaDuplicada(ValueError):
+    """Ya existe otra asignatura con el mismo nombre (sin contar tildes ni mayúsculas)."""
+
+
+class MateriaNoEncontrada(LookupError):
+    """La asignatura no está en el catálogo."""
+
+
+def validar_nombre_materia(nombre: str) -> str:
+    """
+    Normaliza espacios y valida el nombre de una asignatura; retorna el nombre limpio.
+
+    Admite letras, dígitos y unos pocos signos; rechaza vacío, solo símbolos, caracteres de
+    control (incluido NUL), `/`, `\\` y `..`, y más de LONGITUD_MAXIMA_NOMBRE caracteres.
+    """
+    limpio = " ".join(str(nombre).split())
+    if not limpio:
+        raise NombreMateriaInvalido("El nombre de la asignatura no puede estar vacío.")
+    if len(limpio) > LONGITUD_MAXIMA_NOMBRE:
+        raise NombreMateriaInvalido(
+            f"El nombre de la asignatura no puede superar {LONGITUD_MAXIMA_NOMBRE} caracteres."
+        )
+    if ".." in limpio or any(not (c.isalnum() or c in _SIGNOS_PERMITIDOS) for c in limpio):
+        raise NombreMateriaInvalido(
+            "El nombre de la asignatura solo admite letras, números, espacios y los signos "
+            "- _ . , ( ) ' & + : # (sin barras ni «..»)."
+        )
+    if not slug_materia(limpio):
+        raise NombreMateriaInvalido("El nombre de la asignatura debe contener letras o números.")
+    return limpio
+
+
 @dataclass(frozen=True)
 class Materia:
     """Asignatura del catálogo. El slug no cambia aunque se corrija el nombre."""
@@ -55,4 +95,13 @@ def resolver_materia(materias: list[Materia], texto: str) -> Materia | None:
     return None
 
 
-__all__ = ["Materia", "resolver_materia", "slug_materia"]
+__all__ = [
+    "LONGITUD_MAXIMA_NOMBRE",
+    "Materia",
+    "MateriaDuplicada",
+    "MateriaNoEncontrada",
+    "NombreMateriaInvalido",
+    "resolver_materia",
+    "slug_materia",
+    "validar_nombre_materia",
+]

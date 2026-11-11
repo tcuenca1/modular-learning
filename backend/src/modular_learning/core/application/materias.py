@@ -5,7 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 from modular_learning.core.domain.cronograma import buscar_clase, nuevo_id_clase
-from modular_learning.core.domain.materias import Materia, resolver_materia, slug_materia
+from modular_learning.core.domain.materias import (
+    Materia,
+    MateriaDuplicada,
+    MateriaNoEncontrada,
+    resolver_materia,
+    slug_materia,
+    validar_nombre_materia,
+)
 from modular_learning.core.ports.proyectos import ProyectosRepo
 from modular_learning.core.ports.repositorios import (
     CronogramaRepo,
@@ -45,16 +52,38 @@ class MateriasService:
         return resolver_materia(self.materia_repo.listar(), slug_o_nombre)
 
     def agregar_materia(self, nueva_materia: str) -> list[str]:
-        """Añade una asignatura al catálogo y retorna la lista de nombres actualizada."""
+        """
+        Añade una asignatura al catálogo y retorna la lista de nombres actualizada. Es
+        idempotente (una repetida se ignora) y no valida: la usan flujos que "aseguran" que
+        la asignatura exista. Para altas del usuario usar `crear_materia`.
+        """
         self.materia_repo.agregar_materia(nueva_materia)
         return self.materia_repo.cargar_materias()
 
+    def crear_materia(self, nombre: str) -> Materia:
+        """Crea una asignatura nueva: valida el nombre y rechaza duplicados."""
+        materia = Materia.desde_nombre(validar_nombre_materia(nombre))
+        if any(m.slug == materia.slug for m in self.materia_repo.listar()):
+            raise MateriaDuplicada(f"Ya existe una asignatura llamada «{materia.nombre}».")
+        self.materia_repo.guardar(materia)
+        return materia
+
+    def _exigir_materia(self, materia: str) -> Materia:
+        encontrada = self.obtener_materia(materia)
+        if encontrada is None:
+            raise MateriaNoEncontrada("Asignatura no encontrada.")
+        return encontrada
+
     def renombrar_materia(self, slug: str, nuevo_nombre: str) -> Materia:
         """Cambia el nombre para mostrar de una asignatura conservando su slug."""
-        nuevo_nombre = " ".join(nuevo_nombre.split())
-        if not nuevo_nombre:
-            raise ValueError("El nombre no puede estar vacío.")
-        materia = Materia(slug=slug_materia(slug), nombre=nuevo_nombre)
+        nuevo_nombre = validar_nombre_materia(nuevo_nombre)
+        existente = self._exigir_materia(slug)
+        nuevo_slug = slug_materia(nuevo_nombre)
+        if nuevo_slug != existente.slug and any(
+            m.slug == nuevo_slug for m in self.materia_repo.listar()
+        ):
+            raise MateriaDuplicada(f"Ya existe una asignatura llamada «{nuevo_nombre}».")
+        materia = Materia(slug=existente.slug, nombre=nuevo_nombre)
         self.materia_repo.guardar(materia)
         return materia
 
@@ -106,9 +135,10 @@ class MateriasService:
         return ok
 
     def agregar_clase(self, materia: str, datos_clase: dict[str, Any]) -> dict[str, Any]:
-        """Añade manualmente una clase al cronograma de la asignatura."""
+        """Añade manualmente una clase al cronograma de una asignatura del catálogo."""
         if not self.cronograma_repo:
             raise ValueError("No hay repositorio de cronogramas configurado.")
+        self._exigir_materia(materia)
         clases = self.cronograma_repo.obtener_cronograma(materia) or []
         nueva = dict(datos_clase)
         if not nueva.get("id"):
@@ -167,6 +197,7 @@ class MateriasService:
         """Guarda los cortes de parcial (ej. [{'nombre': 'Parcial 1', 'hasta': 'clase_id'}])"""
         if not self.cronograma_repo:
             raise ValueError("No hay repositorio de cronogramas.")
+        self._exigir_materia(materia)
         self.cronograma_repo.guardar_parciales(materia, parciales)
         return parciales
 

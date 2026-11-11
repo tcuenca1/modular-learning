@@ -15,6 +15,11 @@ from modular_learning.apps.api.schemas import (
     RenombrarMateria,
 )
 from modular_learning.core.application.materias import MateriasService
+from modular_learning.core.domain.materias import (
+    MateriaDuplicada,
+    MateriaNoEncontrada,
+    NombreMateriaInvalido,
+)
 
 router = APIRouter(prefix="/api/materias", tags=["materias"])
 
@@ -34,8 +39,13 @@ def crear_materia(
     body: NuevaMateria,
     servicio: Annotated[MateriasService, Depends(get_materias_service)],
 ) -> dict[str, Any]:
-    materias = servicio.agregar_materia(body.nombre)
-    return {"materias": materias, "catalogo": servicio.listar_catalogo()}
+    try:
+        servicio.crear_materia(body.nombre)
+    except NombreMateriaInvalido as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except MateriaDuplicada as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+    return {"materias": servicio.listar_materias(), "catalogo": servicio.listar_catalogo()}
 
 
 @router.put("/{slug}")
@@ -47,8 +57,12 @@ def renombrar_materia(
     try:
         materia = servicio.renombrar_materia(slug, body.nombre)
         return {"materia": materia.a_dict(), "catalogo": servicio.listar_catalogo()}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+    except MateriaNoEncontrada as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except NombreMateriaInvalido as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except MateriaDuplicada as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
 
 
 @router.delete("/{slug}")
@@ -106,6 +120,8 @@ def agregar_clase(
     try:
         nueva = servicio.agregar_clase(materia, body.model_dump())
         return {"clase": nueva}
+    except MateriaNoEncontrada as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
@@ -168,6 +184,8 @@ def guardar_parciales(
     try:
         parciales = servicio.guardar_parciales(materia, body.parciales)
         return {"parciales": parciales}
+    except MateriaNoEncontrada as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
