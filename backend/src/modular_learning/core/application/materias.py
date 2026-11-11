@@ -147,44 +147,50 @@ class MateriasService:
         if not self.cronograma_repo:
             raise ValueError("No hay repositorio de cronogramas configurado.")
         self._exigir_materia(materia)
-        clases = self.cronograma_repo.obtener_cronograma(materia) or []
         nueva = dict(datos_clase)
         if not nueva.get("id"):
             nueva["id"] = nuevo_id_clase()
         if not nueva.get("estado"):
             nueva["estado"] = "pendiente"
-        clases.append(nueva)
-        self.cronograma_repo.guardar_cronograma(materia, clases)
+        self.cronograma_repo.actualizar_cronograma(materia, lambda clases: clases.append(nueva))
         return nueva
 
     def editar_clase(self, materia: str, clase_id: str, campos: dict[str, Any]) -> dict[str, Any]:
         """Actualiza los campos de una clase específica dentro del cronograma."""
         if not self.cronograma_repo:
             raise ValueError("No hay repositorio de cronogramas configurado.")
-        clases = self.cronograma_repo.obtener_cronograma(materia)
-        if not clases:
-            raise LookupError(f"No hay cronograma para la asignatura {materia}.")
-        clase = buscar_clase(clases, clase_id=clase_id)
-        if clase is None:
-            raise LookupError(f"Clase {clase_id} no encontrada en el cronograma.")
-        for k, v in campos.items():
-            if k != "id":  # El id nunca cambia
-                clase[k] = v
-        self.cronograma_repo.guardar_cronograma(materia, clases)
-        return clase
+        editada: dict[str, Any] = {}
+
+        def aplicar(clases: list[dict[str, Any]]) -> None:
+            if not clases:
+                raise LookupError(f"No hay cronograma para la asignatura {materia}.")
+            clase = buscar_clase(clases, clase_id=clase_id)
+            if clase is None:
+                raise LookupError(f"Clase {clase_id} no encontrada en el cronograma.")
+            for k, v in campos.items():
+                if k != "id":  # El id nunca cambia
+                    clase[k] = v
+            editada.update(clase)
+
+        self.cronograma_repo.actualizar_cronograma(materia, aplicar)
+        return editada
 
     def eliminar_clase(self, materia: str, clase_id: str) -> bool:
         """Quita una clase del cronograma."""
         if not self.cronograma_repo:
             return False
-        clases = self.cronograma_repo.obtener_cronograma(materia)
-        if not clases:
+        if not self.cronograma_repo.obtener_cronograma(materia):
             return False
-        restantes = [c for c in clases if str(c.get("id")) != clase_id]
-        if len(restantes) == len(clases):
-            return False
-        self.cronograma_repo.guardar_cronograma(materia, restantes)
-        return True
+        quitada = False
+
+        def quitar(clases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            nonlocal quitada
+            restantes = [c for c in clases if str(c.get("id")) != clase_id]
+            quitada = len(restantes) != len(clases)
+            return restantes if quitada else clases
+
+        self.cronograma_repo.actualizar_cronograma(materia, quitar)
+        return quitada
 
     def cambiar_estado_clase(self, materia: str, clase_id: str, nuevo_estado: str) -> bool:
         """Modifica el estado de una clase ('pendiente' o 'completado')."""

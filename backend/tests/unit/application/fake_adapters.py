@@ -94,6 +94,17 @@ class InMemoryCronogramaRepo(CronogramaRepo):
         self.cronogramas[clave] = list(clases)
         return f"memoria://{clave.replace(' ', '_')}_cronograma.json"
 
+    def actualizar_cronograma(
+        self,
+        materia: str,
+        transformar: Callable[[list[dict[str, Any]]], list[dict[str, Any]] | None],
+    ) -> list[dict[str, Any]]:
+        clases = self.obtener_cronograma(materia) or []
+        resultado = transformar(clases)
+        nuevas = clases if resultado is None else resultado
+        self.guardar_cronograma(materia, nuevas)
+        return nuevas
+
     def eliminar_cronograma(self, materia: str) -> bool:
         clave = self._resolver_clave(materia)
         if clave and clave in self.cronogramas:

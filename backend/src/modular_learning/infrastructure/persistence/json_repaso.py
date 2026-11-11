@@ -35,16 +35,18 @@ class JsonTarjetasRepo(TarjetasRepo):
         return Tarjeta.desde_dict(datos) if datos else None
 
     def guardar(self, tarjeta: Tarjeta) -> None:
-        datos = self._cargar()
-        datos[tarjeta.id] = tarjeta.a_dict()
-        self._documento.escribir(datos)
+        with self._documento.bloqueo():
+            datos = self._cargar()
+            datos[tarjeta.id] = tarjeta.a_dict()
+            self._documento.escribir(datos)
 
     def eliminar(self, ids: list[str]) -> int:
-        datos = self._cargar()
-        quitadas = [i for i in ids if datos.pop(i, None) is not None]
-        if quitadas:
-            self._documento.escribir(datos)
-        return len(quitadas)
+        with self._documento.bloqueo():
+            datos = self._cargar()
+            quitadas = [i for i in ids if datos.pop(i, None) is not None]
+            if quitadas:
+                self._documento.escribir(datos)
+            return len(quitadas)
 
 
 class JsonHistorialRepo(HistorialRepo):
@@ -58,9 +60,10 @@ class JsonHistorialRepo(HistorialRepo):
         return datos if isinstance(datos, list) else []
 
     def registrar(self, evento: dict[str, Any]) -> None:
-        eventos = self._cargar()
-        eventos.append(evento)
-        self._documento.escribir(eventos)
+        with self._documento.bloqueo():
+            eventos = self._cargar()
+            eventos.append(evento)
+            self._documento.escribir(eventos)
 
     def listar(self, materia: str | None = None, tema: str | None = None) -> list[dict[str, Any]]:
         materia_n = slug_materia(materia) if materia else None
@@ -77,11 +80,12 @@ class JsonHistorialRepo(HistorialRepo):
         return resultado
 
     def eliminar(self, criterio: Callable[[dict[str, Any]], bool]) -> int:
-        eventos = self._cargar()
-        restantes = [e for e in eventos if not criterio(e)]
-        if len(restantes) != len(eventos):
-            self._documento.escribir(restantes)
-        return len(eventos) - len(restantes)
+        with self._documento.bloqueo():
+            eventos = self._cargar()
+            restantes = [e for e in eventos if not criterio(e)]
+            if len(restantes) != len(eventos):
+                self._documento.escribir(restantes)
+            return len(eventos) - len(restantes)
 
 
 __all__ = ["JsonHistorialRepo", "JsonTarjetasRepo"]

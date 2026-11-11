@@ -584,3 +584,9 @@ def test_config_en_nube_no_devuelve_rutas(client, tmp_path, monkeypatch):
     assert datos["en_nube"] is True
     assert datos["carpeta_material"] == "" and datos["ruta_obsidian"] == ""
     assert str(tmp_path) not in str(datos)
+
+
+def test_eliminar_asignatura_dos_veces_no_da_500(client):
+    assert client.post("/api/materias", json={"nombre": "Temporal"}).status_code == 201
+    assert client.delete("/api/materias/temporal").status_code == 200
+    assert client.delete("/api/materias/temporal").status_code == 404
