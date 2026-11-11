@@ -33,6 +33,42 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P30. Validar nombres y existencia de asignaturas
+
+- **Commit:** 1aa8722 `fix(core): P30 validar nombres y existencia de asignaturas`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/core/domain/materias.py
+  - backend/src/modular_learning/core/application/materias.py
+  - backend/src/modular_learning/apps/api/routers/materias.py
+  - backend/tests/unit/application/test_materias_validacion.py
+  - backend/tests/integration/api/test_api.py
+
+### Qué hice
+Reproduje primero con un cliente de pruebas sobre una copia de `data/examples`: `"   "`, `"!!!"`, `"😀"` daban 201 sin crear; `"a/b"`, `".."` y 100 letras sí se creaban; el duplicado `"redes"` daba 201; `PUT` a un slug inexistente lo creaba y las altas de clase y de parcial creaban un cronograma de una asignatura inexistente.
+Añadí en `core/domain/materias.py` `validar_nombre_materia` (máx. 80, letras/números/espacios y `- _ . , ( ) ' & + : #`, sin control/NUL, `/`, `\` ni `..`) y las excepciones `NombreMateriaInvalido`, `MateriaDuplicada` y `MateriaNoEncontrada`. `MateriasService.crear_materia` valida y rechaza duplicados (comparados por slug, sin tildes ni mayúsculas); `renombrar_materia`, `agregar_clase` y `guardar_parciales` exigen que la asignatura exista. El router traduce a 422, 409 y 404.
+Decisión: `agregar_materia` se queda idempotente y sin validar, porque la usan tutoría, material y la CLI para «asegurar» que la asignatura exista y no esperan excepciones; solo el alta explícita (`POST /api/materias`) usa `crear_materia`. Duplicado devuelve 409 (la tarea no fijaba código).
+
+### Cómo lo verifiqué
+- pytest: 180 passed, 2 skipped
+- ruff check / ruff format: check ok; format de los archivos tocados ok. `ruff format --check backend` ya marcaba 2 archivos antes de empezar (`apps/cli/commands/es.py`, `infrastructure/system/subprocess_adapter.py`), no tocados.
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: ok (37 tests); el frontend no cambió
+- Tests nuevos:
+  - tests/unit/application/test_materias_validacion.py (nombres inválidos, normalización, longitud máxima, duplicados, renombrar, clase y parciales en inexistente)
+  - tests/integration/api/test_api.py::test_crear_materia_nombre_invalido_422
+  - tests/integration/api/test_api.py::test_crear_materia_duplicada_409
+  - tests/integration/api/test_api.py::test_materia_inexistente_da_404_en_put_clases_y_parciales
+- Prueba manual: servidor local con `ML_DATA_DIR` en una copia de `data/examples` y Chromium headless (Playwright). En Asignaturas › «Nueva asignatura» escribí `!!!` y `a/b`: aparece el aviso «No se pudo crear la asignatura» con el mensaje en español; `Redes de Datos` se crea. Leí el texto de los avisos, no inspeccioné la captura a ojo.
+
+### Dudas o hallazgos
+- `agregar_materia` (usada por tutoría, ingesta de material y CLI) sigue aceptando cualquier nombre; se endurece al tratar P31.
+- Las rutas `editar_clase`, `eliminar_clase` y el cambio de estado no comprueban la asignatura; la tarea no las pedía.
+
+### Revisión de Claude
+
+---
+
 ## D3. Documentación al día tras P19 a P29 (Argon)
 
 - **Commit:** e36ecf4 `docs: D3 documentacion tras P19 a P29`
