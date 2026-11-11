@@ -33,6 +33,40 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P42. Tests de lo que hoy está sin cubrir
+
+- **Commit:** 999f630 `test(core): P42 tests de sincronizador, contrato de repositorios y cobertura de plugins`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/tests/unit/domain/test_sincronizador.py (nuevo)
+  - backend/tests/integration/infrastructure/test_contrato_repositorios.py (nuevo)
+  - backend/tests/unit/application/fake_adapters.py
+
+### Qué hice
+- **`sincronizador.py`:** 13 tests unitarios con `FakeLLM`: cronograma vacío (no llama a la IA), el prompt lleva cronograma y apuntes, coincidencia por fecha, por tema contenido en ambos sentidos y con varias clases, sin coincidencia (primera pendiente y, sin pendientes, la última clase), referencia vacía, duplicados, vacíos y valores no textuales, elementos mal formados, respuesta que no es lista, y los dos fallos del LLM (JSON estructurado caído → se parsea el texto; todo cae → 0 y aviso en el log). El módulo no se usa en ningún otro sitio de `src` (código sin llamadores).
+- **`plugins.py`:** ya lo cubrían los tests de P35 (plugin falso, sin `hasattr`); no escribí más.
+- **Contrato:** `test_contrato_repositorios.py` parametriza una fixture con el fake en memoria y el adaptador JSON en disco (`AlmacenArchivos` sobre `tmp_path`) y ejecuta las mismas aserciones: 12 tests de `CronogramaRepo` (inexistente, ids y lectura por slug/nombre, coincidencia exacta, próximas clases, marcar por id/tema, detalle, `actualizar_cronograma`, material transversal, parciales, eliminar, listar) y 3 de `MateriaRepo` (catálogo vacío, alta/actualización por slug, idempotencia, eliminar). Son 30 casos.
+- **Divergencia hallada y corregida:** el fake de `actualizar_cronograma` (de P32) modificaba en sitio la lista guardada, de modo que si la transformación fallaba quedaban cambios a medias; el adaptador real trabaja sobre una copia leída del disco. Ahora el fake usa `copy.deepcopy`. No hubo divergencias en el resto de métodos.
+
+### Cómo lo verifiqué
+- pytest: 293 passed, 2 skipped
+- ruff check / ruff format: ok (`149 files already formatted`)
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: ok (66 tests); el frontend no cambió
+- Cobertura (`pytest --cov=modular_learning.core --cov-report=term`, con `pytest-cov` instalado solo en el venv; no se añadió al repo): `core/domain/sincronizador.py` **0 % → 100 %** (objetivo ≥ 80 %); `core/application/plugins.py` 60 % → 98 % (con los tests de P35); `core` en conjunto 93 %.
+- Tests nuevos:
+  - tests/unit/domain/test_sincronizador.py (13 tests)
+  - tests/integration/infrastructure/test_contrato_repositorios.py (15 funciones × 2 = 30 casos; 12 de cronograma y 3 de materias)
+- Prueba manual: no aplica (solo tests). Comprobé que el test de contrato falla con el fake anterior y pasa con la copia profunda.
+
+### Dudas o hallazgos
+- `sincronizador.py` no tiene llamadores: o falta conectarlo (la ingesta ya enriquece subtemas por otro camino) o se puede borrar; conviene decidirlo (queda en «Hallazgos»).
+- `obtener_cronograma` del fake devuelve la lista viva (mutarla cambia lo guardado) mientras que el adaptador real devuelve una copia nueva; hoy ningún test lo aprovecha, pero un servicio que mutara el resultado sin guardar pasaría los tests unitarios y fallaría en producción.
+
+### Revisión de Claude
+
+---
+
 ## P41. Textos sin jerga y acciones con IA avisadas
 
 - **Commit:** 87423c1 `feat(web): P41 textos sin jerga y avisos de uso de IA`
