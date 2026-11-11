@@ -33,6 +33,42 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P37. Flujo «Nueva asignatura» y selector
+
+- **Commit:** 52167fa `fix(web): P37 flujo Nueva asignatura y selector sin desbordes`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/views/AsignaturasView.tsx
+  - frontend/src/views/SilabosView.tsx
+
+### Qué hice
+Reproduje con una copia de `data/examples` y Chromium headless, con una asignatura de 80 letras: Enter no guardaba; tras crear «Fisica II» el panel Clases quedaba en blanco; tras recargar volvía a «Arquitectura de Software»; el panel de sílabo abría con «Nueva asignatura…»; `scrollWidth` era 1190 px a 375 px y 1590 px a 1100 px.
+- `AsignaturasView`: Enter guarda y Escape cancela (en crear y en renombrar), el botón pasa a «Guardando…» y se deshabilita, el aviso de éxito añade el siguiente paso («sube su sílabo o añade clases en la pestaña Clases»), el nombre admite 80 caracteres y la asignatura activa se refleja en la URL (`?materia=<slug>`), por lo que la nueva queda seleccionada y sobrevive a recargas. Sin asignaturas, el texto indica crear la primera.
+- Causa del panel en blanco: `SilabosView` embebido cargaba su catálogo una sola vez y no conocía la asignatura recién creada. Ahora recarga el catálogo (una vez por asignatura) cuando la activa no está en su lista; así aparece el estado vacío con «Subir sílabo» y «Añadir clase».
+- El panel de sílabo parte de la asignatura activa (se sincroniza al cambiar la activa).
+- Desbordes: el contenedor del selector y el `<select>` llevan `min-w-0 max-w-full` y truncan con puntos suspensivos; el título de la tarjeta, y los botones «Vaciar cronograma…» y «Eliminar asignatura…» de la zona peligrosa, parten los nombres largos (`overflow-wrap: anywhere`).
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint sin avisos, build ok, vitest 47 passed
+- Tests nuevos: ninguno. El comportamiento está en las vistas y el repo no tiene jsdom/Testing Library (está en «Para decidir con el usuario»), por lo que lo verifiqué en el navegador.
+- Prueba manual (servidor local, copia de `data/examples`, Chromium headless; leí los textos y revisé la captura a 375 px):
+  - Con una asignatura llamada `X`×80: `document.documentElement.scrollWidth <= innerWidth` en Asignaturas › Clases, Material y Proyectos, a 375 px (375/375) y a 1100 px (1100/1100). Antes: 1190 y 1590. En la captura a 375 px el selector muestra el nombre truncado con «…» y la tarjeta parte el título en varias líneas.
+  - Nueva asignatura «Quimica v1» con Enter: durante el guardado el botón dice «Guardando…» y está deshabilitado; aparece el aviso «Asignatura "Quimica v1" creada / Ahora sube su sílabo…»; queda seleccionada (`quimica-v1`, URL `?materia=quimica-v1`); la pestaña Clases muestra «No hay clases registradas en este cronograma» con «Subir sílabo»; tras recargar sigue seleccionada.
+  - Al abrir «Subir sílabo» el segundo select vale «Quimica v1» (antes `__nueva__`).
+  No probé modo oscuro ni un dispositivo táctil real.
+
+### Dudas o hallazgos
+- Con 0 clases, «Subir sílabo» aparece dos veces (cabecera de la tarjeta y estado vacío), como ya decía el informe del usuario novato; la tarea no pedía quitarlo.
+- `SilabosView` conserva su propia lista de asignaturas y varios estados duplicados con `AsignaturasView`; el arreglo es un parche (recarga puntual), no una unificación.
+- En la zona estrecha (375 px) la tarjeta «Cortes de parcial» sigue apretada; es parte de P39.
+
+### Revisión de Claude
+
+---
+
 ## P36. Pantalla Hoy coherente y con guía de arranque
 
 - **Commit:** d1f658e `fix(web): P36 pantalla Hoy coherente y con guia de arranque`
