@@ -14,7 +14,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "clsx": "^2.1.1",
     "katex": "^0.16.47",
-    "lucide-react": "^1.59.0",
+    "lucide-react": "^1.70.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-markdown": "^10.1.0",
