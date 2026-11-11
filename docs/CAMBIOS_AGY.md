@@ -33,6 +33,60 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P31. Rutas del cliente y errores que filtran el servidor
+
+- **Commit:** 3c3e674 `fix(core): P31 rutas del cliente dentro de su base y errores sin rutas`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/core/domain/rutas.py (nuevo)
+  - backend/src/modular_learning/core/application/{ingesta,materias,plugins,proyectos}.py
+  - backend/src/modular_learning/apps/api/errores.py (nuevo)
+  - backend/src/modular_learning/apps/api/routers/{config,guias,material,materias,plugins,proyectos,quiz,silabo,tutoria}.py
+  - docs/DESPLIEGUE.md
+  - backend/tests/unit/domain/test_rutas.py, backend/tests/unit/application/test_rutas_servicios.py, backend/tests/unit/test_errores_api.py, backend/tests/integration/api/test_api.py
+
+### Qué hice
+Reproduje con una carpeta de material temporal y archivos fuera de ella: `GET /api/material/escanear?materia=..%2f..%2f` escaneó 54 archivos fuera de la base; `/api/plugins/config`, `/api/plugins/actualizar` y `/api/proyectos/ingestar` aceptaron rutas externas (la ingesta escribió una ficha con la ruta externa); los errores 400/500 devolvían rutas absolutas (`/no/existe/aqui`, `/tmp/...`) y `GET /api/config` con `ML_EN_NUBE=1` devolvía las rutas.
+- `core/domain/rutas.py`: `esta_dentro` y `unir_dentro`, comprobación léxica tras normalizar (sin tocar el disco).
+- `IngestaService.escanear_materia` usa `unir_dentro`; los endpoints de escaneo, sincronización y proyectos resuelven la asignatura contra el catálogo (404 si no existe). Tutoría e ingesta de archivo validan con `MateriasService.validar_materia_recibida` (422).
+- Ingesta de proyecto, carpeta de plugin y `carpeta_override` deben quedar dentro de la carpeta de material (400).
+- `apps/api/errores.py`: 500 genérico y 4xx con rutas sustituidas por `<ruta>`; el detalle va al log (`modular_learning.api`). Aplicado a todos los routers y a los eventos SSE de error.
+- En nube `GET /api/config` devuelve `carpeta_material` y `ruta_obsidian` vacías. Documentado en `docs/DESPLIEGUE.md`.
+Decisión: la comprobación de las carpetas de plugin se hace al guardar y al usar el override, no al leer lo ya guardado, para no romper configuraciones previas que apuntaran fuera.
+
+### Cómo lo verifiqué
+- pytest: 220 passed, 2 skipped
+- ruff check / ruff format: ok en lo tocado (`ruff format --check backend` sigue marcando los 2 archivos anteriores: `apps/cli/commands/es.py` y `infrastructure/system/subprocess_adapter.py`)
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: ok (37 tests); el frontend no cambió
+- Tests nuevos:
+  - tests/unit/domain/test_rutas.py (varios casos de `esta_dentro` y `unir_dentro`)
+  - tests/unit/application/test_rutas_servicios.py::test_escanear_materia_con_ruta_relativa_no_lee_fuera_de_la_base
+  - tests/unit/application/test_rutas_servicios.py::test_ingestar_proyecto_fuera_de_la_carpeta_base_falla
+  - tests/unit/application/test_rutas_servicios.py::test_configurar_plugin_con_carpeta_fuera_de_la_base_falla
+  - tests/unit/application/test_rutas_servicios.py::test_actualizar_plugin_con_override_fuera_de_la_base_falla
+  - tests/unit/application/test_rutas_servicios.py::test_validar_materia_recibida
+  - tests/unit/test_errores_api.py (4 tests)
+  - tests/integration/api/test_api.py::test_escanear_material_no_acepta_rutas_del_cliente (5 variantes, incluye `..%2f`)
+  - tests/integration/api/test_api.py::test_escanear_material_resuelve_contra_el_catalogo
+  - tests/integration/api/test_api.py::test_sincronizar_stream_rechaza_asignatura_fuera_del_catalogo
+  - tests/integration/api/test_api.py::test_proyectos_escanear_e_ingestar_no_aceptan_rutas_externas
+  - tests/integration/api/test_api.py::test_plugins_no_aceptan_carpetas_externas
+  - tests/integration/api/test_api.py::test_errores_no_muestran_rutas_absolutas
+  - tests/integration/api/test_api.py::test_error_inesperado_responde_generico
+  - tests/integration/api/test_api.py::test_config_en_nube_no_devuelve_rutas
+- Prueba manual: repetí el script de reproducción (mismos pasos, árbol temporal): todas las rutas con `../` dan 404, plugins y proyectos externos 400, el error de configuración muestra `<ruta>` y `ML_EN_NUBE=1` devuelve rutas vacías. Tres tests existentes (plugins, escaneo de material y proyectos) se adaptaron: ahora configuran la carpeta de material y crean la asignatura en el catálogo antes de usarlas.
+
+### Dudas o hallazgos
+- No se resuelven enlaces simbólicos (hacerlo exige disco; iría en el adaptador). Un enlace dentro de la carpeta de material que apunte fuera sigue siendo seguible.
+- `GET /api/material/escanear` sigue devolviendo la ruta de la carpeta del equipo en cada asignatura (campo `carpeta`) fuera de la nube; es el equipo del propio usuario.
+- Los mensajes de error de Gemini (cuota, etc.) ahora salen como mensaje genérico de error interno; si se quiere distinguirlos al usuario habría que mapear esos casos.
+- Las rutas guardadas de los plugins y `GET /api/plugins` / `GET /api/proyectos` siguen exponiendo rutas del servidor en la nube; la tarea solo pedía `/api/config`.
+
+### Revisión de Claude
+
+---
+
 ## P30. Validar nombres y existencia de asignaturas
 
 - **Commit:** 1aa8722 `fix(core): P30 validar nombres y existencia de asignaturas`
