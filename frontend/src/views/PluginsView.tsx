@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
+import { ultimoTramo } from '@/lib/rutas'
 import type { PluginInfo } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import {
@@ -254,7 +255,7 @@ export function PluginsView() {
                         <>
                           <FolderCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                           <span className="truncate font-mono text-[11px]" title={plugin.carpeta}>
-                            {plugin.carpeta}
+                            {ultimoTramo(plugin.carpeta)}
                           </span>
                         </>
                       ) : (

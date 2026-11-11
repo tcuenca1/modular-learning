@@ -13,9 +13,11 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
+import { AvisoIA } from '@/components/AvisoIA'
 import type { ClaseCronograma, MateriaItem, ParcialItem } from '@/api/types'
 import { buscarMateriaPorClave, resolverMateriaSubida } from '@/lib/asignaturas'
 import { describirCorte } from '@/lib/parciales'
+import { ultimoTramo } from '@/lib/rutas'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -285,7 +287,7 @@ export function SilabosView({
   // --- Handlers Parciales ---
   const handleGuardarParcial = async () => {
     if (!nuevoParcialNombre.trim() || !nuevoParcialHasta.trim()) {
-      toast.error('Indica el nombre del corte y selecciona la clase límite.')
+      toast.error('Indica el nombre del parcial y la clase donde termina.')
       return
     }
     const actualizados = [...parciales.filter((p) => p.nombre !== nuevoParcialNombre), {
@@ -298,9 +300,9 @@ export function SilabosView({
       setNuevoParcialNombre('')
       setNuevoParcialHasta('')
       setEditandoParciales(false)
-      toast.success('Corte de parcial guardado')
+      toast.success('Parcial guardado')
     } catch (err) {
-      toast.error('No pude guardar el corte', {
+      toast.error('No pude guardar el parcial', {
         description: err instanceof Error ? err.message : String(err),
       })
     }
@@ -504,7 +506,7 @@ export function SilabosView({
       setSaving(true)
       const res = await api.guardarSilabo(subidaMateria.trim(), clasesExtraidas)
       toast.success('Cronograma guardado', {
-        description: `Guardado en ${res.ruta}`,
+        description: `Guardado en ${ultimoTramo(res.ruta)}`,
       })
       setClasesExtraidas([])
       setFile(null)
@@ -552,7 +554,7 @@ export function SilabosView({
             Cronogramas y Sílabos
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Administra tus asignaturas, ajusta cortes de parcial, cambia estados de clase y extrae nuevos sílabos.
+            Administra tus asignaturas, define dónde termina cada parcial, cambia estados de clase y extrae nuevos sílabos.
           </p>
         </div>
       )}
@@ -717,15 +719,15 @@ export function SilabosView({
               </CardHeader>
 
               <CardContent className="space-y-6">
-                {/* Cortes de Parcial */}
+                {/* Fin de cada parcial */}
                 <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-900/50 space-y-3">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                        Cortes de parcial
+                        Fin de cada parcial
                       </h3>
                       <p className="text-xs text-slate-500">
-                        Define hasta qué fecha o clase abarca cada parcial para generar guías de todo el corte.
+                        Elige la última clase de cada parcial: sirve para generar guías de todo el parcial.
                       </p>
                     </div>
                     <Button
@@ -734,7 +736,7 @@ export function SilabosView({
                       onClick={() => setEditandoParciales(!editandoParciales)}
                       className="text-xs h-7"
                     >
-                      {editandoParciales ? 'Cerrar' : '+ Añadir / editar cortes'}
+                      {editandoParciales ? 'Cerrar' : '+ Añadir / editar parciales'}
                     </Button>
                   </div>
 
@@ -779,7 +781,7 @@ export function SilabosView({
                         ))}
                       </select>
                       <Button size="sm" onClick={handleGuardarParcial} disabled={!nuevoParcialNombre.trim() || !nuevoParcialHasta.trim()} className="h-8 text-xs">
-                        Guardar corte
+                        Guardar parcial
                       </Button>
                     </div>
                   )}
@@ -1131,7 +1133,7 @@ export function SilabosView({
                     ) : (
                       <>
                         <FileText className="h-4 w-4" />
-                        Extraer clases
+                        Extraer clases <AvisoIA />
                       </>
                     )}
                   </Button>

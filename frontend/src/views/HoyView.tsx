@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Check } from 'lucide-react'
 import { api } from '@/api/client'
+import { AvisoIA } from '@/components/AvisoIA'
 import type {
   ClaseCronograma,
   EscaneoMaterial,
@@ -417,7 +418,7 @@ export function HoyView() {
                   to="/estudiar?tab=repaso"
                   className="toque inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
-                  Preguntas nuevas
+                  Preguntas nuevas <AvisoIA />
                 </Link>
               </div>
             ) : (

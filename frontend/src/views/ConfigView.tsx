@@ -58,7 +58,7 @@ export function ConfigView() {
 
     if (!rutaObsidian.trim()) {
       toast.error('Revisa las rutas', {
-        description: 'La ruta de la bóveda de Obsidian no puede estar vacía.',
+        description: 'La carpeta de notas no puede estar vacía.',
       })
       return
     }
@@ -179,7 +179,7 @@ export function ConfigView() {
             <div className="space-y-2">
               <label htmlFor="config-ruta-obsidian" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <HardDrive className="h-3.5 w-3.5 text-purple-500" />
-                Bóveda de Obsidian
+                Carpeta de notas (Obsidian)
               </label>
               <Input
                 id="config-ruta-obsidian"
@@ -193,7 +193,7 @@ export function ConfigView() {
                 <span className={obsExiste ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}>
                   {obsExiste ? 'La carpeta existe.' : 'Esta carpeta no existe todavía.'}
                 </span>{' '}
-                Aquí se guardan las notas y las guías de cada tutoría.
+                Aquí se guardan las notas y las guías de cada tutoría: es la carpeta de tu bóveda en la app Obsidian.
               </p>
             </div>
 

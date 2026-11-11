@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { AlertCircle, Check, Clock, Download, FileDown, RotateCw, Trash2, Undo2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
+import { AvisoIA } from '@/components/AvisoIA'
 import type { Guia, GuiaResumen, ParcialItem } from '@/api/types'
 import { Button } from '@/components/ui/button'
 import type { MateriaConCronograma } from '@/lib/asignaturas'
@@ -350,7 +351,7 @@ export function GuiaView() {
       setHasta(idx)
       toast.info(`Seleccionado hasta ${p.nombre} (clase ${idx + 1})`)
     } else {
-      toast.error(`No se pudo localizar el corte ${p.nombre}`)
+      toast.error(`No se pudo localizar la clase donde termina ${p.nombre}`)
     }
   }
 
@@ -367,7 +368,7 @@ export function GuiaView() {
       setParciales(nuevos)
       setNuevoNombreParcial('')
       setEditandoParciales(false)
-      toast.success('Corte de parcial guardado')
+      toast.success('Parcial guardado')
     } catch (e) {
       toast.error('Error al guardar parcial', { description: String(e) })
     }
@@ -435,21 +436,24 @@ export function GuiaView() {
             </select>
           </label>
 
-          {/* Cortes de Parcial */}
+          {/* Fin de cada parcial */}
           {actual && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                  Cortes de parcial
+                  Fin de cada parcial
                 </span>
                 <button
                   type="button"
                   onClick={() => setEditandoParciales(!editandoParciales)}
                   className="cursor-pointer text-xs text-indigo-600 hover:underline dark:text-indigo-400"
                 >
-                  {editandoParciales ? 'Cerrar' : '+ Definir corte'}
+                  {editandoParciales ? 'Cerrar' : '+ Definir parcial'}
                 </button>
               </div>
+              <p className="text-xs text-slate-500">
+                Elige la última clase de cada parcial para armar guías de todo el parcial.
+              </p>
 
               {parciales.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -496,7 +500,7 @@ export function GuiaView() {
                     </label>
                   </div>
                   <Button size="sm" onClick={guardarNuevoParcial} disabled={!nuevoNombreParcial.trim()}>
-                    Guardar corte de parcial
+                    Guardar parcial
                   </Button>
                 </div>
               )}
@@ -596,7 +600,7 @@ export function GuiaView() {
 
           <Button onClick={crear} disabled={creando || elegidas.length === 0 || demasiadas} className="gap-2">
             <FileDown className="h-4 w-4" />
-            {creando ? 'Preparando…' : 'Generar guía'}
+            {creando ? 'Preparando…' : (<>Generar guía <AvisoIA /></>)}
           </Button>
         </section>
       )}

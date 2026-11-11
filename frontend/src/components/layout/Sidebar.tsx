@@ -5,8 +5,8 @@ import {
   CalendarDays,
   GraduationCap,
   Menu,
+  ListChecks,
   Settings,
-  Sun,
   X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -21,7 +21,7 @@ interface ItemNav {
 }
 
 const ITEMS_NAV: ItemNav[] = [
-  { nombre: 'Hoy', ruta: '/', icono: Sun },
+  { nombre: 'Hoy', ruta: '/', icono: ListChecks },
   { nombre: 'Estudiar', ruta: '/estudiar', icono: GraduationCap },
   { nombre: 'Calendario', ruta: '/calendario', icono: CalendarDays },
   { nombre: 'Asignaturas', ruta: '/asignaturas', icono: BookMarked },
