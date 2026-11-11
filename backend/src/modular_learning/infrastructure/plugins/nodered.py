@@ -7,7 +7,7 @@ import os
 import re
 from typing import Any
 
-from modular_learning.core.ports.plugin_practico import PluginPracticoBase
+from modular_learning.core.ports.plugin_practico import PluginMetadatos, PluginPracticoBase
 from modular_learning.infrastructure.persistence.almacen import DocumentoJson
 
 
@@ -28,8 +28,35 @@ def extraer_resumen_funcion_js(codigo: str) -> str:
     return "procesamiento de payload"
 
 
+METADATOS = PluginMetadatos(
+    id="nodered",
+    nombre="Node-RED",
+    opcion_key="Node-RED (Flujos JSON)",
+    categoria="Internet de las Cosas",
+    descripcion=(
+        "Lee tus flujos JSON por pestañas: nodos, tópicos MQTT, sensores y endpoints HTTP."
+    ),
+    materia_defecto="internet-de-las-cosas",
+    claves_seleccion=("node-red", "nodered"),
+    tipos_archivo=("iot", "nodered"),
+    palabras_clave=("iot", "internet", "node", "red"),
+    carpeta_convencional="Internet de las Cosas",
+    extension_archivos=".json",
+    etiqueta="Node-RED",
+    texto_sin_contexto="Sin flujos registrados.",
+    orden_sincronizacion=0,
+)
+
+
 class NodeRedPlugin(PluginPracticoBase):
     """Adaptador práctico para IoT y Node-RED."""
+
+    @property
+    def metadatos(self) -> PluginMetadatos:
+        return METADATOS
+
+    def analizar_archivo(self, ruta_archivo: str) -> str | None:
+        return self.analizar_flujo(ruta_archivo)
 
     def __init__(self, memoria: DocumentoJson | None = None):
         self._memoria = memoria or DocumentoJson("plugins/nodered_memoria.json")

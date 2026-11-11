@@ -8,7 +8,7 @@ import re
 import subprocess
 from typing import Any
 
-from modular_learning.core.ports.plugin_practico import PluginPracticoBase
+from modular_learning.core.ports.plugin_practico import PluginMetadatos, PluginPracticoBase
 from modular_learning.infrastructure.persistence.almacen import DocumentoJson
 
 CARPETAS_IGNORADAS = {
@@ -301,8 +301,45 @@ def extraer_git_log(ruta_carpeta: str) -> list[str]:
     return []
 
 
+METADATOS = PluginMetadatos(
+    id="web",
+    nombre="Proyectos Web y Software",
+    opcion_key="Web (Proyectos)",
+    categoria="Desarrollo de Software",
+    descripcion=(
+        "Inspecciona la estructura de tu proyecto: README, dependencias, rutas, modelos "
+        "y últimos commits."
+    ),
+    materia_defecto="programacion-web",
+    claves_seleccion=("web",),
+    palabras_clave=(
+        "web",
+        "programacion",
+        "frontend",
+        "backend",
+        "javascript",
+        "html",
+        "css",
+    ),
+    carpeta_convencional="Programacion Web",
+    etiqueta="Web",
+    titulo_carpeta_asignada="Proyecto Asignado",
+    titulo_carpeta_convencional="Proyecto Convencional",
+    titulo_sincronizacion="Sincronización de Programación Web",
+    texto_sin_contexto="Sin proyectos web registrados.",
+    orden_sincronizacion=2,
+)
+
+
 class WebPlugin(PluginPracticoBase):
     """Adaptador práctico para Desarrollo y Programación Web (y proyectos de software)."""
+
+    @property
+    def metadatos(self) -> PluginMetadatos:
+        return METADATOS
+
+    def analizar_carpeta(self, ruta_carpeta: str) -> str:
+        return self.analizar_proyecto(ruta_carpeta)
 
     def __init__(self, memoria: DocumentoJson | None = None):
         self._memoria = memoria or DocumentoJson("plugins/web_memoria.json")
