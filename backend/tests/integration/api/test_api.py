@@ -115,7 +115,11 @@ def test_plugins_listar_y_configurar(client, tmp_path):
     assert "plugins" in datos
     assert any(p["id"] == "cisco" for p in datos["plugins"])
 
-    # Configurar carpeta y materia para cisco
+    # Configurar carpeta y materia para cisco (la carpeta debe estar dentro del material)
+    client.post(
+        "/api/config",
+        json={"carpeta_material": str(tmp_path), "ruta_obsidian": str(tmp_path / "Boveda")},
+    )
     carpeta_redes = str(tmp_path / "redes_lab")
     res_cfg = client.post(
         "/api/plugins/config",
@@ -234,6 +238,7 @@ def test_escanear_material_endpoint(client, tmp_path, monkeypatch):
         json={"carpeta_material": str(carpeta_estudio), "ruta_obsidian": str(tmp_path / "Boveda")},
     )
     assert res_config.status_code == 200
+    assert client.post("/api/materias", json={"nombre": "Seguridad"}).status_code == 201
 
     res = client.get("/api/material/escanear?materia=Seguridad")
     assert res.status_code == 200
@@ -412,6 +417,11 @@ def test_proyectos_endpoints(client, tmp_path):
     proy_dir.mkdir()
     (proy_dir / "01_normativa.txt").write_text("politica de seguridad", encoding="utf-8")
 
+    client.post(
+        "/api/config",
+        json={"carpeta_material": str(tmp_path), "ruta_obsidian": str(tmp_path / "Boveda")},
+    )
+
     # Listar inicialmente
     r_list = client.get("/api/proyectos")
     assert r_list.status_code == 200
@@ -449,3 +459,134 @@ def test_proyectos_endpoints(client, tmp_path):
     r_vac = client.post("/api/material/vaciar", json={"borrar_notas_obsidian": False})
     assert r_vac.status_code == 200
     assert r_vac.json()["ok"] is True
+
+
+@pytest.mark.parametrize("nombre", ["   ", "!!!", "😀", "a/b", "..", "x" * 81])
+def test_crear_materia_nombre_invalido_422(client, nombre):
+    antes = client.get("/api/materias").json()["catalogo"]
+    r = client.post("/api/materias", json={"nombre": nombre})
+    assert r.status_code == 422
+    assert isinstance(r.json()["detail"], str)
+    assert client.get("/api/materias").json()["catalogo"] == antes
+
+
+def test_crear_materia_duplicada_409(client):
+    assert client.post("/api/materias", json={"nombre": "Bases de Datos"}).status_code == 201
+    r = client.post("/api/materias", json={"nombre": "bases DE datos"})
+    assert r.status_code == 409
+    nombres = client.get("/api/materias").json()["materias"]
+    assert nombres.count("Bases de Datos") == 1
+
+
+def test_materia_inexistente_da_404_en_put_clases_y_parciales(client):
+    assert client.put("/api/materias/fantasma", json={"nombre": "Fantasma"}).status_code == 404
+    assert client.post("/api/materias/fantasma/clases", json={"tema": "T"}).status_code == 404
+    r = client.post("/api/materias/fantasma/parciales", json={"parciales": []})
+    assert r.status_code == 404
+    assert client.get("/api/materias/cronogramas").json()["cronogramas"].get("fantasma") is None
+    assert "fantasma" not in [m["slug"] for m in client.get("/api/materias").json()["catalogo"]]
+
+
+def _preparar_material(client, tmp_path):
+    uni = tmp_path / "Uni"
+    (uni / "Redes").mkdir(parents=True)
+    (uni / "Redes" / "tema1.txt").write_text("contenido", encoding="utf-8")
+    fuera = tmp_path / "fuera"
+    (fuera / "proy").mkdir(parents=True)
+    (fuera / "secreto.txt").write_text("no debe salir", encoding="utf-8")
+    r = client.post(
+        "/api/config",
+        json={"carpeta_material": str(uni), "ruta_obsidian": str(tmp_path / "Boveda")},
+    )
+    assert r.status_code == 200
+    assert client.post("/api/materias", json={"nombre": "Redes"}).status_code == 201
+    return uni, fuera
+
+
+@pytest.mark.parametrize("materia", ["../fuera", "..%2ffuera", "..%2f..%2f", "%2e%2e", "/etc"])
+def test_escanear_material_no_acepta_rutas_del_cliente(client, tmp_path, materia):
+    _preparar_material(client, tmp_path)
+    r = client.get(f"/api/material/escanear?materia={materia}")
+    assert r.status_code in (404, 422)
+    assert "secreto" not in r.text and str(tmp_path) not in r.text
+
+
+def test_escanear_material_resuelve_contra_el_catalogo(client, tmp_path):
+    _preparar_material(client, tmp_path)
+    r = client.get("/api/material/escanear?materia=redes")
+    assert r.status_code == 200
+    assert [e["materia"] for e in r.json()["escaneos"]] == ["Redes"]
+    assert len(r.json()["escaneos"][0]["pendientes"]) == 1
+
+
+def test_sincronizar_stream_rechaza_asignatura_fuera_del_catalogo(client, tmp_path):
+    _preparar_material(client, tmp_path)
+    r = client.post("/api/material/sincronizar/stream", json={"materia": "../fuera"})
+    assert r.status_code == 404
+
+
+def test_proyectos_escanear_e_ingestar_no_aceptan_rutas_externas(client, tmp_path):
+    _, fuera = _preparar_material(client, tmp_path)
+    assert client.get("/api/proyectos/escanear?materia=../fuera").status_code == 404
+    r = client.post(
+        "/api/proyectos/ingestar",
+        json={"materia": "Redes", "nombre": "x", "ruta": str(fuera / "proy")},
+    )
+    assert r.status_code == 400
+    assert str(tmp_path) not in r.text
+    r = client.post(
+        "/api/proyectos/ingestar",
+        json={"materia": "../fuera", "nombre": "x", "ruta": str(fuera / "proy")},
+    )
+    assert r.status_code == 404
+    assert client.get("/api/proyectos").json()["proyectos"] == []
+
+
+def test_plugins_no_aceptan_carpetas_externas(client, tmp_path):
+    _, fuera = _preparar_material(client, tmp_path)
+    r = client.post("/api/plugins/config", json={"clave": "nodered", "carpeta": str(fuera)})
+    assert r.status_code == 400
+    r = client.post(
+        "/api/plugins/actualizar", json={"seleccion": "nodered", "carpeta_override": str(fuera)}
+    )
+    assert r.status_code == 400
+    assert str(tmp_path) not in r.text
+
+
+def test_errores_no_muestran_rutas_absolutas(client, tmp_path):
+    inexistente = tmp_path / "no_existe_nunca"
+    r = client.post(
+        "/api/config",
+        json={"carpeta_material": str(inexistente), "ruta_obsidian": str(tmp_path / "B")},
+    )
+    assert r.status_code == 400
+    assert str(tmp_path) not in r.text
+
+
+def test_error_inesperado_responde_generico(app, client):
+    from modular_learning.apps.api.dependencies import get_tutoria_service
+
+    class Roto:
+        def iniciar_sesion(self, **_):
+            raise RuntimeError("fallo interno en /srv/app/secreto.py")
+
+    app.dependency_overrides[get_tutoria_service] = lambda: Roto()
+    r = client.post("/api/tutoria/iniciar", json={"materia": "Redes", "tema": "ARP"})
+    assert r.status_code == 500
+    assert "/srv" not in r.text and "secreto" not in r.text
+
+
+def test_config_en_nube_no_devuelve_rutas(client, tmp_path, monkeypatch):
+    _preparar_material(client, tmp_path)
+    assert str(tmp_path) in client.get("/api/config").json()["carpeta_material"]
+    monkeypatch.setenv("ML_EN_NUBE", "1")
+    datos = client.get("/api/config").json()
+    assert datos["en_nube"] is True
+    assert datos["carpeta_material"] == "" and datos["ruta_obsidian"] == ""
+    assert str(tmp_path) not in str(datos)
+
+
+def test_eliminar_asignatura_dos_veces_no_da_500(client):
+    assert client.post("/api/materias", json={"nombre": "Temporal"}).status_code == 201
+    assert client.delete("/api/materias/temporal").status_code == 200
+    assert client.delete("/api/materias/temporal").status_code == 404

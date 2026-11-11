@@ -6,7 +6,7 @@ import os
 import re
 from typing import Any
 
-from modular_learning.core.ports.plugin_practico import PluginPracticoBase
+from modular_learning.core.ports.plugin_practico import PluginMetadatos, PluginPracticoBase
 from modular_learning.infrastructure.persistence.almacen import DocumentoJson
 
 
@@ -210,8 +210,34 @@ def formatear_resumen_dispositivo(datos: dict[str, Any]) -> str:
     return "\n".join(lineas)
 
 
+METADATOS = PluginMetadatos(
+    id="cisco",
+    nombre="Cisco Packet Tracer",
+    opcion_key="Cisco (Actividades)",
+    categoria="Redes y Telecomunicaciones",
+    descripcion=(
+        "Extrae topologías, VLANs, interfaces y enrutamiento desde show running-config "
+        "y comandos IOS."
+    ),
+    materia_defecto="tecnologias-de-conmutacion-i",
+    claves_seleccion=("cisco", "redes"),
+    tipos_archivo=("cisco", "redes"),
+    palabras_clave=("redes", "conmutacion", "cisco", "routing", "packet tracer"),
+    carpeta_convencional="Tecnologias de Conmutacion I",
+    etiqueta="Cisco",
+    titulo_sincronizacion="Sincronización de Redes y Packet Tracer",
+    texto_sin_contexto="Sin actividades registradas.",
+    limite_contexto=1000,
+    orden_sincronizacion=1,
+)
+
+
 class CiscoPlugin(PluginPracticoBase):
     """Adaptador práctico para Redes, Conmutación y Cisco Packet Tracer."""
+
+    @property
+    def metadatos(self) -> PluginMetadatos:
+        return METADATOS
 
     def __init__(self, memoria: DocumentoJson | None = None):
         self._memoria = memoria or DocumentoJson("plugins/cisco_memoria.json")

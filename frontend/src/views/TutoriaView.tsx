@@ -21,6 +21,7 @@ import type {
   FinalizarTutoriaResponse,
   SesionTutoriaResponse,
 } from '@/api/types'
+import { AvisoIA } from '@/components/AvisoIA'
 import { Markdown } from '@/components/Markdown'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -230,7 +231,7 @@ export function TutoriaView() {
       setResumenFinal(res)
       toast.success('Sesión guardada', {
         description: res.guardado_obsidian
-          ? 'La guía de repaso ya está en tu bóveda de Obsidian.'
+          ? 'La guía de repaso ya está en tus notas de Obsidian.'
           : 'Sesión completada.',
       })
     } catch (err) {
@@ -534,6 +535,7 @@ export function TutoriaView() {
                   <Input
                     value={dudaInput}
                     onChange={(e) => setDudaInput(e.target.value)}
+                    aria-label="Tu pregunta sobre este paso"
                     placeholder="Pregunta lo que no te quedó claro…"
                     className="text-xs"
                     disabled={enviandoDuda}
@@ -586,10 +588,11 @@ export function TutoriaView() {
             {/* Selector de Asignatura y Nivel */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <label htmlFor="tutoria-materia" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Asignatura
                 </label>
                 <select
+                  id="tutoria-materia"
                   value={materia}
                   onChange={(e) => { setMateria(e.target.value); setClaseId(undefined); }}
                   className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
@@ -603,10 +606,12 @@ export function TutoriaView() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Profundidad
+                <label htmlFor="tutoria-nivel" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Nivel de detalle
                 </label>
                 <select
+                  id="tutoria-nivel"
+                  aria-describedby="tutoria-nivel-ayuda"
                   value={nivel}
                   onChange={(e) => setNivel(e.target.value)}
                   className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
@@ -615,6 +620,9 @@ export function TutoriaView() {
                   <option value="INTERMEDIO">Intermedia: detalle técnico y ejemplos</option>
                   <option value="AVANZADO">Avanzada: casos límite y optimización</option>
                 </select>
+                <p id="tutoria-nivel-ayuda" className="mt-1 text-[11px] text-slate-500">
+                  Qué tan a fondo explica el tutor cada paso.
+                </p>
               </div>
             </div>
 
@@ -653,11 +661,12 @@ export function TutoriaView() {
 
             {/* Tema de estudio */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <label htmlFor="tutoria-tema" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <BookOpen className="h-3.5 w-3.5 text-indigo-500" />
                 Tema
               </label>
               <Input
+                id="tutoria-tema"
                 value={tema}
                 onChange={(e) => { setTema(e.target.value); setClaseId(undefined); }}
                 placeholder="Ej. Enrutamiento BGP"
@@ -684,7 +693,7 @@ export function TutoriaView() {
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    Empezar
+                    Empezar <AvisoIA />
                   </>
                 )}
               </Button>

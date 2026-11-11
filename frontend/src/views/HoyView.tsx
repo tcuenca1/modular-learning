@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Check } from 'lucide-react'
 import { api } from '@/api/client'
+import { AvisoIA } from '@/components/AvisoIA'
 import type {
   ClaseCronograma,
   EscaneoMaterial,
   GuiaResumen,
   MateriaStat,
   ResumenRepaso,
-  StatsResponse,
 } from '@/api/types'
 import type { ClaseFechada } from '@/lib/asignaturas'
 import {
@@ -21,6 +21,7 @@ import {
   inicioDelDia,
   parsearFecha,
 } from '@/lib/asignaturas'
+import { avanceGlobal, estadoHoy, pasosDeArranque, tieneCronograma } from '@/lib/hoy'
 import { cn } from '@/lib/utils'
 
 interface Asignatura {
@@ -29,6 +30,27 @@ interface Asignatura {
   siguiente?: ClaseCronograma
   fechaSiguiente?: Date
 }
+
+const PASOS = [
+  {
+    id: 'asignatura',
+    titulo: 'Crea una asignatura',
+    detalle: 'Por ejemplo, «Bases de Datos».',
+    to: '/asignaturas',
+  },
+  {
+    id: 'silabo',
+    titulo: 'Sube el sílabo',
+    detalle: 'La IA arma el cronograma de clases a partir de él.',
+    to: '/asignaturas',
+  },
+  {
+    id: 'tutoria',
+    titulo: 'Empieza una tutoría',
+    detalle: 'Elige una clase y estudia el tema paso a paso con ayuda de la IA.',
+    to: '/estudiar',
+  },
+] as const
 
 const formatoFecha = new Intl.DateTimeFormat('es', { weekday: 'long', day: 'numeric', month: 'long' })
 
@@ -39,7 +61,7 @@ function capitalizar(texto: string): string {
 /** Una marca por clase del cronograma: llenas las completadas, la siguiente resaltada. */
 function Regleta({ stat }: { stat: MateriaStat }) {
   return (
-    <div className="flex flex-wrap gap-[3px]" aria-label={`${stat.completados} de ${stat.total} clases`}>
+    <div role="img" className="flex flex-wrap gap-[3px]" aria-label={`${stat.completados} de ${stat.total} clases`}>
       {Array.from({ length: stat.total }, (_, i) => (
         <span
           key={i}
@@ -59,7 +81,6 @@ function Regleta({ stat }: { stat: MateriaStat }) {
 
 export function HoyView() {
   const [hoy] = useState(() => inicioDelDia(new Date()))
-  const [stats, setStats] = useState<StatsResponse | null>(null)
   const [asignaturas, setAsignaturas] = useState<Asignatura[] | null>(null)
   const [escaneos, setEscaneos] = useState<EscaneoMaterial[] | null>(null)
   const [errorEscaneo, setErrorEscaneo] = useState(false)
@@ -85,7 +106,6 @@ export function HoyView() {
           })
         )
         if (!activo) return
-        setStats(st)
         setAsignaturas(lista)
       } catch (e) {
         if (activo) setError(e instanceof Error ? e.message : String(e))
@@ -145,6 +165,10 @@ export function HoyView() {
   }, [asignaturas])
 
   const foco = ordenadas.find((a) => a.siguiente)
+  // Un solo criterio para contador, titular y listas: las clases de las asignaturas listadas
+  const avance = asignaturas ? avanceGlobal(asignaturas) : null
+  const estado = asignaturas ? estadoHoy(asignaturas) : null
+  const pasos = asignaturas ? pasosDeArranque(asignaturas) : []
   const pendientesMaterial = escaneos?.reduce((n, e) => n + e.pendientes.length, 0) ?? 0
   const conMaterial = escaneos?.filter((e) => e.pendientes.length > 0) ?? []
 
@@ -162,7 +186,7 @@ export function HoyView() {
       {guiasPorConfirmar.length > 0 && (
         <Link
           to={guiasPorConfirmar.length === 1 ? `/guia/${guiasPorConfirmar[0].id}/revision` : '/estudiar?tab=guia'}
-          className="group flex items-center justify-between gap-3 border-l-4 border-marcador bg-white px-4 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/60"
+          className="toque group flex items-center justify-between gap-3 border-l-4 border-marcador bg-white px-4 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/60"
         >
           <span className="min-w-0 truncate text-slate-700 dark:text-slate-300">
             {guiasPorConfirmar.length === 1 ? (
@@ -212,9 +236,12 @@ export function HoyView() {
             <div className="h-10 w-3/4 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
             <div className="h-4 w-1/3 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
           </div>
-        ) : foco ? (
+        ) : estado === 'pendiente' && foco ? (
           <>
-            <h1 className="mt-3 max-w-3xl text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl md:text-4xl lg:text-[2.6rem] lg:leading-[1.1] dark:text-slate-50 break-words">
+            <p className="mt-4 text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Siguiente clase
+            </p>
+            <h1 className="mt-1 max-w-3xl text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl md:text-4xl lg:text-[2.6rem] lg:leading-[1.1] dark:text-slate-50 break-words">
               Te toca <span className="marcador">{foco.siguiente!.tema}</span>
             </h1>
             <p className="mt-3 text-slate-600 dark:text-slate-400">
@@ -223,22 +250,67 @@ export function HoyView() {
             </p>
             <Link
               to={enlaceTutoria(foco.nombre, foco.siguiente!.tema, undefined, foco.siguiente!.id)}
-              className="mt-6 inline-flex items-center gap-2 rounded-md bg-indigo-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-800 dark:bg-indigo-400 dark:text-slate-950 dark:hover:bg-indigo-300"
+              className="toque mt-6 inline-flex items-center gap-2 rounded-md bg-indigo-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-800 dark:bg-indigo-400 dark:text-slate-950 dark:hover:bg-indigo-300"
             >
               Estudiar ahora <ArrowRight className="h-4 w-4" />
             </Link>
           </>
-        ) : (
+        ) : estado === 'al_dia' ? (
           <>
             <h1 className="mt-3 text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl md:text-4xl lg:text-[2.6rem] lg:leading-[1.1] dark:text-slate-50 break-words">
               No tienes clases pendientes.
             </h1>
             <p className="mt-3 text-slate-600 dark:text-slate-400">
-              Sube el sílabo de una asignatura para planificar el semestre.{' '}
-              <Link to="/asignaturas" className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300">
-                Ir a Asignaturas
+              Completaste todas las clases de tus cronogramas. Puedes repasar o revisar el{' '}
+              <Link to="/calendario" className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300">
+                calendario
               </Link>
+              .
             </p>
+          </>
+        ) : (
+          <>
+            <h1 className="mt-3 text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl md:text-4xl lg:text-[2.6rem] lg:leading-[1.1] dark:text-slate-50 break-words">
+              Aún no tienes clases cargadas.
+            </h1>
+            <p className="mt-3 text-slate-600 dark:text-slate-400">
+              Sigue estos tres pasos para empezar a estudiar.
+            </p>
+            <section aria-labelledby="primeros-pasos" className="mt-6 max-w-xl rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <h2 id="primeros-pasos" className="text-lg text-slate-900 dark:text-slate-100">
+                Primeros pasos
+              </h2>
+              <ol className="mt-3 space-y-3">
+                {PASOS.map((paso, i) => {
+                  const hecho = pasos[i]?.hecho ?? false
+                  return (
+                    <li key={paso.id} className="flex items-start gap-3 text-sm">
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs',
+                          hecho
+                            ? 'border-indigo-700 bg-indigo-700 text-white dark:border-indigo-400 dark:bg-indigo-400 dark:text-slate-950'
+                            : 'border-slate-300 text-slate-500 dark:border-slate-700'
+                        )}
+                      >
+                        {hecho ? <Check className="h-3 w-3" /> : i + 1}
+                      </span>
+                      <span className="min-w-0">
+                        <Link
+                          to={paso.to}
+                          className="font-medium text-indigo-700 underline underline-offset-4 dark:text-indigo-300"
+                        >
+                          {paso.titulo}
+                        </Link>
+                        {hecho && <span className="sr-only"> (hecho)</span>}
+                        <span className="block text-slate-500 dark:text-slate-400">{paso.detalle}</span>
+                      </span>
+                    </li>
+                  )
+                })}
+              </ol>
+            </section>
           </>
         )}
       </section>
@@ -248,26 +320,35 @@ export function HoyView() {
         <section>
           <div className="flex items-baseline justify-between border-b border-slate-200 pb-2 dark:border-slate-800">
             <h2 className="text-xl text-slate-900 dark:text-slate-100">Tus asignaturas</h2>
-            {stats && (
+            {avance && (
               <span className="cifra text-xs text-slate-500">
-                {stats.temas_completados}/{stats.total_temas} clases ({Math.round(stats.porcentaje_global)}%)
+                {avance.completados}/{avance.total} clases ({avance.porcentaje}%)
               </span>
             )}
           </div>
 
+          {asignaturas && asignaturas.length === 0 && (
+            <p className="py-5 text-sm text-slate-500 dark:text-slate-400">
+              Todavía no hay asignaturas. Crea la primera desde{' '}
+              <Link to="/asignaturas" className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300">
+                Asignaturas
+              </Link>
+              .
+            </p>
+          )}
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
             {ordenadas.map((a) => (
               <li key={a.nombre} className="grid gap-x-6 gap-y-2 py-5 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <div className="min-w-0 space-y-2">
                   <div className="flex items-baseline gap-3">
                     <h3 className="font-medium text-slate-900 dark:text-slate-100">{a.nombre}</h3>
-                    {a.stat && (
+                    {tieneCronograma(a) && a.stat && (
                       <span className="cifra text-xs text-slate-500">
                         {a.stat.completados}/{a.stat.total} ({Math.round(a.stat.porcentaje)}%)
                       </span>
                     )}
                   </div>
-                  {a.stat ? (
+                  {tieneCronograma(a) && a.stat ? (
                     <>
                       <Regleta stat={a.stat} />
                       <p className="truncate text-sm text-slate-500 dark:text-slate-400">
@@ -279,7 +360,11 @@ export function HoyView() {
                   ) : (
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       Aún sin cronograma.{' '}
-                      <Link to="/asignaturas" className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300">
+                      <Link
+                        to={`/asignaturas?materia=${encodeURIComponent(a.nombre)}`}
+                        aria-label={`Subir sílabo de ${a.nombre}`}
+                        className="toque inline-flex items-center text-indigo-700 underline underline-offset-4 dark:text-indigo-300"
+                      >
                         Subir sílabo
                       </Link>
                     </p>
@@ -288,7 +373,7 @@ export function HoyView() {
                 {a.siguiente && (
                   <Link
                     to={enlaceTutoria(a.nombre, a.siguiente.tema, undefined, a.siguiente.id)}
-                    className="self-center text-sm text-indigo-700 hover:underline hover:underline-offset-4 dark:text-indigo-300"
+                    className="toque inline-flex items-center justify-self-start self-center text-sm text-indigo-700 hover:underline hover:underline-offset-4 dark:text-indigo-300"
                   >
                     Estudiar →
                   </Link>
@@ -312,12 +397,12 @@ export function HoyView() {
                 </p>
                 <Link
                   to="/estudiar?tab=repaso"
-                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  className="toque inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   Repasar ahora
                 </Link>
               </div>
-            ) : stats && stats.temas_completados > 0 ? (
+            ) : avance && avance.completados > 0 ? (
               <div className="mt-4 space-y-3">
                 <p className="text-sm text-slate-500">
                   Nada pendiente hoy
@@ -331,9 +416,9 @@ export function HoyView() {
                 </p>
                 <Link
                   to="/estudiar?tab=repaso"
-                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  className="toque inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
-                  Preguntas nuevas
+                  Preguntas nuevas <AvisoIA />
                 </Link>
               </div>
             ) : (
@@ -370,7 +455,7 @@ export function HoyView() {
                   </ul>
                   <Link
                     to="/asignaturas?tab=material"
-                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="toque inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     Procesar {pendientesMaterial} {pendientesMaterial === 1 ? 'archivo' : 'archivos'}
                   </Link>

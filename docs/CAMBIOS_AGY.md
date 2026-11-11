@@ -33,6 +33,534 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P42. Tests de lo que hoy está sin cubrir
+
+- **Commit:** 999f630 `test(core): P42 tests de sincronizador, contrato de repositorios y cobertura de plugins`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/tests/unit/domain/test_sincronizador.py (nuevo)
+  - backend/tests/integration/infrastructure/test_contrato_repositorios.py (nuevo)
+  - backend/tests/unit/application/fake_adapters.py
+
+### Qué hice
+- **`sincronizador.py`:** 13 tests unitarios con `FakeLLM`: cronograma vacío (no llama a la IA), el prompt lleva cronograma y apuntes, coincidencia por fecha, por tema contenido en ambos sentidos y con varias clases, sin coincidencia (primera pendiente y, sin pendientes, la última clase), referencia vacía, duplicados, vacíos y valores no textuales, elementos mal formados, respuesta que no es lista, y los dos fallos del LLM (JSON estructurado caído → se parsea el texto; todo cae → 0 y aviso en el log). El módulo no se usa en ningún otro sitio de `src` (código sin llamadores).
+- **`plugins.py`:** ya lo cubrían los tests de P35 (plugin falso, sin `hasattr`); no escribí más.
+- **Contrato:** `test_contrato_repositorios.py` parametriza una fixture con el fake en memoria y el adaptador JSON en disco (`AlmacenArchivos` sobre `tmp_path`) y ejecuta las mismas aserciones: 12 tests de `CronogramaRepo` (inexistente, ids y lectura por slug/nombre, coincidencia exacta, próximas clases, marcar por id/tema, detalle, `actualizar_cronograma`, material transversal, parciales, eliminar, listar) y 3 de `MateriaRepo` (catálogo vacío, alta/actualización por slug, idempotencia, eliminar). Son 30 casos.
+- **Divergencia hallada y corregida:** el fake de `actualizar_cronograma` (de P32) modificaba en sitio la lista guardada, de modo que si la transformación fallaba quedaban cambios a medias; el adaptador real trabaja sobre una copia leída del disco. Ahora el fake usa `copy.deepcopy`. No hubo divergencias en el resto de métodos.
+
+### Cómo lo verifiqué
+- pytest: 293 passed, 2 skipped
+- ruff check / ruff format: ok (`149 files already formatted`)
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: ok (66 tests); el frontend no cambió
+- Cobertura (`pytest --cov=modular_learning.core --cov-report=term`, con `pytest-cov` instalado solo en el venv; no se añadió al repo): `core/domain/sincronizador.py` **0 % → 100 %** (objetivo ≥ 80 %); `core/application/plugins.py` 60 % → 98 % (con los tests de P35); `core` en conjunto 93 %.
+- Tests nuevos:
+  - tests/unit/domain/test_sincronizador.py (13 tests)
+  - tests/integration/infrastructure/test_contrato_repositorios.py (15 funciones × 2 = 30 casos; 12 de cronograma y 3 de materias)
+- Prueba manual: no aplica (solo tests). Comprobé que el test de contrato falla con el fake anterior y pasa con la copia profunda.
+
+### Dudas o hallazgos
+- `sincronizador.py` no tiene llamadores: o falta conectarlo (la ingesta ya enriquece subtemas por otro camino) o se puede borrar; conviene decidirlo (queda en «Hallazgos»).
+- `obtener_cronograma` del fake devuelve la lista viva (mutarla cambia lo guardado) mientras que el adaptador real devuelve una copia nueva; hoy ningún test lo aprovecha, pero un servicio que mutara el resultado sin guardar pasaría los tests unitarios y fallaría en producción.
+
+### Revisión de Claude
+
+---
+
+## P41. Textos sin jerga y acciones con IA avisadas
+
+- **Commit:** 87423c1 `feat(web): P41 textos sin jerga y avisos de uso de IA`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/lib/rutas.ts, frontend/src/lib/rutas.test.ts (nuevos)
+  - frontend/src/components/AvisoIA.tsx (nuevo)
+  - frontend/src/components/layout/Sidebar.tsx
+  - frontend/src/views/{ConfigView,GuiaView,HoyView,MaterialView,PluginsView,QuizView,SilabosView,TutoriaView}.tsx
+
+### Qué hice
+- **Jerga:** «Bóveda de Obsidian» pasa a «Carpeta de notas (Obsidian)», con la ayuda «Aquí se guardan las notas y las guías de cada tutoría: es la carpeta de tu bóveda en la app Obsidian.». «Cortes de parcial» pasa a «Fin de cada parcial» con su línea de ayuda («Elige la última clase de cada parcial…»), y los textos que dependían de «corte» se ajustaron (botones «+ Definir parcial», «+ Añadir / editar parciales», «Guardar parcial» y avisos). «Profundidad» pasa a «Nivel de detalle», con «Qué tan a fondo explica el tutor cada paso.» enlazada con `aria-describedby`.
+- **Rutas:** `ultimoTramo` (POSIX y Windows) se usa donde se mostraba una ruta del equipo: carpeta del plugin, destino de la nota al subir un archivo, ruta del proyecto candidato, nota de Obsidian del proyecto, nota del material registrado y el aviso «Guardado en…» del sílabo. La ruta completa queda en el `title`. Los campos editables de Ajustes conservan la ruta entera (hay que poder editarla).
+- **IA:** componente `AvisoIA` («· usa IA») en «Empezar» (tutoría), «Generar guía», «Preguntas nuevas» (Repaso y el enlace de Hoy), «Extraer clases» y «Procesar nuevos». Añadí los dos últimos por ser acciones que llaman a la IA aunque la tarea solo citaba los tres primeros como ejemplos.
+- **Iconos:** Hoy usa `ListChecks` en vez del sol, que ya es el del tema claro.
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint sin avisos, build ok, vitest 66 passed (3 nuevos)
+- `git grep -n "Bóveda de Obsidian\|Cortes de parcial\|Cortes de Parcial\|Profundidad\|Definir corte\|Guardar corte" -- frontend/src`: sin resultados. No toqué `docs/manual/` (documentación generada en D3), donde esos textos siguen apareciendo.
+- Tests nuevos: frontend/src/lib/rutas.test.ts (rutas POSIX y Windows, separadores finales y repetidos, vacíos)
+- Prueba manual (servidor local con copia de `data/examples`, carpeta de material de prueba y Chromium; leí los textos de cada vista):
+  - Ajustes › Carpetas: «Carpeta de notas (Obsidian)» y su ayuda.
+  - Tutoría: «Nivel de detalle» con la ayuda y «Empezar · usa IA» (captura revisada a ojo).
+  - Estudiar › Guía: «Fin de cada parcial», «+ Definir parcial» y el botón «Generar guía · usa IA».
+  - Repaso y Hoy: «Preguntas nuevas · usa IA». Asignaturas › Clases: «Fin de cada parcial» y «+ Añadir / editar parciales»; el panel de sílabo, «Extraer clases · usa IA»; Material: «Procesar nuevos · usa IA».
+  - Iconos: Hoy `lucide-list-checks`, tema claro `lucide-sun`.
+  - Ajustes › Plugins con una carpeta configurada (`…/uni/Redes/laboratorios`): la tarjeta muestra «laboratorios» y el `title` lleva la ruta completa.
+  - axe-core 4.10.2: 0 nodos serious/critical a 1100 y 375 px; medición táctil: 0 controles bajo 44 px.
+  No vi en pantalla las rutas de «Nota de Obsidian», proyectos candidatos ni el destino de un archivo subido, porque exigen ingestar con IA; ahí solo está cubierto el cambio de código y el test de `ultimoTramo`.
+
+### Dudas o hallazgos
+- Quedan otros textos técnicos que no estaban en la tarea («Opción A», «Trazabilidad Fija», «Fichas Técnicas Universales», «Re-analizar archivos y actualizar ficha en Obsidian»).
+- «Obsidian» sigue apareciendo en varios textos y avisos: se explica en Ajustes, pero un estudiante nuevo no sabe qué es hasta ahí.
+- La clave del cronograma sigue llamándose `parciales` con `hasta` en la API y los datos; solo cambió el texto visible.
+
+### Revisión de Claude
+
+---
+
+## P40. Rendimiento del frontend
+
+- **Commit:** 8216b58 `perf(web): P40 vistas con React.lazy y KaTeX solo en woff2`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/App.tsx
+  - frontend/vite.config.ts
+
+### Qué hice
+- `App.tsx`: las 6 vistas y la hoja imprimible se importan con `React.lazy`; el `<Outlet />` del marco (y la ruta de impresión) van dentro de `Suspense` con un contenedor de reserva de `60vh` (sin saltos de diseño). El marco (barra lateral, rutas, avisos) sigue en el paquete inicial.
+- `vite.config.ts`: plugin `katexSoloWoff2` que, al transformar la hoja de KaTeX, elimina las rutas `.woff` y `.ttf` de cada `@font-face`. El build pasa de 58 archivos de fuente KaTeX (19 woff2 + 20 woff + 20 ttf) a 19 woff2. Los navegadores actuales usan woff2.
+- Markdown (react-markdown, remark, rehype y KaTeX) quedó en un chunk propio que solo bajan las vistas que lo usan; Hoy no.
+
+Tamaños de `npm run build` (sin comprimir / gzip): antes, un solo `index` de **947 KB / 275 KB**. Ahora: `index` 261 KB / 81 KB, `jsx-runtime` 84 KB / 27 KB (React), vistas: Hoy 14 KB, Calendario 8 KB, Ajustes 17 KB, Estudiar 50 KB, Asignaturas 66 KB, revisión de guía 8 KB, impresión 5 KB, y `Markdown` 431 KB / 129 KB (carga diferida). **En la ruta Hoy se descargan 6 archivos JS: 353 KB sin comprimir (114 KB transferidos), menos de los 400 KB pedidos.**
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint sin avisos, build ok (sin aviso de chunks > 500 KB), vitest 63 passed
+- Tests nuevos: ninguno (es empaquetado/carga; no hay lógica nueva que probar con vitest).
+- Prueba manual / Lighthouse (lighthouse 13.6.0, `--only-categories=performance --form-factor=mobile`, 3 corridas, servidor local con gzip y caché de P33; el Chromium de Playwright):
+
+| | rendimiento | FCP | LCP | TBT | CLS | transferido |
+|---|---|---|---|---|---|---|
+| antes (inicio de P40) | 87 / 88 / 65 | 1,5 s | 3,7 / 3,7 / 3,5 s | 160 / 140 / 180 ms | 0 / 0 / 0,658 | 415 KiB |
+| después | 90 / 92 / 91 | 1,5-1,6 s | 3,5 / 3,3 / 3,4 s | 110 / 70 / 80 ms | 0 / 0 / 0 | 256 KiB |
+
+  La puntuación de 55 y el LCP de 7,9 s del informe de origen se midieron antes de P33 (sin gzip ni caché); con P33 aplicado ya se medían 87-88, y P40 sube lo demás y quita la corrida con CLS alto (la corrida «antes #3» tuvo CLS 0,658, que no pude explicar; no se repitió después). El LCP sigue en 3,3-3,5 s: lo domina la hoja de Google Fonts (bloquea el render) con la CPU a 4×.
+- Recorrido en Chromium: Hoy, Estudiar (3 pestañas), Calendario, Asignaturas, Ajustes (2 pestañas) y las rutas antiguas (`/tutoria` → `/estudiar?...`) cargan sus chunks sin errores de consola. KaTeX: con una guía de prueba (copia de datos temporal) en `/guia/<id>/imprimir` se renderizaron `E = mc² + ∫…` y `a²+b²=c²` (2 fórmulas `.katex`), y se descargaron 3 fuentes KaTeX, todas `.woff2` con estado 200; la captura se ve correcta (revisada a ojo).
+
+### Dudas o hallazgos
+- Las fuentes de Google (Fraunces, IBM Plex) siguen cargándose de fuentes externas con una hoja bloqueante; servirlas en local (p. ej. fontsource, WOFF2 con `preload`) probablemente mejoraría FCP/LCP, pero añade dependencias y no estaba en la tarea.
+- Las pruebas de Lighthouse son de un entorno de contenedor con una máquina distinta a la del usuario: úsalas como orden de magnitud.
+- La primera visita a una vista nueva hace una petición extra (chunk); en la caché de producción (`/assets/` con caché de un año) solo ocurre una vez.
+
+### Revisión de Claude
+
+---
+
+## P39. Objetivos táctiles y calendario en móvil
+
+- **Commit:** 04e710c `feat(web): P39 objetivos tactiles de 44 px y calendario util en movil`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/index.css
+  - frontend/src/lib/calendario.ts, frontend/src/lib/calendario.test.ts (nuevos)
+  - frontend/src/components/layout/Sidebar.tsx
+  - frontend/src/views/{CalendarioView,HoyView,SilabosView}.tsx
+
+### Qué hice
+Medí primero con un script de JS en Chromium con puntero táctil (`hasTouch`, `isMobile`, 375 px; se cumple `(pointer: coarse)`): **79 controles por debajo de 44 px** entre Hoy (16), Calendario (8), Asignaturas › Clases (23), Material (16) y Proyectos (16): toggles de tema 26×26, menú 36×36, flechas del calendario 32×32, pestañas, botones de acción 28-32 px, «Subir sílabo» 74×18, «Estudiar →» 343×20, etc.
+- `index.css`: bajo `@media (pointer: coarse)`, `button` (salvo el cierre de Sonner), `[role=tab]`, `select`, `summary` y los `input` de texto tienen `min-height: 44px`; botones y pestañas también `min-width: 44px`. Para enlaces de acción hay una clase `.toque` (mínimo 44×44), aplicada a la marca, a los enlaces del menú, a los de Hoy («Estudiar ahora», «Estudiar →», «Subir sílabo», «Preguntas nuevas», «Repasar ahora», «Procesar…», aviso de guías) y a las filas de clase del calendario. Fuera de `@layer`, para ganar a las utilidades.
+- Calendario: `lib/calendario.ts` (`proximaClase`, `mesInicial`): abre en el mes actual si tiene clases; si no, en el mes de la próxima clase pendiente (o, sin nada por delante, del atraso más antiguo). Botón «Ir a la próxima clase» cuando se está en otro mes. Las filas de clase ya eran enlaces a la tutoría; ahora miden ≥ 44 px (`py-2` en móvil).
+- Cortes de parcial: la cabecera de la tarjeta apila texto y botón en pantallas estrechas. `<code>` pasa a `overflow-wrap: anywhere` (rutas largas de la ficha de Proyectos).
+- Dependencia que apareció: con el calendario ya abierto en octubre (donde hay clases), axe detectó que las clases completadas se atenuaban con `opacity-55` (contraste 2,3-3,3). Las sustituí por color secundario y tachado, sin opacidad.
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint sin avisos, build ok, vitest 63 passed (8 nuevos)
+- Tests nuevos: frontend/src/lib/calendario.test.ts (`proximaClase`: próxima por delante, la de hoy, atraso, todo completado; `mesInicial`: mes actual con clases, mes de la próxima, mes del atraso, sin clases)
+- Prueba manual (servidor local, copia de `data/examples`, Chromium con puntero táctil a 375 px):
+  - Medición con JS de controles interactivos visibles de menos de 44 px: **0** en Hoy, Calendario, Asignaturas › Clases, Material y Proyectos (antes 79); `scrollWidth` = 375 en las cinco.
+  - Calendario: abre en «Octubre de 2026» (2 clases, 1 pendiente) en vez de noviembre vacío; las filas miden 72 px; al pasar a noviembre aparece «Ir a la próxima clase» y al pulsarlo vuelve a octubre.
+  - Capturas a 375 px (revisadas a ojo): Calendario, tarjeta «Cortes de parcial» (texto y botón apilados, cabe) y la ficha de Proyectos (la ruta de Obsidian se parte en varias líneas y `scrollWidth` = 375).
+  - axe-core 4.10.2: 0 nodos serious/critical a 375 y a 1100 px en las 10 vistas y pestañas, claro y oscuro (tras corregir las clases completadas).
+  No probé en un teléfono real.
+
+### Dudas o hallazgos
+- En la cabecera móvil, con los toggles de tema a 44 px, la marca queda truncada («Modular L…»). Podría quitarse el selector de tema de la cabecera (ya está dentro del cajón); lo dejé porque la tarea pedía los toggles a 44 px.
+- Los enlaces dentro de una frase (p. ej. «Sube un sílabo» en el calendario vacío) quedan exentos de los 44 px; solo los enlaces de acción lo cumplen.
+- Con una asignatura de 80 letras, Hoy desborda horizontalmente a 375 px (la lista de asignaturas no parte el nombre). No es de esta tarea; anotado en «Hallazgos».
+- En pantallas táctiles anchas (tablet, ≥ 1024 px) la cuadrícula mensual también usa los mínimos de 44 px, así que las celdas con varias clases crecen.
+
+### Revisión de Claude
+
+---
+
+## P38. Accesibilidad AA
+
+- **Commit:** 5677fb0 `fix(web): P38 accesibilidad AA (etiquetas, foco, contraste, menu y encabezados)`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/index.css, frontend/src/App.tsx
+  - frontend/src/components/{ThemeToggle.tsx,layout/Sidebar.tsx,ui/card.tsx}
+  - frontend/src/views/{AsignaturasView,CalendarioView,ConfigView,HoyView,MaterialView,SilabosView,TutoriaView}.tsx
+  - frontend/src/lib/contraste.test.ts (nuevo)
+
+### Qué hice
+Medí primero con axe-core 4.10.2 (reglas WCAG 2 A/AA y 2.1 A/AA) en Hoy, Estudiar (Tutoría, Repaso, Guía), Calendario, Asignaturas (Clases, Material, Proyectos) y Ajustes (Carpetas, Plugins), en claro y oscuro: **96 nodos serious/critical** (`color-contrast`, `select-name` y 1 `aria-prohibited-attr`).
+- **Contraste:** `slate-400` y `slate-500` se usan como texto secundario con el mismo valor en ambos temas, y un solo color no llega a 4,5:1 sobre papel claro y sobre grafito a la vez. Ahora son variables por tema (`--ml-slate-400/500` en `:root` y `html.dark`): claro `#6f6757` / `#645c4e`, oscuro `#aba291` / `#9c9381`. `rose-600` (texto de «Eliminar…»): `#c70036` en claro y `#ff6384` en oscuro. `indigo-400` (verde de acento, «+ Definir corte» en oscuro): `#63a37c`. Los días de otros meses del calendario pasan a `dark:text-slate-500`.
+- **Etiquetas:** `htmlFor`/`id` en Asignatura, Profundidad y Tema de Tutoría; `aria-label` en el campo de la duda; el selector de Asignaturas pasa de `<span>` a `<label htmlFor>`; ídem el select del panel de sílabo y los 2 inputs de Ajustes; `aria-label` en los campos de crear y renombrar asignatura.
+- **Foco visible:** `select:focus-visible` con contorno de 2 px, definido fuera de `@layer` para ganar a `focus:outline-none`.
+- **Menú móvil:** `aria-expanded` y `aria-controls` en el botón, el cajón es un `dialog` modal, al abrir el foco va al botón «Cerrar menú», Escape cierra y devuelve el foco al botón. Los botones de tema ya tenían `aria-pressed` en la cabecera; lo añadí a las tarjetas de tema de Ajustes (más `role="group"`).
+- **Encabezados:** `CardTitle` pasa de `h3` a `h2` por defecto (prop `as`); las tarjetas por asignatura de Material usan `h3`. **Enlace «Saltar al contenido»** al inicio de la página y `<main id="contenido" tabIndex={-1}>`. `Regleta` de Hoy con `role="img"`.
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint sin avisos, build ok, vitest 55 passed (8 nuevos)
+- Tests nuevos: frontend/src/lib/contraste.test.ts (lee `index.css` y comprueba ≥ 4,5:1 de los textos secundarios, el rojo y el verde en ambos temas, y del texto oscuro sobre el verde de acento)
+- Prueba manual (servidor local, copia de `data/examples`, Chromium headless). axe-core 4.10.2 salió del paquete npm `axe-core@4.10.2` porque cdnjs devolvió 403 desde este entorno (misma versión del mismo producto). Resultado tras los cambios: **0 nodos serious/critical** en las 10 vistas/pestañas × claro y oscuro, a 1100 px y a 375 px, y también con el menú móvil abierto. Además comprobé por script:
+  - Primer Tab muestra «Saltar al contenido» y Enter deja el foco en `#contenido`.
+  - Menú: `aria-expanded` false → true, foco en «Cerrar menú»; Escape cierra, `aria-expanded` vuelve a false y el foco regresa a «Abrir menú».
+  - Temas: `aria-pressed` cambia de Sistema a Oscuro, en cabecera y en Ajustes.
+  - Select enfocado con teclado: `outline: solid 2px rgb(47,117,80)`.
+  - Etiquetas: `tutoria-materia ← Asignatura`, `tutoria-nivel ← Profundidad`, `tutoria-tema ← Tema`, `config-carpeta-material ← Carpeta de material`, `config-ruta-obsidian ← Bóveda de Obsidian`.
+  - Orden de encabezados sin saltos en las 10 vistas/pestañas (antes h1→h3 en 6).
+  No probé con un lector de pantalla real ni los estados que necesitan Gemini (sesión de tutoría en curso, resultados de quiz).
+
+### Dudas o hallazgos
+- axe solo mide lo automatizable (~30-40 % de WCAG): faltan revisión con lector de pantalla y orden de foco manual.
+- El cajón móvil lleva `aria-modal` pero no atrapa el foco con Tab (puede salir del cajón); hacerlo bien exige una pequeña utilidad de trampa de foco.
+- Al cambiar los tokens `slate-400/500` y `indigo-400` cambian también bordes, iconos y fondos que los usan (p. ej. iconos del menú en claro, algo más oscuros); revisé capturas de Hoy (claro y oscuro) y de Calendario (oscuro) después del cambio y se ven coherentes (texto secundario legible, verde de acento más claro en oscuro); el resto de vistas solo las pasé por axe, sin revisión visual.
+- `h3`/`h4` literales de algunas vistas (Quiz, Tutoría en sesión) no se recorrieron: dependen de estados con IA.
+
+### Revisión de Claude
+
+---
+
+## P37. Flujo «Nueva asignatura» y selector
+
+- **Commit:** 52167fa `fix(web): P37 flujo Nueva asignatura y selector sin desbordes`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/views/AsignaturasView.tsx
+  - frontend/src/views/SilabosView.tsx
+
+### Qué hice
+Reproduje con una copia de `data/examples` y Chromium headless, con una asignatura de 80 letras: Enter no guardaba; tras crear «Fisica II» el panel Clases quedaba en blanco; tras recargar volvía a «Arquitectura de Software»; el panel de sílabo abría con «Nueva asignatura…»; `scrollWidth` era 1190 px a 375 px y 1590 px a 1100 px.
+- `AsignaturasView`: Enter guarda y Escape cancela (en crear y en renombrar), el botón pasa a «Guardando…» y se deshabilita, el aviso de éxito añade el siguiente paso («sube su sílabo o añade clases en la pestaña Clases»), el nombre admite 80 caracteres y la asignatura activa se refleja en la URL (`?materia=<slug>`), por lo que la nueva queda seleccionada y sobrevive a recargas. Sin asignaturas, el texto indica crear la primera.
+- Causa del panel en blanco: `SilabosView` embebido cargaba su catálogo una sola vez y no conocía la asignatura recién creada. Ahora recarga el catálogo (una vez por asignatura) cuando la activa no está en su lista; así aparece el estado vacío con «Subir sílabo» y «Añadir clase».
+- El panel de sílabo parte de la asignatura activa (se sincroniza al cambiar la activa).
+- Desbordes: el contenedor del selector y el `<select>` llevan `min-w-0 max-w-full` y truncan con puntos suspensivos; el título de la tarjeta, y los botones «Vaciar cronograma…» y «Eliminar asignatura…» de la zona peligrosa, parten los nombres largos (`overflow-wrap: anywhere`).
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint sin avisos, build ok, vitest 47 passed
+- Tests nuevos: ninguno. El comportamiento está en las vistas y el repo no tiene jsdom/Testing Library (está en «Para decidir con el usuario»), por lo que lo verifiqué en el navegador.
+- Prueba manual (servidor local, copia de `data/examples`, Chromium headless; leí los textos y revisé la captura a 375 px):
+  - Con una asignatura llamada `X`×80: `document.documentElement.scrollWidth <= innerWidth` en Asignaturas › Clases, Material y Proyectos, a 375 px (375/375) y a 1100 px (1100/1100). Antes: 1190 y 1590. En la captura a 375 px el selector muestra el nombre truncado con «…» y la tarjeta parte el título en varias líneas.
+  - Nueva asignatura «Quimica v1» con Enter: durante el guardado el botón dice «Guardando…» y está deshabilitado; aparece el aviso «Asignatura "Quimica v1" creada / Ahora sube su sílabo…»; queda seleccionada (`quimica-v1`, URL `?materia=quimica-v1`); la pestaña Clases muestra «No hay clases registradas en este cronograma» con «Subir sílabo»; tras recargar sigue seleccionada.
+  - Al abrir «Subir sílabo» el segundo select vale «Quimica v1» (antes `__nueva__`).
+  No probé modo oscuro ni un dispositivo táctil real.
+
+### Dudas o hallazgos
+- Con 0 clases, «Subir sílabo» aparece dos veces (cabecera de la tarjeta y estado vacío), como ya decía el informe del usuario novato; la tarea no pedía quitarlo.
+- `SilabosView` conserva su propia lista de asignaturas y varios estados duplicados con `AsignaturasView`; el arreglo es un parche (recarga puntual), no una unificación.
+- En la zona estrecha (375 px) la tarjeta «Cortes de parcial» sigue apretada; es parte de P39.
+
+### Revisión de Claude
+
+---
+
+## P36. Pantalla Hoy coherente y con guía de arranque
+
+- **Commit:** d1f658e `fix(web): P36 pantalla Hoy coherente y con guia de arranque`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/lib/hoy.ts (nuevo)
+  - frontend/src/lib/hoy.test.ts (nuevo)
+  - frontend/src/views/HoyView.tsx
+
+### Qué hice
+Reproduje con una copia de `data/examples` (catálogo de 5 asignaturas sin cronograma + el cronograma de ejemplo, que no pertenece al catálogo): Hoy mostraba «No tienes clases pendientes.», «1/2 clases (50%)» y 5 veces «Aún sin cronograma». La causa: el contador salía de `/api/stats`, que suma todos los cronogramas (incluso los huérfanos), mientras que el titular y las listas solo miran las asignaturas del catálogo.
+- Criterio único (`lib/hoy.ts`): solo cuentan las clases de las asignaturas listadas. `avanceGlobal` calcula el contador (y es `null` si no hay clases: no se muestra) y `estadoHoy` decide el titular: `sin_asignaturas` / `sin_cronogramas` → «Aún no tienes clases cargadas.», `pendiente` → «Te toca …», `al_dia` → «No tienes clases pendientes.». El estado de «Repaso» usa el mismo avance.
+- «Siguiente clase»: etiqueta sobre el titular cuando hay clase pendiente (el titular y la línea con asignatura y fecha ya existían).
+- Sin datos: tarjeta «Primeros pasos» con 3 pasos enlazados (crear asignatura, subir sílabo, empezar tutoría) que marca los ya hechos; si el catálogo está vacío, «Tus asignaturas» lo explica.
+- «Subir sílabo»: un enlace por asignatura sin cronograma con `aria-label="Subir sílabo de <asignatura>"`; lleva a `/asignaturas?materia=<asignatura>` (queda seleccionada). Se mantiene el texto visible «Subir sílabo» para no recargar la lista.
+- Se quitó el estado `stats` de la vista (ya no se usa); `/api/stats` sigue usándose para el avance por asignatura.
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok (`147 files already formatted`)
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint sin avisos, build ok, vitest 47 passed (10 nuevos)
+- Tests nuevos (frontend/src/lib/hoy.test.ts): `avanceGlobal` (suma, null sin clases, caso del cronograma huérfano), `estadoHoy` (4 estados), coherencia contador-titular, `pasosDeArranque`, `tieneCronograma`
+- Prueba manual: servidor local (`uvicorn`, copia de `data/examples` en una carpeta temporal) y Chromium headless a 1100 px; revisé capturas y leí el texto de la página:
+  - Antes: «No tienes clases pendientes.», contador «1/2 clases (50%)» y 5× «Aún sin cronograma».
+  - Datos de ejemplo (5 asignaturas sin cronograma): «Aún no tienes clases cargadas.», sin contador, tarjeta «Primeros pasos» con el paso 1 marcado, 5 enlaces «Subir sílabo de …».
+  - Con `Ejemplo Asignatura` en el catálogo (1 de 2 completadas): etiqueta «SIGUIENTE CLASE», «Te toca Modelado de Dominio…», «1/2 clases (50%)» y sin tarjeta.
+  - Con las 2 completadas: «No tienes clases pendientes.» y «2/2 clases (100%)».
+  - Catálogo vacío: «Aún no tienes clases cargadas.», tarjeta con 0 pasos hechos y «Todavía no hay asignaturas».
+  - El enlace «Subir sílabo de Programacion Web» abre `/asignaturas?materia=Programacion%20Web` con esa asignatura seleccionada.
+  No revisé el modo oscuro ni el ancho móvil (P38 y P39 los cubren).
+
+### Dudas o hallazgos
+- `/api/stats` sigue sumando cronogramas que no pertenecen al catálogo (por eso se contaba mal); Progreso/otras vistas que usen `total_temas` verían la misma discrepancia. No lo toqué: no estaba en la tarea.
+- Un cronograma huérfano (sin asignatura en el catálogo) no se muestra en ningún sitio de Hoy; sigue visible en Calendario.
+
+### Revisión de Claude
+
+---
+
+## P35. Plugins sin nombres de asignatura escritos a mano
+
+- **Commit:** a82debf `refactor(core): P35 plugins sin nombres de asignatura ni hasattr`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/core/ports/plugin_practico.py
+  - backend/src/modular_learning/core/application/plugins.py
+  - backend/src/modular_learning/infrastructure/plugins/{cisco,nodered,web}.py
+  - backend/tests/unit/application/fake_adapters.py
+  - backend/tests/unit/application/test_plugins_service.py
+
+### Qué hice
+- `PluginPracticoBase` declara ahora lo que el servicio usa: `metadatos` (nuevo dataclass `PluginMetadatos`: id, nombre, categoría, materia por defecto, palabras clave, claves de selección, tipos de archivo, carpeta convencional, extensión de archivos y textos de presentación), `analizar_carpeta` (abstracto) y `analizar_archivo` (por defecto devuelve `None`).
+- Cada plugin declara el suyo (`METADATOS` en `cisco.py`, `nodered.py`, `web.py`): ahí viven ahora «Internet de las Cosas», «Programacion Web» y «Tecnologias de Conmutacion I». `NodeRedPlugin.analizar_archivo` delega en `analizar_flujo` y `WebPlugin.analizar_carpeta` en `analizar_proyecto`.
+- `PluginsService`: `listar_info_plugins`, `obtener_plugin`, `procesar_archivo_plugin` y `actualizar_plugin` recorren los plugins registrados y usan solo sus metadatos; desaparece el `if/elif` por plugin, `hasattr` y `METADATOS_PLUGINS`. El orden de sincronización con «todos» se conserva con `orden_sincronizacion` (Node-RED, Cisco, Web).
+- Dos diferencias menores: `listar_info_plugins` solo lista los plugins registrados (antes listaba siempre los tres conocidos; en producción están los tres), y el mensaje de `procesar_archivo_plugin` para un plugin que no analiza archivos ahora es genérico («no soporta el análisis de archivos»); esa función no la usa nadie más que sus tests.
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok (`147 files already formatted`)
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: ok (37 tests); el frontend no cambió
+- `git grep -n "Internet de las Cosas\|Programacion Web\|Tecnologias de Conmutacion" backend/src/modular_learning/core`: sin resultados (también sin `hasattr` en `plugins.py`)
+- Tests nuevos:
+  - tests/unit/application/test_plugins_service.py (15 tests con `FakePluginPractico`: info, configuración, enrutado por config/defecto/palabra clave/orden de registro, carpeta asignada/convencional/archivos con límite de 3 y exclusión de memoria, memoria con límite, orden con «todos», selección desconocida, `procesar_archivo_plugin`, `registrar_plugin`)
+- Prueba manual (diferencial): cargué el `plugins.py` antiguo desde git y lo ejecuté junto al nuevo con los plugins reales, el lector real y un árbol temporal (carpetas convencionales con flujos `.json`, una configuración IOS y un proyecto web; sin carpetas; solo memoria). Comparé `actualizar_plugin` con 9 selecciones × 3 escenarios (27 casos): todas las salidas son idénticas; `obtener_plugin` con 12 nombres de asignatura y una configuración propia: sin diferencias; `listar_info_plugins`: igual.
+
+### Dudas o hallazgos
+- Las palabras clave («red», «internet», «web»…) siguen siendo heurísticas amplias (p. ej. «red» captura nombres con «redes» si no hubiera Cisco antes); no las cambié para no alterar el enrutado.
+- `apps/api/routers/plugins.py` mantiene `OPCIONES_PLUGIN` con las etiquetas de los tres plugins escritas a mano; podría salir de los metadatos.
+
+### Revisión de Claude
+
+---
+
+## P34. Dependencias y CI
+
+- **Commit:** 7f59c16 `chore(ci): P34 pypdf 6.21.4, pasos de CI nuevos y dependabot`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/pyproject.toml
+  - .github/workflows/ci.yml
+  - .github/dependabot.yml (nuevo)
+  - backend/src/modular_learning/apps/cli/commands/es.py (solo formato)
+  - backend/src/modular_learning/infrastructure/system/subprocess_adapter.py (solo formato)
+
+### Qué hice
+- `pypdf>=3.0.0` pasa a `pypdf>=6.21.4`. Reproduje el problema con `pip-audit --no-deps -r` sobre `pypdf==6.21.3`: 3 vulnerabilidades (CVE-2026-119203, -119204 y -119205), corregidas en 6.21.4; con `6.21.4` no hay ninguna. Reinstalé con `pip install -e "./backend[all]"` (queda pypdf 7.0.1).
+- `ci.yml`: añadí `ruff format --check backend`, `pip-audit ./backend` (instala `pip-audit` en el paso), `npm test` y `npm audit --audit-level=high`. Sin cobertura.
+- `.github/dependabot.yml`: `pip` en `/backend` y `npm` en `/frontend`, semanal.
+- Fuera de lo pedido pero necesario para que `ruff format --check` pase: formateé `es.py` y `subprocess_adapter.py`, que ya incumplían el formato antes de empezar (solo juntan una llamada en una línea).
+
+### Cómo lo verifiqué
+Ejecuté en local los mismos comandos que ahora corre el CI:
+- pytest: 240 passed, 2 skipped
+- ruff check: All checks passed! / ruff format --check backend: 147 files already formatted
+- import-linter: 3 contratos cumplidos, 0 rotos
+- pip-audit ./backend: No known vulnerabilities found
+- npm run lint ok, npm test 37 passed, npm run build ok, npm audit --audit-level=high: salida 0 (solo 4 avisos de gravedad baja, de `katex` y sus dependencias)
+- Tests nuevos: ninguno (cambios de configuración)
+- Prueba manual: no pude ejecutar el workflow en GitHub Actions desde aquí; validé los dos YAML con `yaml.safe_load` y corrí cada paso a mano.
+
+### Dudas o hallazgos
+- `pip-audit ./backend` audita las dependencias base del proyecto, no los extras (`dev`, `web`, `nube`); para cubrirlos habría que auditar el entorno completo, con más ruido.
+- `npm audit` lista 4 avisos de gravedad baja (`katex` y sus dependientes); no bloquean el umbral `high`.
+- El CI usa Python 3.12; aquí probé con 3.13.
+
+### Revisión de Claude
+
+---
+
+## P33. Cabeceras de seguridad, documentación de la API y compresión
+
+- **Commit:** d3810e5 `feat(web): P33 cabeceras de seguridad, host confiable, sin docs en la nube y gzip`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/apps/api/seguridad.py (nuevo)
+  - backend/src/modular_learning/apps/api/main.py
+  - backend/tests/conftest.py
+  - backend/tests/integration/api/test_seguridad.py (nuevo)
+  - docs/DESPLIEGUE.md
+
+### Qué hice
+Reproduje con el cliente de pruebas: `/` sin ninguna cabecera de seguridad, `/docs`, `/redoc` y `/openapi.json` en 200, el JS de 947 KB sin `content-encoding` ni `cache-control`, y un `Host: evil.example` aceptado.
+- `seguridad.py`: `CabecerasSeguridad` (middleware ASGI) añade CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, HSTS solo con `ML_EN_NUBE=1`, `Cache-Control` de un año con `immutable` para `/assets/` y `no-cache` para `/`. La CSP deja `script-src 'self'` (el build solo tiene un `<script type="module">` externo), estilos propios + `'unsafe-inline'` (React emite atributos `style`) + Google Fonts, que usa `index.html`.
+- `HostsConfiables`: `TrustedHostMiddleware` con `ML_HOSTS_PERMITIDOS` (por defecto `localhost,127.0.0.1`, más `RENDER_EXTERNAL_HOSTNAME` si existe). Deja pasar `/api/salud` para no romper el healthcheck de Render.
+- `create_app`: sin `/docs`, `/redoc`, `/openapi.json` con `ML_EN_NUBE=1`; `GZipMiddleware`.
+- `tests/conftest.py` fija `ML_HOSTS_PERMITIDOS=testserver,localhost` en todos los tests (el TestClient usa el host `testserver`).
+- `docs/DESPLIEGUE.md`: variables nuevas.
+Decisión: la tarea decía «por defecto, localhost». Con eso, abrir la web local desde otro equipo de la red da 400 hasta añadir su nombre en `ML_HOSTS_PERMITIDOS`; está documentado.
+
+### Cómo lo verifiqué
+- pytest: 240 passed, 2 skipped
+- ruff check / ruff format: ok en lo tocado (los 2 archivos sin formatear de antes siguen igual)
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: ok (37 tests); el frontend no cambió
+- Tests nuevos (tests/integration/api/test_seguridad.py):
+  - test_toda_respuesta_lleva_las_cabeceras_de_seguridad
+  - test_csp_permite_lo_que_usa_el_build
+  - test_hsts_solo_en_la_nube
+  - test_host_no_permitido_da_400_pero_el_healthcheck_pasa
+  - test_hosts_configurables_por_entorno
+  - test_documentacion_de_la_api_solo_fuera_de_la_nube
+  - test_assets_comprimidos_y_con_cache_larga (se omite si el frontend no está compilado)
+  - test_los_eventos_sse_no_se_comprimen
+- Prueba manual: servidor local (`uvicorn`, copia de `data/examples`) y Chromium headless en `http://localhost:8000`: cargué `/`, `/estudiar`, `/calendario`, `/asignaturas` y `/ajustes`; la consola no mostró ninguna violación de CSP ni errores, los 5 JS llegaron con `content-encoding: gzip` y `cache-control: public, max-age=31536000, immutable`, y la captura de Ajustes se ve completa (menú, tarjetas, tipografías). Con `ML_EN_NUBE=1` comprobé también que `/docs` da 404 y aparece HSTS.
+
+### Dudas o hallazgos
+- No pude comprobar en Render que `RENDER_EXTERNAL_HOSTNAME` esté definido ni que el healthcheck llegue con otro `Host`; por eso `/api/salud` queda exento y el hostname de Render se añade solo. Si el servicio da 400 tras desplegar, definir `ML_HOSTS_PERMITIDOS` con el dominio de Render.
+- La CSP mantiene `'unsafe-inline'` en estilos; quitarlo exigiría eliminar los `style=` de React.
+- Las fuentes siguen cargándose de Google Fonts; si P40 las sirve localmente se puede quitar su dominio de la CSP.
+
+### Revisión de Claude
+
+---
+
+## P32. Escrituras concurrentes sin pérdida de datos
+
+- **Commit:** 293c251 `fix(core): P32 escrituras concurrentes sin perdida de datos`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/infrastructure/persistence/almacen.py
+  - backend/src/modular_learning/infrastructure/persistence/{json_repositorios,json_repaso,json_guias}.py
+  - backend/src/modular_learning/core/ports/repositorios.py
+  - backend/src/modular_learning/core/application/materias.py
+  - backend/tests/unit/application/fake_adapters.py
+  - backend/tests/integration/infrastructure/test_concurrencia.py, backend/tests/unit/application/test_cronograma_atomico.py, backend/tests/integration/api/test_api.py
+
+### Qué hice
+Reproduje con 16 hilos (cada uno con su cliente) sobre una copia de `data/examples`: `POST /api/materias` daba 500 en varios y solo persistían 1-2 de 16 (el temporal `.tmp` era el mismo para todas las escrituras y cada repositorio reescribe el documento entero).
+- `AlmacenDocumentos.bloquear(clave)`: candado reentrante por documento (en disco, la clave es la ruta real, así que varias instancias del almacén sobre la misma carpeta comparten candado). Los repositorios JSON (materias, cronogramas, registro, plugins, proyectos, tarjetas, historial, guías) lo toman en cada ciclo leer-modificar-escribir. Incluida la migración inicial del catálogo, que también escribe.
+- `AlmacenArchivos.escribir`: temporal único por escritura (`uuid`) y reemplazo con reintentos ante `PermissionError` (el `WinError 32` de Windows); no quedan `.tmp` y `listar` los ignora.
+- Cambio de puerto, que sí era imprescindible: añadí `CronogramaRepo.actualizar_cronograma(materia, transformar)` (atómico) porque agregar una clase leía y guardaba en dos llamadas y se perdían clases aunque cada llamada estuviera protegida (3 de 16 persistían). `MateriasService.agregar_clase`, `editar_clase` y `eliminar_clase` lo usan; actualicé el fake. Si la transformación lanza, no se guarda nada.
+- `DELETE` repetido o en paralelo: 200 la primera vez y 404 las demás (ya no hay 500).
+Limitación: el candado es por proceso. Con varios procesos/trabajadores sobre los mismos archivos no protege (el despliegue usa uno solo); en Postgres solo cubre el proceso.
+
+### Cómo lo verifiqué
+- pytest: 232 passed, 2 skipped
+- ruff check / ruff format: ok en lo tocado (los 2 archivos sin formatear de antes siguen igual)
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: ok (37 tests); el frontend no cambió
+- Tests nuevos:
+  - tests/integration/infrastructure/test_concurrencia.py::test_n_asignaturas_a_la_vez_persisten_todas (24 hilos)
+  - tests/integration/infrastructure/test_concurrencia.py::test_instancias_distintas_del_almacen_comparten_candado
+  - tests/integration/infrastructure/test_concurrencia.py::test_n_clases_a_la_vez_persisten_todas
+  - tests/integration/infrastructure/test_concurrencia.py::test_editar_y_eliminar_clases_a_la_vez
+  - tests/integration/infrastructure/test_concurrencia.py::test_eliminar_dos_veces_a_la_vez_no_falla
+  - tests/integration/infrastructure/test_concurrencia.py::test_registro_y_config_de_plugins_concurrentes
+  - tests/integration/infrastructure/test_concurrencia.py::test_escrituras_al_mismo_documento_no_dejan_temporales_ni_json_roto
+  - tests/unit/application/test_cronograma_atomico.py (3 tests)
+  - tests/integration/api/test_api.py::test_eliminar_asignatura_dos_veces_no_da_500
+  Comprobé que los 7 tests de concurrencia fallan con el código anterior (git stash de `backend/src`) y pasan con el cambio.
+- Prueba manual: repetí el script de 16 hilos 5 veces sobre una copia de `data/examples`: 16/16 asignaturas, 16/16 clases, sin 500; DELETE doble → [200, 404] y 8 en paralelo → un 200 y siete 404.
+
+### Dudas o hallazgos
+- Las operaciones de `IngestaService` que leen y guardan el cronograma (`ingesta.py` alrededor de las líneas 141, 252 y 344) siguen siendo leer→guardar en dos llamadas; pueden perder una actualización si coinciden con una edición manual. No las toqué (fuera del pedido).
+- `crear_materia` comprueba duplicados y guarda en dos pasos: dos altas simultáneas del mismo nombre no pierden datos pero ambas responden 201 en vez de una 409.
+- `AlmacenPostgres` no tiene candado entre procesos ni transacción de lectura-modificación; hace falta si se escala a más de un trabajador.
+
+### Revisión de Claude
+
+---
+
+## P31. Rutas del cliente y errores que filtran el servidor
+
+- **Commit:** 3c3e674 `fix(core): P31 rutas del cliente dentro de su base y errores sin rutas`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/core/domain/rutas.py (nuevo)
+  - backend/src/modular_learning/core/application/{ingesta,materias,plugins,proyectos}.py
+  - backend/src/modular_learning/apps/api/errores.py (nuevo)
+  - backend/src/modular_learning/apps/api/routers/{config,guias,material,materias,plugins,proyectos,quiz,silabo,tutoria}.py
+  - docs/DESPLIEGUE.md
+  - backend/tests/unit/domain/test_rutas.py, backend/tests/unit/application/test_rutas_servicios.py, backend/tests/unit/test_errores_api.py, backend/tests/integration/api/test_api.py
+
+### Qué hice
+Reproduje con una carpeta de material temporal y archivos fuera de ella: `GET /api/material/escanear?materia=..%2f..%2f` escaneó 54 archivos fuera de la base; `/api/plugins/config`, `/api/plugins/actualizar` y `/api/proyectos/ingestar` aceptaron rutas externas (la ingesta escribió una ficha con la ruta externa); los errores 400/500 devolvían rutas absolutas (`/no/existe/aqui`, `/tmp/...`) y `GET /api/config` con `ML_EN_NUBE=1` devolvía las rutas.
+- `core/domain/rutas.py`: `esta_dentro` y `unir_dentro`, comprobación léxica tras normalizar (sin tocar el disco).
+- `IngestaService.escanear_materia` usa `unir_dentro`; los endpoints de escaneo, sincronización y proyectos resuelven la asignatura contra el catálogo (404 si no existe). Tutoría e ingesta de archivo validan con `MateriasService.validar_materia_recibida` (422).
+- Ingesta de proyecto, carpeta de plugin y `carpeta_override` deben quedar dentro de la carpeta de material (400).
+- `apps/api/errores.py`: 500 genérico y 4xx con rutas sustituidas por `<ruta>`; el detalle va al log (`modular_learning.api`). Aplicado a todos los routers y a los eventos SSE de error.
+- En nube `GET /api/config` devuelve `carpeta_material` y `ruta_obsidian` vacías. Documentado en `docs/DESPLIEGUE.md`.
+Decisión: la comprobación de las carpetas de plugin se hace al guardar y al usar el override, no al leer lo ya guardado, para no romper configuraciones previas que apuntaran fuera.
+
+### Cómo lo verifiqué
+- pytest: 220 passed, 2 skipped
+- ruff check / ruff format: ok en lo tocado (`ruff format --check backend` sigue marcando los 2 archivos anteriores: `apps/cli/commands/es.py` y `infrastructure/system/subprocess_adapter.py`)
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: ok (37 tests); el frontend no cambió
+- Tests nuevos:
+  - tests/unit/domain/test_rutas.py (varios casos de `esta_dentro` y `unir_dentro`)
+  - tests/unit/application/test_rutas_servicios.py::test_escanear_materia_con_ruta_relativa_no_lee_fuera_de_la_base
+  - tests/unit/application/test_rutas_servicios.py::test_ingestar_proyecto_fuera_de_la_carpeta_base_falla
+  - tests/unit/application/test_rutas_servicios.py::test_configurar_plugin_con_carpeta_fuera_de_la_base_falla
+  - tests/unit/application/test_rutas_servicios.py::test_actualizar_plugin_con_override_fuera_de_la_base_falla
+  - tests/unit/application/test_rutas_servicios.py::test_validar_materia_recibida
+  - tests/unit/test_errores_api.py (4 tests)
+  - tests/integration/api/test_api.py::test_escanear_material_no_acepta_rutas_del_cliente (5 variantes, incluye `..%2f`)
+  - tests/integration/api/test_api.py::test_escanear_material_resuelve_contra_el_catalogo
+  - tests/integration/api/test_api.py::test_sincronizar_stream_rechaza_asignatura_fuera_del_catalogo
+  - tests/integration/api/test_api.py::test_proyectos_escanear_e_ingestar_no_aceptan_rutas_externas
+  - tests/integration/api/test_api.py::test_plugins_no_aceptan_carpetas_externas
+  - tests/integration/api/test_api.py::test_errores_no_muestran_rutas_absolutas
+  - tests/integration/api/test_api.py::test_error_inesperado_responde_generico
+  - tests/integration/api/test_api.py::test_config_en_nube_no_devuelve_rutas
+- Prueba manual: repetí el script de reproducción (mismos pasos, árbol temporal): todas las rutas con `../` dan 404, plugins y proyectos externos 400, el error de configuración muestra `<ruta>` y `ML_EN_NUBE=1` devuelve rutas vacías. Tres tests existentes (plugins, escaneo de material y proyectos) se adaptaron: ahora configuran la carpeta de material y crean la asignatura en el catálogo antes de usarlas.
+
+### Dudas o hallazgos
+- No se resuelven enlaces simbólicos (hacerlo exige disco; iría en el adaptador). Un enlace dentro de la carpeta de material que apunte fuera sigue siendo seguible.
+- `GET /api/material/escanear` sigue devolviendo la ruta de la carpeta del equipo en cada asignatura (campo `carpeta`) fuera de la nube; es el equipo del propio usuario.
+- Los mensajes de error de Gemini (cuota, etc.) ahora salen como mensaje genérico de error interno; si se quiere distinguirlos al usuario habría que mapear esos casos.
+- Las rutas guardadas de los plugins y `GET /api/plugins` / `GET /api/proyectos` siguen exponiendo rutas del servidor en la nube; la tarea solo pedía `/api/config`.
+
+### Revisión de Claude
+
+---
+
+## P30. Validar nombres y existencia de asignaturas
+
+- **Commit:** 1aa8722 `fix(core): P30 validar nombres y existencia de asignaturas`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/core/domain/materias.py
+  - backend/src/modular_learning/core/application/materias.py
+  - backend/src/modular_learning/apps/api/routers/materias.py
+  - backend/tests/unit/application/test_materias_validacion.py
+  - backend/tests/integration/api/test_api.py
+
+### Qué hice
+Reproduje primero con un cliente de pruebas sobre una copia de `data/examples`: `"   "`, `"!!!"`, `"😀"` daban 201 sin crear; `"a/b"`, `".."` y 100 letras sí se creaban; el duplicado `"redes"` daba 201; `PUT` a un slug inexistente lo creaba y las altas de clase y de parcial creaban un cronograma de una asignatura inexistente.
+Añadí en `core/domain/materias.py` `validar_nombre_materia` (máx. 80, letras/números/espacios y `- _ . , ( ) ' & + : #`, sin control/NUL, `/`, `\` ni `..`) y las excepciones `NombreMateriaInvalido`, `MateriaDuplicada` y `MateriaNoEncontrada`. `MateriasService.crear_materia` valida y rechaza duplicados (comparados por slug, sin tildes ni mayúsculas); `renombrar_materia`, `agregar_clase` y `guardar_parciales` exigen que la asignatura exista. El router traduce a 422, 409 y 404.
+Decisión: `agregar_materia` se queda idempotente y sin validar, porque la usan tutoría, material y la CLI para «asegurar» que la asignatura exista y no esperan excepciones; solo el alta explícita (`POST /api/materias`) usa `crear_materia`. Duplicado devuelve 409 (la tarea no fijaba código).
+
+### Cómo lo verifiqué
+- pytest: 180 passed, 2 skipped
+- ruff check / ruff format: check ok; format de los archivos tocados ok. `ruff format --check backend` ya marcaba 2 archivos antes de empezar (`apps/cli/commands/es.py`, `infrastructure/system/subprocess_adapter.py`), no tocados.
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: ok (37 tests); el frontend no cambió
+- Tests nuevos:
+  - tests/unit/application/test_materias_validacion.py (nombres inválidos, normalización, longitud máxima, duplicados, renombrar, clase y parciales en inexistente)
+  - tests/integration/api/test_api.py::test_crear_materia_nombre_invalido_422
+  - tests/integration/api/test_api.py::test_crear_materia_duplicada_409
+  - tests/integration/api/test_api.py::test_materia_inexistente_da_404_en_put_clases_y_parciales
+- Prueba manual: servidor local con `ML_DATA_DIR` en una copia de `data/examples` y Chromium headless (Playwright). En Asignaturas › «Nueva asignatura» escribí `!!!` y `a/b`: aparece el aviso «No se pudo crear la asignatura» con el mensaje en español; `Redes de Datos` se crea. Leí el texto de los avisos, no inspeccioné la captura a ojo.
+
+### Dudas o hallazgos
+- `agregar_materia` (usada por tutoría, ingesta de material y CLI) sigue aceptando cualquier nombre; se endurece al tratar P31.
+- Las rutas `editar_clase`, `eliminar_clase` y el cambio de estado no comprueban la asignatura; la tarea no las pedía.
+
+### Revisión de Claude
+
+---
+
 ## D3. Documentación al día tras P19 a P29 (Argon)
 
 - **Commit:** e36ecf4 `docs: D3 documentacion tras P19 a P29`

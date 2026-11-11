@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Callable, Iterator
 from typing import Any
 
@@ -16,7 +17,11 @@ from modular_learning.core.ports.conversor_pdf import ConversorPdfPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.guias import ExportadorPdfPort, GuiasRepo
 from modular_learning.core.ports.llm import LLMPort
-from modular_learning.core.ports.plugin_practico import PluginConfigRepoPort
+from modular_learning.core.ports.plugin_practico import (
+    PluginConfigRepoPort,
+    PluginMetadatos,
+    PluginPracticoBase,
+)
 from modular_learning.core.ports.proyectos import InspectorProyectosPort, ProyectosRepo
 from modular_learning.core.ports.repaso import HistorialRepo, TarjetasRepo
 from modular_learning.core.ports.repositorios import (
@@ -93,6 +98,19 @@ class InMemoryCronogramaRepo(CronogramaRepo):
         clave = self._resolver_clave(materia) or materia
         self.cronogramas[clave] = list(clases)
         return f"memoria://{clave.replace(' ', '_')}_cronograma.json"
+
+    def actualizar_cronograma(
+        self,
+        materia: str,
+        transformar: Callable[[list[dict[str, Any]]], list[dict[str, Any]] | None],
+    ) -> list[dict[str, Any]]:
+        # Como el adaptador en disco, trabaja sobre una copia: si `transformar` falla no queda
+        # nada a medias en lo guardado (lo comprueba test_contrato_repositorios.py)
+        clases = copy.deepcopy(self.obtener_cronograma(materia) or [])
+        resultado = transformar(clases)
+        nuevas = clases if resultado is None else resultado
+        self.guardar_cronograma(materia, nuevas)
+        return nuevas
 
     def eliminar_cronograma(self, materia: str) -> bool:
         clave = self._resolver_clave(materia)
@@ -446,6 +464,48 @@ class InMemoryExportadorPdfPort(ExportadorPdfPort):
     def exportar_guia(self, guia: GuiaOffline) -> bytes:
         self.guias_exportadas.append(guia)
         return self.salida_bytes
+
+
+class FakePluginPractico(PluginPracticoBase):
+    """Plugin práctico falso: registra lo que el servicio le pide y no toca el disco."""
+
+    def __init__(
+        self,
+        metadatos: PluginMetadatos,
+        contexto: str = "",
+        analiza_archivos: bool = True,
+    ) -> None:
+        self._metadatos = metadatos
+        self.contexto = contexto
+        self.analiza_archivos = analiza_archivos
+        self.carpetas_analizadas: list[str] = []
+        self.archivos_analizados: list[str] = []
+
+    @property
+    def metadatos(self) -> PluginMetadatos:
+        return self._metadatos
+
+    def obtener_instrucciones_ia(self) -> str:
+        return f"[INSTRUCCIONES {self._metadatos.id}]"
+
+    def generar_ejercicio_base(self, tema: str) -> str:
+        return f"[EJERCICIO {self._metadatos.id}: {tema}]"
+
+    def guardar_contexto_extraido(self, metadatos: str) -> None:
+        self.contexto = metadatos
+
+    def cargar_contexto_reciente(self) -> str:
+        return self.contexto
+
+    def analizar_carpeta(self, ruta_carpeta: str) -> str:
+        self.carpetas_analizadas.append(ruta_carpeta)
+        return f"Carpeta {ruta_carpeta} analizada por {self._metadatos.id}"
+
+    def analizar_archivo(self, ruta_archivo: str) -> str | None:
+        if not self.analiza_archivos:
+            return None
+        self.archivos_analizados.append(ruta_archivo)
+        return f"Archivo {ruta_archivo} analizado por {self._metadatos.id}"
 
 
 class InMemoryPluginConfigRepo(PluginConfigRepoPort):

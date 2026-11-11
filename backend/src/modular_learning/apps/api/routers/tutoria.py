@@ -15,6 +15,7 @@ from modular_learning.apps.api.dependencies import (
     get_session_store,
     get_tutoria_service,
 )
+from modular_learning.apps.api.errores import error_cliente, error_interno, mensaje_evento_error
 from modular_learning.apps.api.schemas import Duda, IniciarTutoria
 from modular_learning.apps.api.session_store import SessionStore
 from modular_learning.core.application.materias import MateriasService
@@ -39,6 +40,10 @@ def iniciar_tutoria(
 ) -> dict[str, Any]:
     sesion_id = uuid.uuid4().hex
     try:
+        materias_srv.validar_materia_recibida(body.materia.strip())
+    except ValueError as e:
+        raise error_cliente(e, 422) from e
+    try:
         sesion = servicio.iniciar_sesion(
             sesion_id=sesion_id,
             materia=body.materia.strip(),
@@ -48,9 +53,9 @@ def iniciar_tutoria(
             clase_id=body.clase_id,
         )
     except (ValueError, FileNotFoundError) as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise error_cliente(e) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise error_interno(e) from e
 
     materias_srv.agregar_materia(body.materia.strip())
     store.guardar_sesion(sesion_id, sesion)
@@ -89,7 +94,7 @@ def explicar_paso(
                 yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n"
             yield "event: fin\ndata: {}\n\n"
         except Exception as e:
-            yield f"event: error\ndata: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
+            yield f"event: error\ndata: {json.dumps({'error': mensaje_evento_error(e)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
         eventos(),
@@ -109,9 +114,9 @@ def resolver_duda(
     try:
         respuesta = servicio.responder_duda(sesion, body.paso, body.duda.strip())
     except IndexError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise error_cliente(e, 404) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise error_interno(e) from e
     return {"respuesta": respuesta}
 
 
@@ -125,7 +130,7 @@ def finalizar_tutoria(
     try:
         resultado = servicio.finalizar_sesion(sesion)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise error_interno(e) from e
     store.eliminar_sesion(sesion_id)
     return resultado
 

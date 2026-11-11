@@ -15,6 +15,7 @@ from modular_learning.core.domain.proyectos import (
     etiqueta_parcial,
     slug_proyecto,
 )
+from modular_learning.core.domain.rutas import esta_dentro
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.llm import LLMPort
@@ -130,8 +131,14 @@ class ProyectosService:
         parcial: ParcialProyecto,
         ruta_origen: str,
         tipo_forzado: TipoProyecto | None = None,
+        carpeta_base: str | None = None,
     ) -> Proyecto:
-        """Analiza un proyecto, guarda su ficha en Obsidian y lo registra con trazabilidad."""
+        """
+        Analiza un proyecto, guarda su ficha en Obsidian y lo registra con trazabilidad.
+        Si se indica `carpeta_base`, la ruta de origen debe quedar dentro de ella.
+        """
+        if carpeta_base is not None and not esta_dentro(carpeta_base, ruta_origen):
+            raise ValueError("La ruta del proyecto debe estar dentro de la carpeta de material.")
         huella = self.inspector.huella(ruta_origen)
         if huella is None:
             raise ValueError(f"No existe el proyecto en {ruta_origen}.")

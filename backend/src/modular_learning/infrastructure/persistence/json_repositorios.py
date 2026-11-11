@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any, ClassVar
 
@@ -44,6 +45,10 @@ class JsonMateriaRepo(MateriaRepo):
         self._documento.escribir([m.a_dict() for m in materias], sangria=4)
 
     def listar(self) -> list[Materia]:
+        with self._documento.bloqueo():
+            return self._listar()
+
+    def _listar(self) -> list[Materia]:
         datos = self._documento.leer(None)
         if datos is None:
             # Migración automática desde config/materias.txt si existe
@@ -63,35 +68,38 @@ class JsonMateriaRepo(MateriaRepo):
         return materias
 
     def guardar(self, materia: Materia) -> None:
-        materias = self.listar()
-        for i, m in enumerate(materias):
-            if m.slug == materia.slug:
-                materias[i] = materia
-                break
-        else:
-            materias.append(materia)
-        self._escribir(materias)
+        with self._documento.bloqueo():
+            materias = self.listar()
+            for i, m in enumerate(materias):
+                if m.slug == materia.slug:
+                    materias[i] = materia
+                    break
+            else:
+                materias.append(materia)
+            self._escribir(materias)
 
     def eliminar(self, slug: str) -> bool:
-        buscado = slug_materia(slug)
-        materias = self.listar()
-        restantes = [m for m in materias if m.slug != buscado]
-        if len(restantes) == len(materias):
-            return False
-        self._escribir(restantes)
-        return True
+        with self._documento.bloqueo():
+            buscado = slug_materia(slug)
+            materias = self.listar()
+            restantes = [m for m in materias if m.slug != buscado]
+            if len(restantes) == len(materias):
+                return False
+            self._escribir(restantes)
+            return True
 
     def cargar_materias(self) -> list[str]:
         return [m.nombre for m in self.listar()]
 
     def agregar_materia(self, nueva_materia: str) -> None:
-        if nueva_materia and nueva_materia.strip():
-            materia = Materia.desde_nombre(nueva_materia.strip())
-            materias = self.listar()
-            if any(m.slug == materia.slug for m in materias):
-                return
-            materias.append(materia)
-            self._escribir(materias)
+        with self._documento.bloqueo():
+            if nueva_materia and nueva_materia.strip():
+                materia = Materia.desde_nombre(nueva_materia.strip())
+                materias = self.listar()
+                if any(m.slug == materia.slug for m in materias):
+                    return
+                materias.append(materia)
+                self._escribir(materias)
 
 
 class JsonCronogramaRepo(CronogramaRepo):
@@ -175,18 +183,34 @@ class JsonCronogramaRepo(CronogramaRepo):
             f"{self.prefijo}{slug_materia(materia)}{SUFIJO_CRONOGRAMA}"
         )
 
-        data_orig: Any = None
-        try:
-            data_orig = self._leer(clave)
-        except Exception:
-            pass
+        with self.almacen.bloquear(clave):
+            data_orig: Any = None
+            try:
+                data_orig = self._leer(clave)
+            except Exception:
+                pass
 
-        if isinstance(data_orig, dict):
-            data_orig["clases"] = clases
-            self._escribir(clave, data_orig)
-        else:
-            self._escribir(clave, {"clases": clases})
+            if isinstance(data_orig, dict):
+                data_orig["clases"] = clases
+                self._escribir(clave, data_orig)
+            else:
+                self._escribir(clave, {"clases": clases})
         return clave
+
+    def actualizar_cronograma(
+        self,
+        materia: str,
+        transformar: Callable[[list[dict[str, Any]]], list[dict[str, Any]] | None],
+    ) -> list[dict[str, Any]]:
+        clave = self._encontrar_clave_cronograma(materia) or (
+            f"{self.prefijo}{slug_materia(materia)}{SUFIJO_CRONOGRAMA}"
+        )
+        with self.almacen.bloquear(clave):
+            clases = self.obtener_cronograma(materia) or []
+            resultado = transformar(clases)
+            nuevas = clases if resultado is None else resultado
+            self.guardar_cronograma(materia, nuevas)
+            return nuevas
 
     def eliminar_cronograma(self, materia: str) -> bool:
         clave = self._encontrar_clave_cronograma(materia)
@@ -239,29 +263,30 @@ class JsonCronogramaRepo(CronogramaRepo):
         clave = self._encontrar_clave_cronograma(materia)
         if not clave:
             return False
-        data = self._leer(clave)
-        if isinstance(data, list):
-            clases = data
-            es_lista = True
-        elif isinstance(data, dict):
-            clases = data.get("clases", data.get("cronograma", []))
-            es_lista = False
-        else:
-            return False
-
-        if not isinstance(clases, list):
-            return False
-
-        clase = buscar_clase(clases, clase_id=clase_id, tema=tema)
-        if clase is not None:
-            clase["estado"] = estado
-            if es_lista:
-                self._escribir(clave, {"clases": clases})
+        with self.almacen.bloquear(clave):
+            data = self._leer(clave)
+            if isinstance(data, list):
+                clases = data
+                es_lista = True
+            elif isinstance(data, dict):
+                clases = data.get("clases", data.get("cronograma", []))
+                es_lista = False
             else:
-                data["clases"] = clases
-                self._escribir(clave, data)
-            return True
-        return False
+                return False
+
+            if not isinstance(clases, list):
+                return False
+
+            clase = buscar_clase(clases, clase_id=clase_id, tema=tema)
+            if clase is not None:
+                clase["estado"] = estado
+                if es_lista:
+                    self._escribir(clave, {"clases": clases})
+                else:
+                    data["clases"] = clases
+                    self._escribir(clave, data)
+                return True
+            return False
 
     def marcar_clase_completada(
         self, materia: str, tema_exacto: str, clase_id: str | None = None
@@ -272,37 +297,40 @@ class JsonCronogramaRepo(CronogramaRepo):
         clave = self._encontrar_clave_cronograma(materia)
         if not clave:
             return
-        data = self._leer(clave)
-        if isinstance(data, list):
-            data = {"clases": data}
-        elif not isinstance(data, dict):
-            data = {"clases": []}
-        data.setdefault("material_transversal", []).append(item)
-        self._escribir(clave, data)
+        with self.almacen.bloquear(clave):
+            data = self._leer(clave)
+            if isinstance(data, list):
+                data = {"clases": data}
+            elif not isinstance(data, dict):
+                data = {"clases": []}
+            data.setdefault("material_transversal", []).append(item)
+            self._escribir(clave, data)
 
     def quitar_material_transversal(self, materia: str, nombre_archivo: str) -> bool:
         clave = self._encontrar_clave_cronograma(materia)
         if not clave:
             return False
-        data = self._leer(clave)
-        if not isinstance(data, dict):
-            return False
-        items = data.get("material_transversal", [])
-        restantes = [i for i in items if str(i.get("archivo", "")) != nombre_archivo]
-        if len(restantes) == len(items):
-            return False
-        data["material_transversal"] = restantes
-        self._escribir(clave, data)
-        return True
+        with self.almacen.bloquear(clave):
+            data = self._leer(clave)
+            if not isinstance(data, dict):
+                return False
+            items = data.get("material_transversal", [])
+            restantes = [i for i in items if str(i.get("archivo", "")) != nombre_archivo]
+            if len(restantes) == len(items):
+                return False
+            data["material_transversal"] = restantes
+            self._escribir(clave, data)
+            return True
 
     def limpiar_material_transversal(self, materia: str) -> None:
         clave = self._encontrar_clave_cronograma(materia)
         if not clave:
             return
-        data = self._leer(clave)
-        if isinstance(data, dict) and "material_transversal" in data:
-            data["material_transversal"] = []
-            self._escribir(clave, data)
+        with self.almacen.bloquear(clave):
+            data = self._leer(clave)
+            if isinstance(data, dict) and "material_transversal" in data:
+                data["material_transversal"] = []
+                self._escribir(clave, data)
 
     def obtener_parciales(self, materia: str) -> list[dict[str, Any]]:
         clave = self._encontrar_clave_cronograma(materia)
@@ -318,15 +346,17 @@ class JsonCronogramaRepo(CronogramaRepo):
         clave = self._encontrar_clave_cronograma(materia)
         if not clave:
             clave = f"{self.prefijo}{slug_materia(materia)}{SUFIJO_CRONOGRAMA}"
-            data = {"clases": [], "parciales": parciales}
-        else:
+        with self.almacen.bloquear(clave):
             data = self._leer(clave)
-            if isinstance(data, list):
-                data = {"clases": data}
-            elif not isinstance(data, dict):
-                data = {"clases": []}
-            data["parciales"] = parciales
-        self._escribir(clave, data)
+            if data is None:
+                data = {"clases": [], "parciales": parciales}
+            else:
+                if isinstance(data, list):
+                    data = {"clases": data}
+                elif not isinstance(data, dict):
+                    data = {"clases": []}
+                data["parciales"] = parciales
+            self._escribir(clave, data)
 
 
 class JsonRegistroMaterialesRepo(RegistroMaterialesRepo):
@@ -360,43 +390,49 @@ class JsonRegistroMaterialesRepo(RegistroMaterialesRepo):
     def registrar_material(
         self, nombre_archivo: str, materia: str, nota: str | None = None
     ) -> None:
-        buscado = nombre_archivo.lower()
-        registro = [r for r in self._cargar() if str(r.get("nombre", "")).lower() != buscado]
-        entrada: dict[str, Any] = {
-            "nombre": nombre_archivo,
-            "materia": slug_materia(materia),
-            "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        }
-        if nota:
-            entrada["nota"] = nota
-        registro.append(entrada)
-        self._escribir(registro)
+        with self._documento.bloqueo():
+            buscado = nombre_archivo.lower()
+            registro = [r for r in self._cargar() if str(r.get("nombre", "")).lower() != buscado]
+            entrada: dict[str, Any] = {
+                "nombre": nombre_archivo,
+                "materia": slug_materia(materia),
+                "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            }
+            if nota:
+                entrada["nota"] = nota
+            registro.append(entrada)
+            self._escribir(registro)
 
     def listar_materiales(self) -> list[dict[str, Any]]:
         return self._cargar()
 
     def eliminar_material(self, nombre_archivo: str) -> dict[str, Any] | None:
-        buscado = nombre_archivo.lower()
-        registro = self._cargar()
-        quitado = next((r for r in registro if str(r.get("nombre", "")).lower() == buscado), None)
-        if quitado is None:
-            return None
-        self._escribir([r for r in registro if r is not quitado])
-        return quitado
+        with self._documento.bloqueo():
+            buscado = nombre_archivo.lower()
+            registro = self._cargar()
+            quitado = next(
+                (r for r in registro if str(r.get("nombre", "")).lower() == buscado), None
+            )
+            if quitado is None:
+                return None
+            self._escribir([r for r in registro if r is not quitado])
+            return quitado
 
     def eliminar_de_materia(self, materia: str) -> int:
-        slug = slug_materia(materia)
-        registro = self._cargar()
-        restantes = [r for r in registro if slug_materia(str(r.get("materia", ""))) != slug]
-        if len(restantes) != len(registro):
-            self._escribir(restantes)
-        return len(registro) - len(restantes)
+        with self._documento.bloqueo():
+            slug = slug_materia(materia)
+            registro = self._cargar()
+            restantes = [r for r in registro if slug_materia(str(r.get("materia", ""))) != slug]
+            if len(restantes) != len(registro):
+                self._escribir(restantes)
+            return len(registro) - len(restantes)
 
     def vaciar(self) -> int:
-        registro = self._cargar()
-        total = len(registro)
-        self._escribir([])
-        return total
+        with self._documento.bloqueo():
+            registro = self._cargar()
+            total = len(registro)
+            self._escribir([])
+            return total
 
 
 class JsonPluginConfigRepo(PluginConfigRepoPort):
@@ -412,18 +448,19 @@ class JsonPluginConfigRepo(PluginConfigRepoPort):
     def guardar_configuracion(
         self, clave: str, carpeta: str | None = None, materia: str | None = None
     ) -> dict[str, Any]:
-        datos = self.obtener_configuraciones()
-        clave_norm = clave.lower().strip()
-        actual = dict(datos.get(clave_norm, {}))
+        with self._documento.bloqueo():
+            datos = self.obtener_configuraciones()
+            clave_norm = clave.lower().strip()
+            actual = dict(datos.get(clave_norm, {}))
 
-        if carpeta is not None:
-            actual["carpeta"] = carpeta.strip()
-        if materia is not None:
-            actual["materia"] = materia.strip()
+            if carpeta is not None:
+                actual["carpeta"] = carpeta.strip()
+            if materia is not None:
+                actual["materia"] = materia.strip()
 
-        datos[clave_norm] = actual
-        self._documento.escribir(datos, sangria=4)
-        return actual
+            datos[clave_norm] = actual
+            self._documento.escribir(datos, sangria=4)
+            return actual
 
 
 class JsonProyectosRepo(ProyectosRepo):
@@ -433,11 +470,12 @@ class JsonProyectosRepo(ProyectosRepo):
         self._documento = DocumentoJson("config/proyectos.json", ruta_archivo, almacen)
 
     def guardar(self, proyecto: Proyecto) -> None:
-        datos = self._documento.leer({})
-        if not isinstance(datos, dict):
-            datos = {}
-        datos[proyecto.id] = proyecto.a_dict()
-        self._documento.escribir(datos, sangria=4)
+        with self._documento.bloqueo():
+            datos = self._documento.leer({})
+            if not isinstance(datos, dict):
+                datos = {}
+            datos[proyecto.id] = proyecto.a_dict()
+            self._documento.escribir(datos, sangria=4)
 
     def obtener(self, id_proyecto: str) -> Proyecto | None:
         datos = self._documento.leer({})
@@ -456,18 +494,20 @@ class JsonProyectosRepo(ProyectosRepo):
         return sorted(proyectos, key=lambda p: (p.materia, p.parcial, p.nombre))
 
     def eliminar(self, id_proyecto: str) -> bool:
-        datos = self._documento.leer({})
-        if not isinstance(datos, dict) or id_proyecto not in datos:
-            return False
-        del datos[id_proyecto]
-        self._documento.escribir(datos, sangria=4)
-        return True
+        with self._documento.bloqueo():
+            datos = self._documento.leer({})
+            if not isinstance(datos, dict) or id_proyecto not in datos:
+                return False
+            del datos[id_proyecto]
+            self._documento.escribir(datos, sangria=4)
+            return True
 
     def vaciar(self) -> int:
-        datos = self._documento.leer({})
-        total = len(datos) if isinstance(datos, dict) else 0
-        self._documento.escribir({}, sangria=4)
-        return total
+        with self._documento.bloqueo():
+            datos = self._documento.leer({})
+            total = len(datos) if isinstance(datos, dict) else 0
+            self._documento.escribir({}, sangria=4)
+            return total
 
 
 __all__ = [

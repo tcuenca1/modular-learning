@@ -23,6 +23,8 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
+import { AvisoIA } from '@/components/AvisoIA'
+import { ultimoTramo } from '@/lib/rutas'
 import type {
   EscaneoMaterial,
   EstadoProyectoResponse,
@@ -640,7 +642,7 @@ export function MaterialView({
                   disabled={totalPendientes === 0 && escaneos.length > 0}
                   className="gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white"
                 >
-                  <Play className="h-4 w-4" /> Procesar {totalPendientes > 0 ? `(${totalPendientes})` : 'nuevos'}
+                  <Play className="h-4 w-4" /> Procesar {totalPendientes > 0 ? `(${totalPendientes})` : 'nuevos'} <AvisoIA />
                 </Button>
               )}
 
@@ -811,7 +813,7 @@ export function MaterialView({
                               {m.tipo || 'complementario'}
                             </TableCell>
                             <TableCell className="font-mono text-xs text-slate-500 truncate max-w-xs">
-                              {m.nota || '—'}
+                              <span title={m.nota || undefined}>{ultimoTramo(m.nota) || '—'}</span>
                             </TableCell>
                             <TableCell className="text-right">
                               <Button
@@ -942,8 +944,8 @@ export function MaterialView({
                     </div>
                     <div>
                       <span className="font-medium">Destino Obsidian:</span>{' '}
-                      <span className="font-mono text-[11px] truncate block">
-                        {resultadoSubida.ruta_salida}
+                      <span className="font-mono text-[11px] truncate block" title={resultadoSubida.ruta_salida}>
+                        {ultimoTramo(resultadoSubida.ruta_salida)}
                       </span>
                     </div>
                   </div>
@@ -964,7 +966,7 @@ export function MaterialView({
                   <Card key={i} className={!esc.existe ? 'border-dashed opacity-75' : ''}>
                     <CardHeader className="p-4 pb-2">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-semibold">{esc.materia}</CardTitle>
+                        <CardTitle as="h3" className="text-sm font-semibold">{esc.materia}</CardTitle>
                         <Badge variant={esc.existe ? 'secondary' : 'destructive'}>
                           {esc.existe ? `${esc.pendientes.length} nuevos` : 'No existe la carpeta'}
                         </Badge>
@@ -1079,7 +1081,7 @@ export function MaterialView({
                             </strong>
                           </div>
                           <div className="text-[11px] font-mono text-slate-500 truncate" title={cand.ruta}>
-                            {cand.ruta}
+                            {ultimoTramo(cand.ruta)}
                           </div>
                           <Button
                             size="sm"
@@ -1164,7 +1166,7 @@ export function MaterialView({
                                 <div>
                                   <div className="font-semibold">{p.nombre}</div>
                                   <div className="text-[11px] text-slate-400 font-mono truncate max-w-xs" title={p.ruta_nota_obsidian}>
-                                    {p.ruta_nota_obsidian}
+                                    {ultimoTramo(p.ruta_nota_obsidian)}
                                   </div>
                                 </div>
                               </div>

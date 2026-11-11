@@ -1,13 +1,33 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useSearchParams } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { Sidebar } from '@/components/layout/Sidebar'
-import { AjustesView } from '@/views/AjustesView'
-import { AsignaturasView } from '@/views/AsignaturasView'
-import { CalendarioView } from '@/views/CalendarioView'
-import { EstudiarView } from '@/views/EstudiarView'
-import { GuiaImprimirView } from '@/views/GuiaImprimirView'
-import { HoyView } from '@/views/HoyView'
-import { RevisionGuiaView } from '@/views/RevisionGuiaView'
+
+// Cada vista se descarga al visitarla: el JS inicial solo lleva el marco y lo compartido
+const AjustesView = lazy(() => import('@/views/AjustesView').then((m) => ({ default: m.AjustesView })))
+const AsignaturasView = lazy(() =>
+  import('@/views/AsignaturasView').then((m) => ({ default: m.AsignaturasView }))
+)
+const CalendarioView = lazy(() =>
+  import('@/views/CalendarioView').then((m) => ({ default: m.CalendarioView }))
+)
+const EstudiarView = lazy(() => import('@/views/EstudiarView').then((m) => ({ default: m.EstudiarView })))
+const GuiaImprimirView = lazy(() =>
+  import('@/views/GuiaImprimirView').then((m) => ({ default: m.GuiaImprimirView }))
+)
+const HoyView = lazy(() => import('@/views/HoyView').then((m) => ({ default: m.HoyView })))
+const RevisionGuiaView = lazy(() =>
+  import('@/views/RevisionGuiaView').then((m) => ({ default: m.RevisionGuiaView }))
+)
+
+/** Mientras baja el código de una vista: reserva el espacio para no mover el contenido. */
+function Cargando() {
+  return (
+    <div role="status" aria-live="polite" className="min-h-[60vh]">
+      <span className="sr-only">Cargando…</span>
+    </div>
+  )
+}
 
 /** Redirige a una ruta conservando los parámetros de búsqueda (query) */
 function RedirigirConQuery({ ruta, tab }: { ruta: string; tab?: string }) {
@@ -22,10 +42,18 @@ function RedirigirConQuery({ ruta, tab }: { ruta: string; tab?: string }) {
 function Marco() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+      <a
+        href="#contenido"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-indigo-700 focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+      >
+        Saltar al contenido
+      </a>
       <Sidebar />
-      <main className="min-w-0 md:pl-60">
+      <main id="contenido" tabIndex={-1} className="min-w-0 outline-none md:pl-60">
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8 md:py-12">
-          <Outlet />
+          <Suspense fallback={<Cargando />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>
@@ -37,7 +65,14 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* Sin barra lateral: es la hoja que se imprime o guarda como PDF */}
-        <Route path="/guia/:id/imprimir" element={<GuiaImprimirView />} />
+        <Route
+          path="/guia/:id/imprimir"
+          element={
+            <Suspense fallback={<Cargando />}>
+              <GuiaImprimirView />
+            </Suspense>
+          }
+        />
         <Route element={<Marco />}>
           <Route path="/" element={<HoyView />} />
           <Route path="/estudiar" element={<EstudiarView />} />

@@ -13,6 +13,7 @@ from modular_learning.apps.api.dependencies import (
     get_materias_service,
     get_silabo_service,
 )
+from modular_learning.apps.api.errores import error_cliente, error_interno
 from modular_learning.apps.api.schemas import GuardarCronograma
 from modular_learning.core.application.materias import MateriasService
 from modular_learning.core.application.silabo import EXTENSIONES_SILABO, SilaboService
@@ -43,9 +44,9 @@ def extraer_silabo(
         try:
             datos = servicio.extraer_cronograma(ruta, materia_final)
         except (ValueError, FileNotFoundError) as e:
-            raise HTTPException(status_code=400, detail=str(e)) from e
+            raise error_cliente(e) from e
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e)) from e
+            raise error_interno(e) from e
 
     return {"materia": materia_final, "datos": datos}
 
@@ -59,9 +60,9 @@ def guardar_silabo(
     try:
         ruta = servicio.guardar_cronograma(body.materia.strip(), body.datos)
     except (ValueError, FileNotFoundError) as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise error_cliente(e) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise error_interno(e) from e
 
     # Clave del cronograma en el almacén de datos (archivo local o documento en Postgres)
     return {"ruta": ruta, "materias": materias_srv.listar_materias()}

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { api } from '@/api/client'
+import { AvisoIA } from '@/components/AvisoIA'
 import type { DetalleEvaluacion, PreguntaQuiz, ResumenRepaso } from '@/api/types'
 import { Markdown, TextoConFormulas } from '@/components/Markdown'
 import { Badge } from '@/components/ui/badge'
@@ -547,7 +548,7 @@ export function QuizView() {
               Preparando preguntas…
             </>
           ) : (
-            'Preguntas nuevas'
+            (<>Preguntas nuevas <AvisoIA /></>)
           )}
         </Button>
         <span className="text-sm text-slate-500">

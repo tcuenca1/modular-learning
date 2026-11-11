@@ -59,7 +59,7 @@ export function ThemeToggle({ compacto = true, className }: ThemeToggleProps) {
   }
 
   return (
-    <div className={cn('grid grid-cols-3 gap-3', className)}>
+    <div role="group" aria-label="Tema de la aplicación" className={cn('grid grid-cols-3 gap-3', className)}>
       {OPCIONES.map((op) => {
         const Icono = op.icono
         const activo = tema === op.valor
@@ -68,6 +68,7 @@ export function ThemeToggle({ compacto = true, className }: ThemeToggleProps) {
             key={op.valor}
             type="button"
             onClick={() => cambiar(op.valor)}
+            aria-pressed={activo}
             className={cn(
               'flex flex-col items-center justify-center gap-2 rounded-xl border p-4 text-xs font-medium transition-all cursor-pointer',
               activo

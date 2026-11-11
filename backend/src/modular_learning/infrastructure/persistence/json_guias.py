@@ -28,16 +28,18 @@ class JsonGuiasRepo(GuiasRepo):
         return GuiaOffline.desde_dict(datos) if datos else None
 
     def guardar(self, guia: GuiaOffline) -> None:
-        datos = self._cargar()
-        datos[guia.id] = guia.a_dict()
-        self._documento.escribir(datos)
+        with self._documento.bloqueo():
+            datos = self._cargar()
+            datos[guia.id] = guia.a_dict()
+            self._documento.escribir(datos)
 
     def eliminar(self, ids: list[str]) -> int:
-        datos = self._cargar()
-        quitadas = [i for i in ids if datos.pop(i, None) is not None]
-        if quitadas:
-            self._documento.escribir(datos)
-        return len(quitadas)
+        with self._documento.bloqueo():
+            datos = self._cargar()
+            quitadas = [i for i in ids if datos.pop(i, None) is not None]
+            if quitadas:
+                self._documento.escribir(datos)
+            return len(quitadas)
 
 
 __all__ = ["JsonGuiasRepo"]

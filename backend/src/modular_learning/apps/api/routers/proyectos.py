@@ -12,10 +12,12 @@ from modular_learning.apps.api.dependencies import (
     get_materias_service,
     get_proyectos_service,
 )
+from modular_learning.apps.api.errores import error_cliente, error_interno
 from modular_learning.apps.api.schemas import IngestarProyectoRequest
 from modular_learning.core.application.configuracion import ConfiguracionService
 from modular_learning.core.application.materias import MateriasService
 from modular_learning.core.application.proyectos import ProyectosService
+from modular_learning.core.domain.rutas import unir_dentro
 
 router = APIRouter(prefix="/api/proyectos", tags=["proyectos"])
 
@@ -39,11 +41,19 @@ def escanear_proyectos_disponibles(
     if os.getenv("ML_EN_NUBE") == "1":
         return {"candidatos": []}
     ruta_material = config_srv.carpeta_material()
-    materias = [materia] if materia and materia != "__todas__" else materias_srv.listar_materias()
+    if materia and materia != "__todas__":
+        encontrada = materias_srv.obtener_materia(materia)
+        if encontrada is None:
+            raise HTTPException(status_code=404, detail="Asignatura no encontrada.")
+        materias = [encontrada.nombre]
+    else:
+        materias = materias_srv.listar_materias()
 
     todos_detectados: list[dict[str, Any]] = []
     for m in materias:
-        carpeta_m = os.path.join(ruta_material, m)
+        carpeta_m = unir_dentro(ruta_material, m)
+        if carpeta_m is None:
+            continue
         detectados = servicio.escanear_proyectos_en_carpeta(m, carpeta_m)
         todos_detectados.extend(detectados)
 
@@ -76,18 +86,26 @@ def obtener_proyecto(
 def ingestar_proyecto(
     body: IngestarProyectoRequest,
     servicio: Annotated[ProyectosService, Depends(get_proyectos_service)],
+    config_srv: Annotated[ConfiguracionService, Depends(get_configuracion_service)],
+    materias_srv: Annotated[MateriasService, Depends(get_materias_service)],
 ) -> dict[str, Any]:
+    encontrada = materias_srv.obtener_materia(body.materia)
+    if encontrada is None:
+        raise HTTPException(status_code=404, detail="Asignatura no encontrada.")
     try:
         proyecto = servicio.analizar_e_ingestar_proyecto(
-            materia=body.materia,
+            carpeta_base=config_srv.carpeta_material(),
+            materia=encontrada.nombre,
             nombre_proyecto=body.nombre,
             parcial=body.parcial,  # type: ignore[arg-type]
             ruta_origen=body.ruta,
             tipo_forzado=body.tipo,  # type: ignore[arg-type]
         )
         return {"ok": True, "proyecto": proyecto.a_dict()}
+    except ValueError as e:
+        raise error_cliente(e) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise error_interno(e) from e
 
 
 @router.post("/{id_proyecto:path}/actualizar")
@@ -99,9 +117,9 @@ def actualizar_proyecto(
         proyecto = servicio.actualizar_proyecto(id_proyecto)
         return {"ok": True, "proyecto": proyecto.a_dict()}
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise error_cliente(e, 404) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise error_interno(e) from e
 
 
 @router.delete("/{id_proyecto:path}")

@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import {
   BookMarked,
   CalendarDays,
   GraduationCap,
   Menu,
+  ListChecks,
   Settings,
-  Sun,
   X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -21,7 +21,7 @@ interface ItemNav {
 }
 
 const ITEMS_NAV: ItemNav[] = [
-  { nombre: 'Hoy', ruta: '/', icono: Sun },
+  { nombre: 'Hoy', ruta: '/', icono: ListChecks },
   { nombre: 'Estudiar', ruta: '/estudiar', icono: GraduationCap },
   { nombre: 'Calendario', ruta: '/calendario', icono: CalendarDays },
   { nombre: 'Asignaturas', ruta: '/asignaturas', icono: BookMarked },
@@ -30,7 +30,7 @@ const ITEMS_NAV: ItemNav[] = [
 
 function Marca({ className }: { className?: string }) {
   return (
-    <Link to="/" className={cn('flex items-center gap-3 min-w-0', className)}>
+    <Link to="/" className={cn('toque flex items-center gap-3 min-w-0', className)}>
       <img src="/favicon.svg" alt="" className="h-8 w-8 shrink-0" />
       <span className="min-w-0 leading-tight">
         <span className="block truncate font-display text-[1.05rem] font-semibold text-slate-900 dark:text-slate-50">
@@ -53,7 +53,7 @@ function EnlaceNav({ item, onNavegar }: { item: ItemNav; onNavegar?: () => void 
       onClick={onNavegar}
       className={({ isActive }) =>
         cn(
-          'group relative flex items-center gap-3 rounded-md px-3 py-1.5 text-[0.9rem] transition-colors',
+          'toque group relative flex items-center gap-3 rounded-md px-3 py-1.5 text-[0.9rem] transition-colors',
           isActive
             ? 'bg-slate-200/60 font-medium text-slate-950 dark:bg-slate-800/70 dark:text-white'
             : 'text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/40 dark:hover:text-slate-100'
@@ -119,6 +119,27 @@ function ContenidoSidebar({ onNavegar }: { onNavegar?: () => void }) {
 
 export function Sidebar() {
   const [abierto, setAbierto] = useState(false)
+  const botonMenu = useRef<HTMLButtonElement>(null)
+  const botonCerrar = useRef<HTMLButtonElement>(null)
+
+  const cerrar = () => {
+    setAbierto(false)
+    botonMenu.current?.focus()
+  }
+
+  // Con el cajón abierto: foco dentro y Escape lo cierra devolviendo el foco al botón
+  useEffect(() => {
+    if (!abierto) return
+    botonCerrar.current?.focus()
+    const alPulsar = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setAbierto(false)
+        botonMenu.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', alPulsar)
+    return () => document.removeEventListener('keydown', alPulsar)
+  }, [abierto])
 
   return (
     <>
@@ -133,10 +154,13 @@ export function Sidebar() {
         <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle compacto />
           <button
+            ref={botonMenu}
             type="button"
             onClick={() => setAbierto(true)}
             className="rounded-md p-2 text-slate-600 hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-slate-800"
             aria-label="Abrir menú"
+            aria-expanded={abierto}
+            aria-controls="menu-movil"
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -145,11 +169,18 @@ export function Sidebar() {
 
       {abierto && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-slate-950/40" onClick={() => setAbierto(false)} />
-          <aside className="absolute inset-y-0 left-0 w-64 border-r border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950">
+          <div className="absolute inset-0 bg-slate-950/40" onClick={cerrar} />
+          <aside
+            id="menu-movil"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú principal"
+            className="absolute inset-y-0 left-0 w-64 border-r border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950"
+          >
             <button
+              ref={botonCerrar}
               type="button"
-              onClick={() => setAbierto(false)}
+              onClick={cerrar}
               className="absolute right-3 top-5 rounded-md p-1.5 text-slate-500 hover:bg-slate-200/60 dark:hover:bg-slate-800"
               aria-label="Cerrar menú"
             >

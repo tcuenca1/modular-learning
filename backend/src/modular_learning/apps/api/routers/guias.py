@@ -8,6 +8,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Response
 
 from modular_learning.apps.api.dependencies import get_guias_service
+from modular_learning.apps.api.errores import error_cliente, error_interno
 from modular_learning.apps.api.schemas import NuevaGuia, RevisionGuia
 from modular_learning.core.application.guias import GuiaOfflineService
 from modular_learning.core.domain.guia_offline import GuiaOffline
@@ -36,7 +37,7 @@ def _obtener(servicio: GuiaOfflineService, guia_id: str) -> GuiaOffline:
     try:
         return servicio.obtener(guia_id)
     except LookupError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise error_cliente(e, 404) from e
 
 
 @router.get("")
@@ -55,7 +56,7 @@ def crear_guia(body: NuevaGuia, servicio: Servicio) -> dict[str, Any]:
     try:
         guia = servicio.crear(body.materia.strip(), body.temas, tiempo_minutos=body.tiempo_minutos)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise error_cliente(e) from e
     return guia.a_dict()
 
 
@@ -83,9 +84,9 @@ def descargar_pdf(guia_id: str, servicio: Servicio) -> Response:
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
     except LookupError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise error_cliente(e, 404) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise error_interno(e) from e
 
 
 @router.post("/{guia_id}/clases/{indice}")
@@ -95,9 +96,9 @@ def generar_clase(guia_id: str, indice: int, servicio: Servicio) -> dict[str, An
     try:
         clase = servicio.generar_clase(guia_id, indice)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise error_cliente(e) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise error_interno(e) from e
     return asdict(clase)
 
 
@@ -108,7 +109,7 @@ def registrar_revision(guia_id: str, body: RevisionGuia, servicio: Servicio) -> 
     try:
         return servicio.registrar_revision(guia_id, resultados)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise error_cliente(e) from e
 
 
 @router.post("/{guia_id}/deshacer")
@@ -117,7 +118,7 @@ def deshacer_revision(guia_id: str, servicio: Servicio) -> dict[str, Any]:
     try:
         return servicio.deshacer_revision(guia_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise error_cliente(e) from e
 
 
 __all__ = ["router"]

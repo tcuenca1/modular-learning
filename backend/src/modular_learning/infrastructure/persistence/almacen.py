@@ -14,7 +14,11 @@ from __future__ import annotations
 
 import json
 import os
+import threading
+import time
+import uuid
 from abc import ABC, abstractmethod
+from contextlib import AbstractContextManager
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -22,6 +26,11 @@ from typing import Any
 from modular_learning import settings
 
 TABLA = "documentos"
+
+# Un candado reentrante por documento, compartido por todas las instancias del proceso
+_CANDADOS: dict[str, threading.RLock] = {}
+_GUARDA_CANDADOS = threading.Lock()
+_REINTENTOS_REEMPLAZO = 8
 
 
 class AlmacenDocumentos(ABC):
@@ -43,6 +52,19 @@ class AlmacenDocumentos(ABC):
     def eliminar(self, clave: str) -> bool:
         """Borra el documento; retorna False si no existía."""
 
+    def _identidad_candado(self, clave: str) -> str:
+        """Texto que identifica el documento aunque haya varias instancias del almacén."""
+        return f"{id(self)}:{clave}"
+
+    def bloquear(self, clave: str) -> AbstractContextManager[Any]:
+        """
+        Candado del documento para serializar un ciclo leer-modificar-escribir dentro del
+        proceso. Es reentrante: un método que ya lo tiene puede llamar a otro que lo pida.
+        """
+        identidad = self._identidad_candado(clave)
+        with _GUARDA_CANDADOS:
+            return _CANDADOS.setdefault(identidad, threading.RLock())
+
 
 class AlmacenArchivos(AlmacenDocumentos):
     """Documentos como archivos bajo `raiz` (por defecto, la carpeta de datos actual)."""
@@ -58,6 +80,9 @@ class AlmacenArchivos(AlmacenDocumentos):
     def _ruta(self, clave: str) -> str:
         return os.path.join(self.raiz, *clave.split("/"))
 
+    def _identidad_candado(self, clave: str) -> str:
+        return os.path.normcase(os.path.abspath(self._ruta(clave)))
+
     def leer(self, clave: str) -> str | None:
         ruta = self._ruta(clave)
         if not os.path.exists(ruta):
@@ -71,10 +96,22 @@ class AlmacenArchivos(AlmacenDocumentos):
     def escribir(self, clave: str, contenido: str) -> None:
         ruta = self._ruta(clave)
         os.makedirs(os.path.dirname(ruta), exist_ok=True)
-        temporal = f"{ruta}.tmp"
-        with open(temporal, "w", encoding="utf-8") as f:
-            f.write(contenido)
-        os.replace(temporal, ruta)
+        # Nombre temporal único: dos escrituras a la vez no se pisan el archivo intermedio
+        temporal = f"{ruta}.{uuid.uuid4().hex}.tmp"
+        try:
+            with open(temporal, "w", encoding="utf-8") as f:
+                f.write(contenido)
+            for intento in range(_REINTENTOS_REEMPLAZO):
+                try:
+                    os.replace(temporal, ruta)
+                    return
+                except PermissionError:  # Windows: otro proceso tiene el destino abierto
+                    if intento == _REINTENTOS_REEMPLAZO - 1:
+                        raise
+                    time.sleep(0.02 * (intento + 1))
+        finally:
+            if os.path.exists(temporal):
+                os.remove(temporal)
 
     def listar(self, prefijo: str = "") -> list[str]:
         carpeta, _, inicio_nombre = prefijo.rpartition("/")
@@ -84,7 +121,9 @@ class AlmacenArchivos(AlmacenDocumentos):
         return sorted(
             f"{carpeta}/{nombre}" if carpeta else nombre
             for nombre in os.listdir(base)
-            if nombre.startswith(inicio_nombre) and os.path.isfile(os.path.join(base, nombre))
+            if nombre.startswith(inicio_nombre)
+            and not nombre.endswith(".tmp")
+            and os.path.isfile(os.path.join(base, nombre))
         )
 
     def eliminar(self, clave: str) -> bool:
@@ -197,6 +236,10 @@ class DocumentoJson:
     @property
     def almacen(self) -> AlmacenDocumentos:
         return self._almacen or almacen_por_defecto()
+
+    def bloqueo(self) -> AbstractContextManager[Any]:
+        """Candado del documento para un ciclo leer-modificar-escribir (reentrante)."""
+        return self.almacen.bloquear(self.clave)
 
     def leer(self, defecto: Any) -> Any:
         texto = self.almacen.leer(self.clave)

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { api } from '@/api/client'
 import type { ClaseFechada } from '@/lib/asignaturas'
 import { claveDia, clasesConFecha, enlaceTutoria, inicioDelDia } from '@/lib/asignaturas'
+import { mesInicial, primerDiaDelMes, proximaClase } from '@/lib/calendario'
 import { cn } from '@/lib/utils'
 
 const DIAS_SEMANA = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom']
@@ -32,17 +33,21 @@ function EntradaClase({ c, compacta }: { c: ClaseFechada; compacta?: boolean }) 
       to={enlaceTutoria(c.materia, c.clase.tema, undefined, c.clase.id)}
       title={`${c.materia} · ${c.clase.tema}${c.completada ? ' (completada)' : ''}`}
       className={cn(
-        'group block min-w-0 rounded-sm border-l-2 px-1.5 py-0.5 transition-colors',
+        'toque group block min-w-0 rounded-sm border-l-2 px-1.5 py-0.5 transition-colors',
+        !compacta && 'py-2',
         c.completada
-          ? 'border-slate-300 opacity-55 hover:opacity-100 dark:border-slate-700'
+          ? 'border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800/50'
           : 'border-indigo-600 hover:bg-indigo-50 dark:border-indigo-400 dark:hover:bg-indigo-950/40'
       )}
     >
       <span
         className={cn(
-          'block text-slate-800 group-hover:text-indigo-800 dark:text-slate-200 dark:group-hover:text-indigo-200',
-          compacta ? 'line-clamp-2 text-xs leading-snug' : 'text-sm',
-          c.completada && 'line-through decoration-slate-400/70'
+          'block',
+          // Completada: color secundario y tachado, sin opacidad (la opacidad rompe el contraste AA)
+          c.completada
+            ? 'text-slate-500 line-through decoration-slate-400/70'
+            : 'text-slate-800 group-hover:text-indigo-800 dark:text-slate-200 dark:group-hover:text-indigo-200',
+          compacta ? 'line-clamp-2 text-xs leading-snug' : 'text-sm'
         )}
       >
         {c.clase.tema}
@@ -62,9 +67,14 @@ export function CalendarioView() {
 
   useEffect(() => {
     Promise.all([api.getCronogramas(), api.getMaterias()])
-      .then(([{ cronogramas }, { materias }]) => setClases(clasesConFecha(cronogramas, materias)))
+      .then(([{ cronogramas }, { materias }]) => {
+        const lista = clasesConFecha(cronogramas, materias)
+        setClases(lista)
+        // Abre en el mes donde hay trabajo, no en un mes vacío
+        setMes(mesInicial(lista, hoy))
+      })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
-  }, [])
+  }, [hoy])
 
   const porDia = useMemo(() => {
     const mapa = new Map<string, ClaseFechada[]>()
@@ -83,6 +93,10 @@ export function CalendarioView() {
   const pendientesDelMes = delMes.filter((c) => !c.completada).length
   const esMesActual = mes.getMonth() === hoy.getMonth() && mes.getFullYear() === hoy.getFullYear()
   const claveHoy = claveDia(hoy)
+  const proxima = clases ? proximaClase(clases, hoy) : null
+  const proximaEnOtroMes =
+    proxima !== null &&
+    (proxima.fecha.getMonth() !== mes.getMonth() || proxima.fecha.getFullYear() !== mes.getFullYear())
 
   const moverMes = (delta: number) => setMes((m) => new Date(m.getFullYear(), m.getMonth() + delta, 1))
 
@@ -117,7 +131,16 @@ export function CalendarioView() {
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
+          {proximaEnOtroMes && proxima && (
+            <button
+              type="button"
+              onClick={() => setMes(primerDiaDelMes(proxima.fecha))}
+              className="cursor-pointer rounded-md border border-indigo-300 px-3 py-1 text-sm text-indigo-800 hover:bg-indigo-50 dark:border-indigo-700 dark:text-indigo-200 dark:hover:bg-indigo-950/40"
+            >
+              Ir a la próxima clase
+            </button>
+          )}
           <button
             type="button"
             onClick={() => moverMes(-1)}
@@ -184,7 +207,7 @@ export function CalendarioView() {
                     <span
                       className={cn(
                         'cifra inline-block px-1 text-xs',
-                        fuera ? 'text-slate-400 dark:text-slate-600' : 'text-slate-600 dark:text-slate-400',
+                        fuera ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400',
                         esHoy && 'marcador font-semibold text-slate-900 dark:text-slate-50'
                       )}
                     >

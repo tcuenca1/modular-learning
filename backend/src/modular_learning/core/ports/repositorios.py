@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any
 
 from modular_learning.core.domain.materias import Materia
@@ -21,6 +22,20 @@ class CronogramaRepo(ABC):
     @abstractmethod
     def guardar_cronograma(self, materia: str, clases: list[dict[str, Any]]) -> str:
         """Guarda o actualiza la lista completa de clases y retorna la ubicación persistida."""
+
+    @abstractmethod
+    def actualizar_cronograma(
+        self,
+        materia: str,
+        transformar: Callable[[list[dict[str, Any]]], list[dict[str, Any]] | None],
+    ) -> list[dict[str, Any]]:
+        """
+        Lee las clases (lista vacía si no hay cronograma), aplica `transformar` y guarda el
+        resultado como una sola operación atómica respecto a otras escrituras del mismo
+        cronograma. `transformar` modifica la lista en sitio o retorna una lista nueva; si
+        lanza una excepción no se guarda nada y la excepción se propaga. Retorna las clases
+        guardadas.
+        """
 
     @abstractmethod
     def eliminar_cronograma(self, materia: str) -> bool:
