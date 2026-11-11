@@ -59,7 +59,7 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 ninguno
 
 ### Revisión de Claude
-Pendiente.
+**Aprobada.** El diff coincide con los criterios: redirecciones con query, carga única del catálogo (`useCallback` sin dependencias y `materia` leída una sola vez con `useRef`) y títulos corregidos.
 
 ---
 
@@ -94,7 +94,7 @@ Pendiente.
 ninguno
 
 ### Revisión de Claude
-Pendiente.
+**Aprobada.** Las vistas de `ARCHITECTURE.md` coinciden con `frontend/src/views/`, DISC-08 a DISC-11 figuran resueltas con su commit y no quedan menciones a las vistas eliminadas.
 
 ---
 

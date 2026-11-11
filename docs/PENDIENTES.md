@@ -45,52 +45,7 @@ Lee `CLAUDE.md` antes de empezar. Además:
 
 ## Tareas (en orden de prioridad)
 
-### P29. Remates de P20 a P28
-
-Detalles pequeños que quedaron de la última tanda. Un solo commit.
-
-- **Formato:** pasa `ruff format` a los archivos que tocaste y no se formatearon:
-  `apps/api/routers/material.py`, `apps/api/routers/proyectos.py`,
-  `tests/unit/application/test_ingesta_service.py`, `test_otros_servicios.py` y
-  `tests/unit/cli/test_init_clase_id.py`. No toques otros archivos.
-- **Redirecciones:** `/silabos` y `/material` también conservan la query (como las demás, con
-  `RedirigirConQuery`); `/material` sigue añadiendo `tab=material`.
-- **`AsignaturasView`:** una sola función carga el catálogo (hoy está duplicada en
-  `cargarMaterias` y en el `useEffect`), y el catálogo **no** se vuelve a pedir al cambiar de
-  pestaña (el efecto no debe depender de `params` entero; lee `materia` de la query solo al
-  cargar).
-- **Mayúscula solo al principio** en los títulos que quedan: «Tus asignaturas», «Tema
-  académico», «Nota de Obsidian», «Último análisis», «Cortes de parcial».
-
-**Aceptación:** `ruff format --check` limpio en esos 5 archivos; prueba en el navegador
-(regla 10): abrir `/material?materia=<slug>` llega a Asignaturas › Material con esa asignatura,
-y cambiar de pestaña no hace otra llamada a `/api/materias` (pestaña Red de las herramientas
-de desarrollo).
-
-## Documentación funcional (tarea aparte, no toca código)
-
-### D3. Documentación al día tras P19 a P29 (Argon)
-
-Hazla **después de P29**. D2 se hizo antes de P20–P28, así que el manual y la arquitectura
-describen la interfaz anterior.
-
-- **`docs/ARCHITECTURE.md`:** la lista de vistas tiene que coincidir con `frontend/src/views/`
-  (hoy nombra `IngestaView`, `ProyectosView` y `ProgresoView`, que no existen). Describe el
-  menú de 5 entradas (Hoy, Estudiar, Calendario, Asignaturas, Ajustes) y qué vista va en cada
-  pestaña.
-- **Manual (`docs/manual/MANUAL_FUNCIONAL.md`):** actualiza los casos de uso a la interfaz
-  nueva (menú de 5, Estudiar con Tutoría/Repaso/Guía, Asignaturas con selector único y pestañas
-  Clases/Material/Proyectos, «Zona peligrosa», Ajustes con Plugins, Progreso dentro de Hoy,
-  rutas antiguas que redirigen). Marca DISC-08 a DISC-11 como resueltas con su commit (P25
-  `7da3dab`, P26 `511c3ab`, P27 `2cead9e`, P28 `58bf149`) y corrige los flujos afectados
-  (escaneo en la nube, `ml init`, cortes de parcial, borrados). Regenera el PDF con
-  `scripts/generar_manual.py`.
-- Comprueba cada `archivo:línea` que cites: los números de línea han cambiado mucho.
-- **No toques** `CLAUDE.md` ni `docs/PENDIENTES.md` (salvo «Hallazgos»).
-
-**Aceptación:** `git grep -n "ProgresoView\|IngestaView\|ProyectosView" docs README.md` sin
-resultados; el PDF abre sin errores. Commit `docs: D3 documentacion tras P19 a P29` y su
-informe aparte.
+*(Sin tareas pendientes de implementación.)*
 
 ## Para decidir con el usuario (no implementar)
 
