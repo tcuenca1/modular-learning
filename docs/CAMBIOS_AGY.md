@@ -33,6 +33,51 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P33. Cabeceras de seguridad, documentación de la API y compresión
+
+- **Commit:** d3810e5 `feat(web): P33 cabeceras de seguridad, host confiable, sin docs en la nube y gzip`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/apps/api/seguridad.py (nuevo)
+  - backend/src/modular_learning/apps/api/main.py
+  - backend/tests/conftest.py
+  - backend/tests/integration/api/test_seguridad.py (nuevo)
+  - docs/DESPLIEGUE.md
+
+### Qué hice
+Reproduje con el cliente de pruebas: `/` sin ninguna cabecera de seguridad, `/docs`, `/redoc` y `/openapi.json` en 200, el JS de 947 KB sin `content-encoding` ni `cache-control`, y un `Host: evil.example` aceptado.
+- `seguridad.py`: `CabecerasSeguridad` (middleware ASGI) añade CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, HSTS solo con `ML_EN_NUBE=1`, `Cache-Control` de un año con `immutable` para `/assets/` y `no-cache` para `/`. La CSP deja `script-src 'self'` (el build solo tiene un `<script type="module">` externo), estilos propios + `'unsafe-inline'` (React emite atributos `style`) + Google Fonts, que usa `index.html`.
+- `HostsConfiables`: `TrustedHostMiddleware` con `ML_HOSTS_PERMITIDOS` (por defecto `localhost,127.0.0.1`, más `RENDER_EXTERNAL_HOSTNAME` si existe). Deja pasar `/api/salud` para no romper el healthcheck de Render.
+- `create_app`: sin `/docs`, `/redoc`, `/openapi.json` con `ML_EN_NUBE=1`; `GZipMiddleware`.
+- `tests/conftest.py` fija `ML_HOSTS_PERMITIDOS=testserver,localhost` en todos los tests (el TestClient usa el host `testserver`).
+- `docs/DESPLIEGUE.md`: variables nuevas.
+Decisión: la tarea decía «por defecto, localhost». Con eso, abrir la web local desde otro equipo de la red da 400 hasta añadir su nombre en `ML_HOSTS_PERMITIDOS`; está documentado.
+
+### Cómo lo verifiqué
+- pytest: 240 passed, 2 skipped
+- ruff check / ruff format: ok en lo tocado (los 2 archivos sin formatear de antes siguen igual)
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: ok (37 tests); el frontend no cambió
+- Tests nuevos (tests/integration/api/test_seguridad.py):
+  - test_toda_respuesta_lleva_las_cabeceras_de_seguridad
+  - test_csp_permite_lo_que_usa_el_build
+  - test_hsts_solo_en_la_nube
+  - test_host_no_permitido_da_400_pero_el_healthcheck_pasa
+  - test_hosts_configurables_por_entorno
+  - test_documentacion_de_la_api_solo_fuera_de_la_nube
+  - test_assets_comprimidos_y_con_cache_larga (se omite si el frontend no está compilado)
+  - test_los_eventos_sse_no_se_comprimen
+- Prueba manual: servidor local (`uvicorn`, copia de `data/examples`) y Chromium headless en `http://localhost:8000`: cargué `/`, `/estudiar`, `/calendario`, `/asignaturas` y `/ajustes`; la consola no mostró ninguna violación de CSP ni errores, los 5 JS llegaron con `content-encoding: gzip` y `cache-control: public, max-age=31536000, immutable`, y la captura de Ajustes se ve completa (menú, tarjetas, tipografías). Con `ML_EN_NUBE=1` comprobé también que `/docs` da 404 y aparece HSTS.
+
+### Dudas o hallazgos
+- No pude comprobar en Render que `RENDER_EXTERNAL_HOSTNAME` esté definido ni que el healthcheck llegue con otro `Host`; por eso `/api/salud` queda exento y el hostname de Render se añade solo. Si el servicio da 400 tras desplegar, definir `ML_HOSTS_PERMITIDOS` con el dominio de Render.
+- La CSP mantiene `'unsafe-inline'` en estilos; quitarlo exigiría eliminar los `style=` de React.
+- Las fuentes siguen cargándose de Google Fonts; si P40 las sirve localmente se puede quitar su dominio de la CSP.
+
+### Revisión de Claude
+
+---
+
 ## P32. Escrituras concurrentes sin pérdida de datos
 
 - **Commit:** 293c251 `fix(core): P32 escrituras concurrentes sin perdida de datos`
