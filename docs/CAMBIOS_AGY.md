@@ -33,6 +33,46 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P39. Objetivos táctiles y calendario en móvil
+
+- **Commit:** 04e710c `feat(web): P39 objetivos tactiles de 44 px y calendario util en movil`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/index.css
+  - frontend/src/lib/calendario.ts, frontend/src/lib/calendario.test.ts (nuevos)
+  - frontend/src/components/layout/Sidebar.tsx
+  - frontend/src/views/{CalendarioView,HoyView,SilabosView}.tsx
+
+### Qué hice
+Medí primero con un script de JS en Chromium con puntero táctil (`hasTouch`, `isMobile`, 375 px; se cumple `(pointer: coarse)`): **79 controles por debajo de 44 px** entre Hoy (16), Calendario (8), Asignaturas › Clases (23), Material (16) y Proyectos (16): toggles de tema 26×26, menú 36×36, flechas del calendario 32×32, pestañas, botones de acción 28-32 px, «Subir sílabo» 74×18, «Estudiar →» 343×20, etc.
+- `index.css`: bajo `@media (pointer: coarse)`, `button` (salvo el cierre de Sonner), `[role=tab]`, `select`, `summary` y los `input` de texto tienen `min-height: 44px`; botones y pestañas también `min-width: 44px`. Para enlaces de acción hay una clase `.toque` (mínimo 44×44), aplicada a la marca, a los enlaces del menú, a los de Hoy («Estudiar ahora», «Estudiar →», «Subir sílabo», «Preguntas nuevas», «Repasar ahora», «Procesar…», aviso de guías) y a las filas de clase del calendario. Fuera de `@layer`, para ganar a las utilidades.
+- Calendario: `lib/calendario.ts` (`proximaClase`, `mesInicial`): abre en el mes actual si tiene clases; si no, en el mes de la próxima clase pendiente (o, sin nada por delante, del atraso más antiguo). Botón «Ir a la próxima clase» cuando se está en otro mes. Las filas de clase ya eran enlaces a la tutoría; ahora miden ≥ 44 px (`py-2` en móvil).
+- Cortes de parcial: la cabecera de la tarjeta apila texto y botón en pantallas estrechas. `<code>` pasa a `overflow-wrap: anywhere` (rutas largas de la ficha de Proyectos).
+- Dependencia que apareció: con el calendario ya abierto en octubre (donde hay clases), axe detectó que las clases completadas se atenuaban con `opacity-55` (contraste 2,3-3,3). Las sustituí por color secundario y tachado, sin opacidad.
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint sin avisos, build ok, vitest 63 passed (8 nuevos)
+- Tests nuevos: frontend/src/lib/calendario.test.ts (`proximaClase`: próxima por delante, la de hoy, atraso, todo completado; `mesInicial`: mes actual con clases, mes de la próxima, mes del atraso, sin clases)
+- Prueba manual (servidor local, copia de `data/examples`, Chromium con puntero táctil a 375 px):
+  - Medición con JS de controles interactivos visibles de menos de 44 px: **0** en Hoy, Calendario, Asignaturas › Clases, Material y Proyectos (antes 79); `scrollWidth` = 375 en las cinco.
+  - Calendario: abre en «Octubre de 2026» (2 clases, 1 pendiente) en vez de noviembre vacío; las filas miden 72 px; al pasar a noviembre aparece «Ir a la próxima clase» y al pulsarlo vuelve a octubre.
+  - Capturas a 375 px (revisadas a ojo): Calendario, tarjeta «Cortes de parcial» (texto y botón apilados, cabe) y la ficha de Proyectos (la ruta de Obsidian se parte en varias líneas y `scrollWidth` = 375).
+  - axe-core 4.10.2: 0 nodos serious/critical a 375 y a 1100 px en las 10 vistas y pestañas, claro y oscuro (tras corregir las clases completadas).
+  No probé en un teléfono real.
+
+### Dudas o hallazgos
+- En la cabecera móvil, con los toggles de tema a 44 px, la marca queda truncada («Modular L…»). Podría quitarse el selector de tema de la cabecera (ya está dentro del cajón); lo dejé porque la tarea pedía los toggles a 44 px.
+- Los enlaces dentro de una frase (p. ej. «Sube un sílabo» en el calendario vacío) quedan exentos de los 44 px; solo los enlaces de acción lo cumplen.
+- Con una asignatura de 80 letras, Hoy desborda horizontalmente a 375 px (la lista de asignaturas no parte el nombre). No es de esta tarea; anotado en «Hallazgos».
+- En pantallas táctiles anchas (tablet, ≥ 1024 px) la cuadrícula mensual también usa los mínimos de 44 px, así que las celdas con varias clases crecen.
+
+### Revisión de Claude
+
+---
+
 ## P38. Accesibilidad AA
 
 - **Commit:** 5677fb0 `fix(web): P38 accesibilidad AA (etiquetas, foco, contraste, menu y encabezados)`
