@@ -43,6 +43,7 @@ export function AsignaturasView() {
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [creando, setCreando] = useState(false)
   const [nombreNueva, setNombreNueva] = useState('')
+  const [guardandoNueva, setGuardandoNueva] = useState(false)
 
   const cargarMaterias = useCallback((seleccionarNombreOSlug?: string) => {
     return api
@@ -91,6 +92,20 @@ export function AsignaturasView() {
 
   const materiaActivaObj = materias.find((m) => m.slug === materiaActiva)
 
+  // La asignatura activa vive en la URL: sobrevive a recargas y se puede compartir el enlace
+  useEffect(() => {
+    if (!materiaActiva) return
+    setParams(
+      (prev) => {
+        if (prev.get('materia') === materiaActiva) return prev
+        const p = new URLSearchParams(prev)
+        p.set('materia', materiaActiva)
+        return p
+      },
+      { replace: true }
+    )
+  }, [materiaActiva, setParams])
+
   const cambiarTab = (pId: Pestana) => {
     const p = new URLSearchParams(params)
     if (pId === 'clases') {
@@ -103,10 +118,13 @@ export function AsignaturasView() {
 
   const handleCrearMateria = async () => {
     const limpia = nombreNueva.trim()
-    if (!limpia) return
+    if (!limpia || guardandoNueva) return
+    setGuardandoNueva(true)
     try {
       await api.createMateria(limpia)
-      toast.success(`Asignatura "${limpia}" creada`)
+      toast.success(`Asignatura "${limpia}" creada`, {
+        description: 'Ahora sube su sílabo o añade clases en la pestaña Clases.',
+      })
       setCreando(false)
       setNombreNueva('')
       await cargarMaterias(limpia)
@@ -114,6 +132,8 @@ export function AsignaturasView() {
       toast.error('No se pudo crear la asignatura', {
         description: err instanceof Error ? err.message : String(err),
       })
+    } finally {
+      setGuardandoNueva(false)
     }
   }
 
@@ -146,7 +166,7 @@ export function AsignaturasView() {
 
         {/* Selector de Asignatura Único y Compartido */}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <BookMarked className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
@@ -155,11 +175,11 @@ export function AsignaturasView() {
             </div>
 
             {materias.length > 0 ? (
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 max-w-full items-center gap-2">
                 <select
                   value={materiaActiva}
                   onChange={(e) => setMateriaActiva(e.target.value)}
-                  className="h-8 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-900 shadow-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
+                  className="h-8 min-w-0 max-w-full truncate rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-900 shadow-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
                 >
                   {materias.map((m) => (
                     <option key={m.slug} value={m.slug}>
@@ -173,7 +193,11 @@ export function AsignaturasView() {
                     <Input
                       value={nuevoNombre}
                       onChange={(e) => setNuevoNombre(e.target.value)}
-                      className="h-8 text-xs font-medium w-48"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') void handleRenombrar()
+                        if (e.key === 'Escape') setRenombrando(false)
+                      }}
+                      className="h-8 text-xs font-medium w-48 max-w-full"
                       autoFocus
                     />
                     <Button size="sm" onClick={handleRenombrar} className="h-8 px-2 text-xs">
@@ -204,7 +228,9 @@ export function AsignaturasView() {
                 )}
               </div>
             ) : (
-              <span className="text-xs text-slate-400">Sin asignaturas registradas</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                Aún no tienes asignaturas: crea la primera con «Nueva asignatura».
+              </span>
             )}
           </div>
 
@@ -214,12 +240,22 @@ export function AsignaturasView() {
                 <Input
                   value={nombreNueva}
                   onChange={(e) => setNombreNueva(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void handleCrearMateria()
+                    if (e.key === 'Escape') setCreando(false)
+                  }}
                   placeholder="Nombre de la nueva asignatura"
-                  className="h-8 text-xs w-52"
+                  className="h-8 text-xs w-52 max-w-full"
+                  maxLength={80}
                   autoFocus
                 />
-                <Button size="sm" onClick={handleCrearMateria} className="h-8 px-2.5 text-xs">
-                  Guardar
+                <Button
+                  size="sm"
+                  onClick={handleCrearMateria}
+                  disabled={guardandoNueva || !nombreNueva.trim()}
+                  className="h-8 px-2.5 text-xs"
+                >
+                  {guardandoNueva ? 'Guardando…' : 'Guardar'}
                 </Button>
                 <Button
                   size="sm"

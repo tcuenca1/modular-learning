@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import {
   AlertCircle,
   Calendar,
@@ -525,6 +525,25 @@ export function SilabosView({
 
   const materiaSeleccionadaObj = materias.find((m) => m.slug === materiaActiva)
 
+  // Embebido, la asignatura activa la elige el padre: si es una recién creada que este panel
+  // aún no conoce, se recarga el catálogo (una vez por asignatura) para no quedar en blanco.
+  const catalogoPedidoPara = useRef('')
+  useEffect(() => {
+    if (!embebido || !materiaActivaSlug || materias.some((m) => m.slug === materiaActivaSlug)) return
+    if (catalogoPedidoPara.current === materiaActivaSlug) return
+    catalogoPedidoPara.current = materiaActivaSlug
+    void cargarCatalogo(materiaActivaSlug)
+  }, [embebido, materiaActivaSlug, materias, cargarCatalogo])
+
+  // El panel de subir sílabo parte de la asignatura activa, no de «Nueva asignatura…»
+  const nombreActiva = materiaSeleccionadaObj?.nombre
+  const [nombreSincronizado, setNombreSincronizado] = useState<string>()
+  if (nombreActiva && nombreActiva !== nombreSincronizado) {
+    setNombreSincronizado(nombreActiva)
+    setMateriaSelect(nombreActiva)
+    setSubidaMateria(nombreActiva)
+  }
+
   return (
     <div className="space-y-6 pb-12">
       {!embebido && (
@@ -633,8 +652,8 @@ export function SilabosView({
             <>
             <Card>
               <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                <div className="min-w-0 space-y-1">
+                  <div className="flex min-w-0 items-center gap-2">
                     {renombrando ? (
                       <div className="flex items-center gap-2">
                         <Input
@@ -656,7 +675,9 @@ export function SilabosView({
                       </div>
                     ) : (
                       <>
-                        <CardTitle className="text-xl">{materiaSeleccionadaObj.nombre}</CardTitle>
+                        <CardTitle className="min-w-0 text-xl [overflow-wrap:anywhere]">
+                          {materiaSeleccionadaObj.nombre}
+                        </CardTitle>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1003,18 +1024,22 @@ export function SilabosView({
                   variant="outline"
                   size="sm"
                   onClick={handleEliminarCronograma}
-                  className="gap-1.5 text-xs text-amber-700 border-amber-300 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-900/60 dark:hover:bg-amber-950/40"
+                  className="h-auto max-w-full gap-1.5 whitespace-normal break-words py-1.5 text-left text-xs text-amber-700 border-amber-300 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-900/60 dark:hover:bg-amber-950/40"
                 >
-                  Vaciar cronograma de {materiaSeleccionadaObj.nombre}
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    Vaciar cronograma de {materiaSeleccionadaObj.nombre}
+                  </span>
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleEliminarMateria}
-                  className="gap-1.5 text-xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900/60 dark:hover:bg-rose-950/40"
+                  className="h-auto max-w-full gap-1.5 whitespace-normal break-words py-1.5 text-left text-xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900/60 dark:hover:bg-rose-950/40"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Eliminar asignatura {materiaSeleccionadaObj.nombre}
+                  <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    Eliminar asignatura {materiaSeleccionadaObj.nombre}
+                  </span>
                 </Button>
               </div>
             </div>
