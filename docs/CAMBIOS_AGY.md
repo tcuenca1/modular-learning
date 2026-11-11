@@ -57,7 +57,7 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 - npm run lint / build / test: ok (37 tests); el frontend no cambió
 - `git grep -n "Internet de las Cosas\|Programacion Web\|Tecnologias de Conmutacion" backend/src/modular_learning/core`: sin resultados (también sin `hasattr` en `plugins.py`)
 - Tests nuevos:
-  - tests/unit/application/test_plugins_service.py (14 tests con `FakePluginPractico`: info, configuración, enrutado por config/defecto/palabra clave/orden de registro, carpeta asignada/convencional/archivos con límite de 3 y exclusión de memoria, memoria con límite, orden con «todos», selección desconocida, `procesar_archivo_plugin`, `registrar_plugin`)
+  - tests/unit/application/test_plugins_service.py (15 tests con `FakePluginPractico`: info, configuración, enrutado por config/defecto/palabra clave/orden de registro, carpeta asignada/convencional/archivos con límite de 3 y exclusión de memoria, memoria con límite, orden con «todos», selección desconocida, `procesar_archivo_plugin`, `registrar_plugin`)
 - Prueba manual (diferencial): cargué el `plugins.py` antiguo desde git y lo ejecuté junto al nuevo con los plugins reales, el lector real y un árbol temporal (carpetas convencionales con flujos `.json`, una configuración IOS y un proyecto web; sin carpetas; solo memoria). Comparé `actualizar_plugin` con 9 selecciones × 3 escenarios (27 casos): todas las salidas son idénticas; `obtener_plugin` con 12 nombres de asignatura y una configuración propia: sin diferencias; `listar_info_plugins`: igual.
 
 ### Dudas o hallazgos
