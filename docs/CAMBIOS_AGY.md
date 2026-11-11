@@ -69,7 +69,7 @@ Medí primero con axe-core 4.10.2 (reglas WCAG 2 A/AA y 2.1 A/AA) en Hoy, Estudi
 ### Dudas o hallazgos
 - axe solo mide lo automatizable (~30-40 % de WCAG): faltan revisión con lector de pantalla y orden de foco manual.
 - El cajón móvil lleva `aria-modal` pero no atrapa el foco con Tab (puede salir del cajón); hacerlo bien exige una pequeña utilidad de trampa de foco.
-- Al cambiar los tokens `slate-400/500` y `indigo-400` cambian también bordes, iconos y fondos que los usan (p. ej. iconos del menú en claro, algo más oscuros); lo revisé en capturas de Hoy y Asignaturas, no en todas las vistas.
+- Al cambiar los tokens `slate-400/500` y `indigo-400` cambian también bordes, iconos y fondos que los usan (p. ej. iconos del menú en claro, algo más oscuros); revisé capturas de Hoy (claro y oscuro) y de Calendario (oscuro) después del cambio y se ven coherentes (texto secundario legible, verde de acento más claro en oscuro); el resto de vistas solo las pasé por axe, sin revisión visual.
 - `h3`/`h4` literales de algunas vistas (Quiz, Tutoría en sesión) no se recorrieron: dependen de estados con IA.
 
 ### Revisión de Claude
