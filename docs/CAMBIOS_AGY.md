@@ -33,6 +33,49 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P38. Accesibilidad AA
+
+- **Commit:** 5677fb0 `fix(web): P38 accesibilidad AA (etiquetas, foco, contraste, menu y encabezados)`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/index.css, frontend/src/App.tsx
+  - frontend/src/components/{ThemeToggle.tsx,layout/Sidebar.tsx,ui/card.tsx}
+  - frontend/src/views/{AsignaturasView,CalendarioView,ConfigView,HoyView,MaterialView,SilabosView,TutoriaView}.tsx
+  - frontend/src/lib/contraste.test.ts (nuevo)
+
+### Qué hice
+Medí primero con axe-core 4.10.2 (reglas WCAG 2 A/AA y 2.1 A/AA) en Hoy, Estudiar (Tutoría, Repaso, Guía), Calendario, Asignaturas (Clases, Material, Proyectos) y Ajustes (Carpetas, Plugins), en claro y oscuro: **96 nodos serious/critical** (`color-contrast`, `select-name` y 1 `aria-prohibited-attr`).
+- **Contraste:** `slate-400` y `slate-500` se usan como texto secundario con el mismo valor en ambos temas, y un solo color no llega a 4,5:1 sobre papel claro y sobre grafito a la vez. Ahora son variables por tema (`--ml-slate-400/500` en `:root` y `html.dark`): claro `#6f6757` / `#645c4e`, oscuro `#aba291` / `#9c9381`. `rose-600` (texto de «Eliminar…»): `#c70036` en claro y `#ff6384` en oscuro. `indigo-400` (verde de acento, «+ Definir corte» en oscuro): `#63a37c`. Los días de otros meses del calendario pasan a `dark:text-slate-500`.
+- **Etiquetas:** `htmlFor`/`id` en Asignatura, Profundidad y Tema de Tutoría; `aria-label` en el campo de la duda; el selector de Asignaturas pasa de `<span>` a `<label htmlFor>`; ídem el select del panel de sílabo y los 2 inputs de Ajustes; `aria-label` en los campos de crear y renombrar asignatura.
+- **Foco visible:** `select:focus-visible` con contorno de 2 px, definido fuera de `@layer` para ganar a `focus:outline-none`.
+- **Menú móvil:** `aria-expanded` y `aria-controls` en el botón, el cajón es un `dialog` modal, al abrir el foco va al botón «Cerrar menú», Escape cierra y devuelve el foco al botón. Los botones de tema ya tenían `aria-pressed` en la cabecera; lo añadí a las tarjetas de tema de Ajustes (más `role="group"`).
+- **Encabezados:** `CardTitle` pasa de `h3` a `h2` por defecto (prop `as`); las tarjetas por asignatura de Material usan `h3`. **Enlace «Saltar al contenido»** al inicio de la página y `<main id="contenido" tabIndex={-1}>`. `Regleta` de Hoy con `role="img"`.
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint sin avisos, build ok, vitest 55 passed (8 nuevos)
+- Tests nuevos: frontend/src/lib/contraste.test.ts (lee `index.css` y comprueba ≥ 4,5:1 de los textos secundarios, el rojo y el verde en ambos temas, y del texto oscuro sobre el verde de acento)
+- Prueba manual (servidor local, copia de `data/examples`, Chromium headless). axe-core 4.10.2 salió del paquete npm `axe-core@4.10.2` porque cdnjs devolvió 403 desde este entorno (misma versión del mismo producto). Resultado tras los cambios: **0 nodos serious/critical** en las 10 vistas/pestañas × claro y oscuro, a 1100 px y a 375 px, y también con el menú móvil abierto. Además comprobé por script:
+  - Primer Tab muestra «Saltar al contenido» y Enter deja el foco en `#contenido`.
+  - Menú: `aria-expanded` false → true, foco en «Cerrar menú»; Escape cierra, `aria-expanded` vuelve a false y el foco regresa a «Abrir menú».
+  - Temas: `aria-pressed` cambia de Sistema a Oscuro, en cabecera y en Ajustes.
+  - Select enfocado con teclado: `outline: solid 2px rgb(47,117,80)`.
+  - Etiquetas: `tutoria-materia ← Asignatura`, `tutoria-nivel ← Profundidad`, `tutoria-tema ← Tema`, `config-carpeta-material ← Carpeta de material`, `config-ruta-obsidian ← Bóveda de Obsidian`.
+  - Orden de encabezados sin saltos en las 10 vistas/pestañas (antes h1→h3 en 6).
+  No probé con un lector de pantalla real ni los estados que necesitan Gemini (sesión de tutoría en curso, resultados de quiz).
+
+### Dudas o hallazgos
+- axe solo mide lo automatizable (~30-40 % de WCAG): faltan revisión con lector de pantalla y orden de foco manual.
+- El cajón móvil lleva `aria-modal` pero no atrapa el foco con Tab (puede salir del cajón); hacerlo bien exige una pequeña utilidad de trampa de foco.
+- Al cambiar los tokens `slate-400/500` y `indigo-400` cambian también bordes, iconos y fondos que los usan (p. ej. iconos del menú en claro, algo más oscuros); lo revisé en capturas de Hoy y Asignaturas, no en todas las vistas.
+- `h3`/`h4` literales de algunas vistas (Quiz, Tutoría en sesión) no se recorrieron: dependen de estados con IA.
+
+### Revisión de Claude
+
+---
+
 ## P37. Flujo «Nueva asignatura» y selector
 
 - **Commit:** 52167fa `fix(web): P37 flujo Nueva asignatura y selector sin desbordes`
