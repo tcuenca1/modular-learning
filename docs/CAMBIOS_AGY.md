@@ -33,6 +33,46 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P36. Pantalla Hoy coherente y con guía de arranque
+
+- **Commit:** d1f658e `fix(web): P36 pantalla Hoy coherente y con guia de arranque`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/lib/hoy.ts (nuevo)
+  - frontend/src/lib/hoy.test.ts (nuevo)
+  - frontend/src/views/HoyView.tsx
+
+### Qué hice
+Reproduje con una copia de `data/examples` (catálogo de 5 asignaturas sin cronograma + el cronograma de ejemplo, que no pertenece al catálogo): Hoy mostraba «No tienes clases pendientes.», «1/2 clases (50%)» y 5 veces «Aún sin cronograma». La causa: el contador salía de `/api/stats`, que suma todos los cronogramas (incluso los huérfanos), mientras que el titular y las listas solo miran las asignaturas del catálogo.
+- Criterio único (`lib/hoy.ts`): solo cuentan las clases de las asignaturas listadas. `avanceGlobal` calcula el contador (y es `null` si no hay clases: no se muestra) y `estadoHoy` decide el titular: `sin_asignaturas` / `sin_cronogramas` → «Aún no tienes clases cargadas.», `pendiente` → «Te toca …», `al_dia` → «No tienes clases pendientes.». El estado de «Repaso» usa el mismo avance.
+- «Siguiente clase»: etiqueta sobre el titular cuando hay clase pendiente (el titular y la línea con asignatura y fecha ya existían).
+- Sin datos: tarjeta «Primeros pasos» con 3 pasos enlazados (crear asignatura, subir sílabo, empezar tutoría) que marca los ya hechos; si el catálogo está vacío, «Tus asignaturas» lo explica.
+- «Subir sílabo»: un enlace por asignatura sin cronograma con `aria-label="Subir sílabo de <asignatura>"`; lleva a `/asignaturas?materia=<asignatura>` (queda seleccionada). Se mantiene el texto visible «Subir sílabo» para no recargar la lista.
+- Se quitó el estado `stats` de la vista (ya no se usa); `/api/stats` sigue usándose para el avance por asignatura.
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok (`147 files already formatted`)
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint sin avisos, build ok, vitest 47 passed (10 nuevos)
+- Tests nuevos (frontend/src/lib/hoy.test.ts): `avanceGlobal` (suma, null sin clases, caso del cronograma huérfano), `estadoHoy` (4 estados), coherencia contador-titular, `pasosDeArranque`, `tieneCronograma`
+- Prueba manual: servidor local (`uvicorn`, copia de `data/examples` en una carpeta temporal) y Chromium headless a 1100 px; revisé capturas y leí el texto de la página:
+  - Antes: «No tienes clases pendientes.», contador «1/2 clases (50%)» y 5× «Aún sin cronograma».
+  - Datos de ejemplo (5 asignaturas sin cronograma): «Aún no tienes clases cargadas.», sin contador, tarjeta «Primeros pasos» con el paso 1 marcado, 5 enlaces «Subir sílabo de …».
+  - Con `Ejemplo Asignatura` en el catálogo (1 de 2 completadas): etiqueta «SIGUIENTE CLASE», «Te toca Modelado de Dominio…», «1/2 clases (50%)» y sin tarjeta.
+  - Con las 2 completadas: «No tienes clases pendientes.» y «2/2 clases (100%)».
+  - Catálogo vacío: «Aún no tienes clases cargadas.», tarjeta con 0 pasos hechos y «Todavía no hay asignaturas».
+  - El enlace «Subir sílabo de Programacion Web» abre `/asignaturas?materia=Programacion%20Web` con esa asignatura seleccionada.
+  No revisé el modo oscuro ni el ancho móvil (P38 y P39 los cubren).
+
+### Dudas o hallazgos
+- `/api/stats` sigue sumando cronogramas que no pertenecen al catálogo (por eso se contaba mal); Progreso/otras vistas que usen `total_temas` verían la misma discrepancia. No lo toqué: no estaba en la tarea.
+- Un cronograma huérfano (sin asignatura en el catálogo) no se muestra en ningún sitio de Hoy; sigue visible en Calendario.
+
+### Revisión de Claude
+
+---
+
 ## P35. Plugins sin nombres de asignatura escritos a mano
 
 - **Commit:** a82debf `refactor(core): P35 plugins sin nombres de asignatura ni hasattr`
