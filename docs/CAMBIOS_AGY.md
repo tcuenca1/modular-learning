@@ -33,6 +33,42 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P34. Dependencias y CI
+
+- **Commit:** 7f59c16 `chore(ci): P34 pypdf 6.21.4, pasos de CI nuevos y dependabot`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/pyproject.toml
+  - .github/workflows/ci.yml
+  - .github/dependabot.yml (nuevo)
+  - backend/src/modular_learning/apps/cli/commands/es.py (solo formato)
+  - backend/src/modular_learning/infrastructure/system/subprocess_adapter.py (solo formato)
+
+### Qué hice
+- `pypdf>=3.0.0` pasa a `pypdf>=6.21.4`. Reproduje el problema con `pip-audit --no-deps -r` sobre `pypdf==6.21.3`: 3 vulnerabilidades (CVE-2026-119203, -119204 y -119205), corregidas en 6.21.4; con `6.21.4` no hay ninguna. Reinstalé con `pip install -e "./backend[all]"` (queda pypdf 7.0.1).
+- `ci.yml`: añadí `ruff format --check backend`, `pip-audit ./backend` (instala `pip-audit` en el paso), `npm test` y `npm audit --audit-level=high`. Sin cobertura.
+- `.github/dependabot.yml`: `pip` en `/backend` y `npm` en `/frontend`, semanal.
+- Fuera de lo pedido pero necesario para que `ruff format --check` pase: formateé `es.py` y `subprocess_adapter.py`, que ya incumplían el formato antes de empezar (solo juntan una llamada en una línea).
+
+### Cómo lo verifiqué
+Ejecuté en local los mismos comandos que ahora corre el CI:
+- pytest: 240 passed, 2 skipped
+- ruff check: All checks passed! / ruff format --check backend: 147 files already formatted
+- import-linter: 3 contratos cumplidos, 0 rotos
+- pip-audit ./backend: No known vulnerabilities found
+- npm run lint ok, npm test 37 passed, npm run build ok, npm audit --audit-level=high: salida 0 (solo 4 avisos de gravedad baja, de `katex` y sus dependencias)
+- Tests nuevos: ninguno (cambios de configuración)
+- Prueba manual: no pude ejecutar el workflow en GitHub Actions desde aquí; validé los dos YAML con `yaml.safe_load` y corrí cada paso a mano.
+
+### Dudas o hallazgos
+- `pip-audit ./backend` audita las dependencias base del proyecto, no los extras (`dev`, `web`, `nube`); para cubrirlos habría que auditar el entorno completo, con más ruido.
+- `npm audit` lista 4 avisos de gravedad baja (`katex` y sus dependientes); no bloquean el umbral `high`.
+- El CI usa Python 3.12; aquí probé con 3.13.
+
+### Revisión de Claude
+
+---
+
 ## P33. Cabeceras de seguridad, documentación de la API y compresión
 
 - **Commit:** d3810e5 `feat(web): P33 cabeceras de seguridad, host confiable, sin docs en la nube y gzip`
