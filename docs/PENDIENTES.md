@@ -244,3 +244,31 @@ añadas la dependencia al repo si no está ya).
 ## Hallazgos
 
 *(Anota aquí lo que encuentres fuera del alcance de tu tarea.)*
+
+Encontrados al implementar P30 a P42 (detalle en cada informe de `docs/CAMBIOS_AGY.md`):
+
+- **Hoy desborda con un nombre de asignatura de 80 letras** (375 px): el `h3` de cada asignatura de
+  `HoyView.tsx` no parte nombres largos (P37 solo cubrió Asignaturas).
+- **Lecturas-modificaciones del cronograma en la ingesta sin atomicidad:** `core/application/ingesta.py`
+  (alrededor de las líneas 141, 252 y 344) sigue haciendo `obtener_cronograma` + `guardar_cronograma` en dos
+  llamadas; puede pisar una edición manual simultánea. P32 solo cubrió `MateriasService` y el candado es
+  por proceso (en Postgres no hay candado entre procesos ni transacción).
+- **`agregar_materia` sin validar** (`MateriasService`, CLI en `interaccion.py` e `im.py`): el alta por la API
+  de tutoría e ingesta ya valida antes, pero la CLI acepta cualquier nombre.
+- **`crear_materia`:** dos altas simultáneas del mismo nombre responden ambas 201 (no pierden datos).
+- **`/api/stats` suma cronogramas que no pertenecen al catálogo**, de ahí el «1/2 clases» de Hoy (P36 lo
+  evitó calculando el avance en el cliente). Otras vistas que usen `total_temas` tendrían la misma discrepancia.
+- **Rutas del servidor:** `GET /api/plugins` y `GET /api/proyectos` siguen devolviendo rutas absolutas en la
+  nube; las rutas con enlaces simbólicos no se resuelven (la comprobación de P31 es léxica); `escanear` devuelve
+  `carpeta` con la ruta del equipo.
+- **`core/domain/sincronizador.py` no tiene llamadores** (P42 lo cubrió con tests al 100 %): ¿se conecta a la
+  ingesta o se borra?
+- **El fake `obtener_cronograma` devuelve la lista viva**, el adaptador real una copia; puede esconder bugs de mutación.
+- **Interfaz:** el cajón móvil no atrapa el foco con Tab; con los toggles de tema a 44 px la marca se trunca en
+  la cabecera móvil; «Subir sílabo» aparece dos veces en una asignatura sin clases; quedan textos técnicos
+  («Opción A», «Trazabilidad Fija», «Fichas Técnicas Universales») y `docs/manual/` conserva los textos antiguos.
+- **Fuentes de Google (Fraunces, IBM Plex)** se cargan de fuentes externas con una hoja bloqueante; servirlas
+  en local mejoraría FCP/LCP y permitiría quitar los dominios de Google de la CSP (P33).
+- **`OPCIONES_PLUGIN`** (`apps/api/routers/plugins.py`) repite a mano las etiquetas que ya salen de los
+  metadatos de los plugins.
+
