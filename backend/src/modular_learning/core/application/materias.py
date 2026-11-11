@@ -68,6 +68,14 @@ class MateriasService:
         self.materia_repo.guardar(materia)
         return materia
 
+    def validar_materia_recibida(self, texto: str) -> None:
+        """
+        Comprueba una asignatura recibida del cliente que puede ser nueva: si ya está en el
+        catálogo vale tal cual; si no, su nombre debe ser válido (ver `validar_nombre_materia`).
+        """
+        if self.obtener_materia(texto) is None:
+            validar_nombre_materia(texto)
+
     def _exigir_materia(self, materia: str) -> Materia:
         encontrada = self.obtener_materia(materia)
         if encontrada is None:

@@ -14,6 +14,7 @@ from modular_learning.core.application.plugins import PluginsService
 from modular_learning.core.application.proyectos import ProyectosService
 from modular_learning.core.domain import alineador_curricular
 from modular_learning.core.domain.materias import resolver_materia
+from modular_learning.core.domain.rutas import unir_dentro
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
 from modular_learning.core.ports.conversor_pdf import ConversorPdfPort
@@ -263,11 +264,12 @@ class IngestaService:
 
     def escanear_materia(self, materia: str) -> dict[str, Any]:
         """Detecta los archivos nuevos (no ingestados) de la carpeta de la asignatura."""
-        carpeta = os.path.join(self.ajustes_port.carpeta_material(), materia)
-        archivos = self.lector_docs.listar_archivos(carpeta)
+        # La asignatura nunca puede salirse de la carpeta de material (p. ej. "../..")
+        carpeta = unir_dentro(self.ajustes_port.carpeta_material(), materia)
+        archivos = self.lector_docs.listar_archivos(carpeta) if carpeta else None
         resultado: dict[str, Any] = {
             "materia": materia,
-            "carpeta": carpeta,
+            "carpeta": carpeta or "",
             "existe": archivos is not None,
             "total": 0,
             "omitidos": 0,

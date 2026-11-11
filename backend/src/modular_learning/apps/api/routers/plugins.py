@@ -7,6 +7,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException
 
 from modular_learning.apps.api.dependencies import get_plugins_service
+from modular_learning.apps.api.errores import error_cliente, error_interno
 from modular_learning.apps.api.schemas import ActualizarPlugin, ConfigurarPlugin
 from modular_learning.core.application.plugins import PluginsService
 
@@ -35,7 +36,10 @@ def configurar_plugin(
     body: ConfigurarPlugin,
     servicio: Annotated[PluginsService, Depends(get_plugins_service)],
 ) -> dict[str, Any]:
-    config = servicio.guardar_configuracion_plugin(body.clave, body.carpeta, body.materia)
+    try:
+        config = servicio.guardar_configuracion_plugin(body.clave, body.carpeta, body.materia)
+    except ValueError as e:
+        raise error_cliente(e) from e
     return {"ok": True, "config": config, "plugins": servicio.listar_info_plugins()}
 
 
@@ -54,7 +58,9 @@ def actualizar_plugin(
         )
     try:
         resultado = servicio.actualizar_plugin(body.seleccion, body.carpeta_override)
+    except ValueError as e:
+        raise error_cliente(e) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise error_interno(e) from e
 
     return {"seleccion": body.seleccion, "resultado": resultado}

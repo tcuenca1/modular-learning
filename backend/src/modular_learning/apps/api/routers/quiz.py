@@ -11,6 +11,7 @@ from modular_learning.apps.api.dependencies import (
     get_evaluacion_service,
     get_session_store,
 )
+from modular_learning.apps.api.errores import error_cliente, error_interno
 from modular_learning.apps.api.schemas import RespuestaQuiz
 from modular_learning.apps.api.session_store import SessionStore
 from modular_learning.core.application.evaluacion import EvaluacionService
@@ -36,9 +37,9 @@ def generar_quiz(
     try:
         preguntas = servicio.generar_quiz()
     except (FileNotFoundError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise error_cliente(e) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        raise error_interno(e) from e
     return publicar_quiz(store, preguntas)
 
 

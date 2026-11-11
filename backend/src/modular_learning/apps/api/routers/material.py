@@ -16,11 +16,27 @@ from modular_learning.apps.api.dependencies import (
     get_ingesta_service,
     get_materias_service,
 )
+from modular_learning.apps.api.errores import (
+    error_cliente,
+    error_interno,
+    mensaje_evento_error,
+    sin_rutas,
+)
 from modular_learning.apps.api.schemas import SincronizarMaterial, VaciarMaterialesRequest
 from modular_learning.core.application.ingesta import EXTENSIONES_MATERIAL, IngestaService
 from modular_learning.core.application.materias import MateriasService
 
 router = APIRouter(prefix="/api/material", tags=["material"])
+
+
+def _materias_del_catalogo(materia: str | None, materias_srv: MateriasService) -> list[str]:
+    """Nombres de asignaturas del catálogo; `materia` se resuelve siempre contra el catálogo."""
+    if not materia or materia == "__todas__":
+        return materias_srv.listar_materias()
+    encontrada = materias_srv.obtener_materia(materia)
+    if encontrada is None:
+        raise HTTPException(status_code=404, detail="Asignatura no encontrada.")
+    return [encontrada.nombre]
 
 
 @router.get("/registrados")
@@ -59,8 +75,7 @@ def escanear_material(
 ) -> dict[str, list[dict[str, Any]]]:
     if os.getenv("ML_EN_NUBE") == "1":
         return {"escaneos": []}
-    materias = [materia] if materia and materia != "__todas__" else materias_srv.listar_materias()
-    return {"escaneos": servicio.escanear(materias)}
+    return {"escaneos": servicio.escanear(_materias_del_catalogo(materia, materias_srv))}
 
 
 @router.post("/sincronizar/stream")
@@ -69,15 +84,17 @@ def sincronizar_material_stream(
     servicio: Annotated[IngestaService, Depends(get_ingesta_service)],
     materias_srv: Annotated[MateriasService, Depends(get_materias_service)],
 ) -> StreamingResponse:
-    materias = [body.materia] if body.materia != "__todas__" else materias_srv.listar_materias()
+    materias = _materias_del_catalogo(body.materia, materias_srv)
 
     def eventos() -> Iterator[str]:
         try:
             for ev in servicio.ingestar_pendientes_stream(materias):
+                if isinstance(ev.get("error"), str):
+                    ev = {**ev, "error": sin_rutas(ev["error"])}
                 yield f"data: {json.dumps(ev, ensure_ascii=False)}\n\n"
             yield "event: fin\ndata: {}\n\n"
         except Exception as e:
-            yield f"event: error\ndata: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
+            yield f"event: error\ndata: {json.dumps({'error': mensaje_evento_error(e)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
         eventos(),
@@ -105,6 +122,10 @@ def ingestar_material(
         raise HTTPException(status_code=400, detail="Debes indicar la asignatura.")
 
     materia_limpia = materia.strip()
+    try:
+        materias_srv.validar_materia_recibida(materia_limpia)
+    except ValueError as e:
+        raise error_cliente(e, 422) from e
     materias_srv.agregar_materia(materia_limpia)
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -114,9 +135,9 @@ def ingestar_material(
         try:
             return servicio.ingestar_archivo(ruta, nombre, materia_limpia, tipo)
         except (ValueError, FileNotFoundError) as e:
-            raise HTTPException(status_code=400, detail=str(e)) from e
+            raise error_cliente(e) from e
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e)) from e
+            raise error_interno(e) from e
 
 
 __all__ = ["router"]

@@ -31,7 +31,7 @@ variable, todo sigue en `data/`.
    - `DATABASE_URL`: la cadena de Neon.
    - `GEMINI_API_KEY`: tu clave de Gemini.
    - `ML_USUARIO` y `ML_CONTRASENA`: el acceso a la web (sin contraseña responde 503).
-   - `ML_EN_NUBE`: definida automáticamente como `1` en `render.yaml` (indica a la app que oculte el escaneo e ingesta de carpetas locales). En modo híbrido (app local conectada a Neon con `DATABASE_URL`), se deja sin definir para conservar el escaneo local de material.
+   - `ML_EN_NUBE`: definida automáticamente como `1` en `render.yaml` (indica a la app que oculte el escaneo e ingesta de carpetas locales). En modo híbrido (app local conectada a Neon con `DATABASE_URL`), se deja sin definir para conservar el escaneo local de material. Con `ML_EN_NUBE=1`, `GET /api/config` no devuelve las rutas del servidor (`carpeta_material` y `ruta_obsidian` van vacías) y los errores del API muestran mensajes sin rutas absolutas (el detalle queda en el log).
 4. **Apply**. El primer build tarda unos minutos; la URL queda como
    `https://modular-learning-xxxx.onrender.com`.
 

@@ -6,6 +6,7 @@ import os
 from typing import Any
 
 from modular_learning.core.domain.materias import slug_materia
+from modular_learning.core.domain.rutas import esta_dentro
 from modular_learning.core.ports.config import AjustesPort
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.plugin_practico import (
@@ -83,11 +84,19 @@ class PluginsService:
             return {}
         return self.config_repo.obtener_configuraciones()
 
+    def _exigir_carpeta_permitida(self, carpeta: str | None) -> None:
+        """Una carpeta recibida del cliente debe quedar dentro de la carpeta de material."""
+        if not carpeta or not carpeta.strip() or not self.ajustes_port:
+            return
+        if not esta_dentro(self.ajustes_port.carpeta_material(), carpeta.strip()):
+            raise ValueError("La carpeta del plugin debe estar dentro de la carpeta de material.")
+
     def guardar_configuracion_plugin(
         self, clave: str, carpeta: str | None = None, materia: str | None = None
     ) -> dict[str, Any]:
         """Persiste la carpeta asignada o la materia vinculada a un plugin."""
         clave_norm = clave.lower().strip()
+        self._exigir_carpeta_permitida(carpeta)
         if not self.config_repo:
             return {"carpeta": carpeta, "materia": materia}
         return self.config_repo.guardar_configuracion(clave_norm, carpeta, materia)
@@ -180,6 +189,7 @@ class PluginsService:
         ('cisco', 'web', 'nodered', 'todos', o etiquetas como 'Cisco (Actividades)').
         Usa la carpeta configurada si existe, o busca en rutas convencionales.
         """
+        self._exigir_carpeta_permitida(carpeta_override)
         seleccion_lower = seleccion.lower()
         configs = self.obtener_configuraciones()
         resultados: list[str] = []

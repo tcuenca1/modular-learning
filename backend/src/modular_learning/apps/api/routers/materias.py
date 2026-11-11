@@ -7,6 +7,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException
 
 from modular_learning.apps.api.dependencies import get_materias_service
+from modular_learning.apps.api.errores import error_cliente
 from modular_learning.apps.api.schemas import (
     EditarClase,
     GuardarParciales,
@@ -42,9 +43,9 @@ def crear_materia(
     try:
         servicio.crear_materia(body.nombre)
     except NombreMateriaInvalido as e:
-        raise HTTPException(status_code=422, detail=str(e)) from e
+        raise error_cliente(e, 422) from e
     except MateriaDuplicada as e:
-        raise HTTPException(status_code=409, detail=str(e)) from e
+        raise error_cliente(e, 409) from e
     return {"materias": servicio.listar_materias(), "catalogo": servicio.listar_catalogo()}
 
 
@@ -58,11 +59,11 @@ def renombrar_materia(
         materia = servicio.renombrar_materia(slug, body.nombre)
         return {"materia": materia.a_dict(), "catalogo": servicio.listar_catalogo()}
     except MateriaNoEncontrada as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise error_cliente(e, 404) from e
     except NombreMateriaInvalido as e:
-        raise HTTPException(status_code=422, detail=str(e)) from e
+        raise error_cliente(e, 422) from e
     except MateriaDuplicada as e:
-        raise HTTPException(status_code=409, detail=str(e)) from e
+        raise error_cliente(e, 409) from e
 
 
 @router.delete("/{slug}")
@@ -121,9 +122,9 @@ def agregar_clase(
         nueva = servicio.agregar_clase(materia, body.model_dump())
         return {"clase": nueva}
     except MateriaNoEncontrada as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise error_cliente(e, 404) from e
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise error_cliente(e) from e
 
 
 @router.put("/{materia}/clases/{clase_id}")
@@ -137,9 +138,9 @@ def editar_clase(
         clase = servicio.editar_clase(materia, clase_id, body.campos)
         return {"clase": clase}
     except LookupError as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise error_cliente(e, 404) from e
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise error_cliente(e) from e
 
 
 @router.delete("/{materia}/clases/{clase_id}")
@@ -185,9 +186,9 @@ def guardar_parciales(
         parciales = servicio.guardar_parciales(materia, body.parciales)
         return {"parciales": parciales}
     except MateriaNoEncontrada as e:
-        raise HTTPException(status_code=404, detail=str(e)) from e
+        raise error_cliente(e, 404) from e
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise error_cliente(e) from e
 
 
 __all__ = ["router"]
