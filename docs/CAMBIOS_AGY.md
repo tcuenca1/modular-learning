@@ -33,6 +33,46 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P40. Rendimiento del frontend
+
+- **Commit:** 8216b58 `perf(web): P40 vistas con React.lazy y KaTeX solo en woff2`
+- **Estado:** hecha
+- **Archivos:**
+  - frontend/src/App.tsx
+  - frontend/vite.config.ts
+
+### Qué hice
+- `App.tsx`: las 6 vistas y la hoja imprimible se importan con `React.lazy`; el `<Outlet />` del marco (y la ruta de impresión) van dentro de `Suspense` con un contenedor de reserva de `60vh` (sin saltos de diseño). El marco (barra lateral, rutas, avisos) sigue en el paquete inicial.
+- `vite.config.ts`: plugin `katexSoloWoff2` que, al transformar la hoja de KaTeX, elimina las rutas `.woff` y `.ttf` de cada `@font-face`. El build pasa de 58 archivos de fuente KaTeX (19 woff2 + 20 woff + 20 ttf) a 19 woff2. Los navegadores actuales usan woff2.
+- Markdown (react-markdown, remark, rehype y KaTeX) quedó en un chunk propio que solo bajan las vistas que lo usan; Hoy no.
+
+Tamaños de `npm run build` (sin comprimir / gzip): antes, un solo `index` de **947 KB / 275 KB**. Ahora: `index` 261 KB / 81 KB, `jsx-runtime` 84 KB / 27 KB (React), vistas: Hoy 14 KB, Calendario 8 KB, Ajustes 17 KB, Estudiar 50 KB, Asignaturas 66 KB, revisión de guía 8 KB, impresión 5 KB, y `Markdown` 431 KB / 129 KB (carga diferida). **En la ruta Hoy se descargan 6 archivos JS: 353 KB sin comprimir (114 KB transferidos), menos de los 400 KB pedidos.**
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: lint sin avisos, build ok (sin aviso de chunks > 500 KB), vitest 63 passed
+- Tests nuevos: ninguno (es empaquetado/carga; no hay lógica nueva que probar con vitest).
+- Prueba manual / Lighthouse (lighthouse 13.6.0, `--only-categories=performance --form-factor=mobile`, 3 corridas, servidor local con gzip y caché de P33; el Chromium de Playwright):
+
+| | rendimiento | FCP | LCP | TBT | CLS | transferido |
+|---|---|---|---|---|---|---|
+| antes (inicio de P40) | 87 / 88 / 65 | 1,5 s | 3,7 / 3,7 / 3,5 s | 160 / 140 / 180 ms | 0 / 0 / 0,658 | 415 KiB |
+| después | 90 / 92 / 91 | 1,5-1,6 s | 3,5 / 3,3 / 3,4 s | 110 / 70 / 80 ms | 0 / 0 / 0 | 256 KiB |
+
+  La puntuación de 55 y el LCP de 7,9 s del informe de origen se midieron antes de P33 (sin gzip ni caché); con P33 aplicado ya se medían 87-88, y P40 sube lo demás y quita la corrida con CLS alto (la corrida «antes #3» tuvo CLS 0,658, que no pude explicar; no se repitió después). El LCP sigue en 3,3-3,5 s: lo domina la hoja de Google Fonts (bloquea el render) con la CPU a 4×.
+- Recorrido en Chromium: Hoy, Estudiar (3 pestañas), Calendario, Asignaturas, Ajustes (2 pestañas) y las rutas antiguas (`/tutoria` → `/estudiar?...`) cargan sus chunks sin errores de consola. KaTeX: con una guía de prueba (copia de datos temporal) en `/guia/<id>/imprimir` se renderizaron `E = mc² + ∫…` y `a²+b²=c²` (2 fórmulas `.katex`), y se descargaron 3 fuentes KaTeX, todas `.woff2` con estado 200; la captura se ve correcta (revisada a ojo).
+
+### Dudas o hallazgos
+- Las fuentes de Google (Fraunces, IBM Plex) siguen cargándose de fuentes externas con una hoja bloqueante; servirlas en local (p. ej. fontsource, WOFF2 con `preload`) probablemente mejoraría FCP/LCP, pero añade dependencias y no estaba en la tarea.
+- Las pruebas de Lighthouse son de un entorno de contenedor con una máquina distinta a la del usuario: úsalas como orden de magnitud.
+- La primera visita a una vista nueva hace una petición extra (chunk); en la caché de producción (`/assets/` con caché de un año) solo ocurre una vez.
+
+### Revisión de Claude
+
+---
+
 ## P39. Objetivos táctiles y calendario en móvil
 
 - **Commit:** 04e710c `feat(web): P39 objetivos tactiles de 44 px y calendario util en movil`
