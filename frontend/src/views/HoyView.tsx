@@ -185,7 +185,7 @@ export function HoyView() {
       {guiasPorConfirmar.length > 0 && (
         <Link
           to={guiasPorConfirmar.length === 1 ? `/guia/${guiasPorConfirmar[0].id}/revision` : '/estudiar?tab=guia'}
-          className="group flex items-center justify-between gap-3 border-l-4 border-marcador bg-white px-4 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/60"
+          className="toque group flex items-center justify-between gap-3 border-l-4 border-marcador bg-white px-4 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/60"
         >
           <span className="min-w-0 truncate text-slate-700 dark:text-slate-300">
             {guiasPorConfirmar.length === 1 ? (
@@ -249,7 +249,7 @@ export function HoyView() {
             </p>
             <Link
               to={enlaceTutoria(foco.nombre, foco.siguiente!.tema, undefined, foco.siguiente!.id)}
-              className="mt-6 inline-flex items-center gap-2 rounded-md bg-indigo-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-800 dark:bg-indigo-400 dark:text-slate-950 dark:hover:bg-indigo-300"
+              className="toque mt-6 inline-flex items-center gap-2 rounded-md bg-indigo-700 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-800 dark:bg-indigo-400 dark:text-slate-950 dark:hover:bg-indigo-300"
             >
               Estudiar ahora <ArrowRight className="h-4 w-4" />
             </Link>
@@ -362,7 +362,7 @@ export function HoyView() {
                       <Link
                         to={`/asignaturas?materia=${encodeURIComponent(a.nombre)}`}
                         aria-label={`Subir sílabo de ${a.nombre}`}
-                        className="text-indigo-700 underline underline-offset-4 dark:text-indigo-300"
+                        className="toque inline-flex items-center text-indigo-700 underline underline-offset-4 dark:text-indigo-300"
                       >
                         Subir sílabo
                       </Link>
@@ -372,7 +372,7 @@ export function HoyView() {
                 {a.siguiente && (
                   <Link
                     to={enlaceTutoria(a.nombre, a.siguiente.tema, undefined, a.siguiente.id)}
-                    className="self-center text-sm text-indigo-700 hover:underline hover:underline-offset-4 dark:text-indigo-300"
+                    className="toque inline-flex items-center justify-self-start self-center text-sm text-indigo-700 hover:underline hover:underline-offset-4 dark:text-indigo-300"
                   >
                     Estudiar →
                   </Link>
@@ -396,7 +396,7 @@ export function HoyView() {
                 </p>
                 <Link
                   to="/estudiar?tab=repaso"
-                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  className="toque inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   Repasar ahora
                 </Link>
@@ -415,7 +415,7 @@ export function HoyView() {
                 </p>
                 <Link
                   to="/estudiar?tab=repaso"
-                  className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  className="toque inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   Preguntas nuevas
                 </Link>
@@ -454,7 +454,7 @@ export function HoyView() {
                   </ul>
                   <Link
                     to="/asignaturas?tab=material"
-                    className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="toque inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     Procesar {pendientesMaterial} {pendientesMaterial === 1 ? 'archivo' : 'archivos'}
                   </Link>

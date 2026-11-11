@@ -147,6 +147,11 @@
     color: var(--color-slate-100);
   }
 
+  /* Rutas largas (p. ej. Obsidian/<Asignatura>/…) no desbordan la tarjeta */
+  code {
+    overflow-wrap: anywhere;
+  }
+
   h1,
   h2 {
     font-family: var(--font-display);
@@ -418,4 +423,29 @@
 select:focus-visible {
   outline: 2px solid var(--color-indigo-500);
   outline-offset: 2px;
+}
+
+/*
+ * Objetivos táctiles: en pantallas táctiles todo control mide al menos 44 × 44 px (WCAG 2.5.5).
+ * Los botones, pestañas, selects y campos lo reciben solos; los enlaces de acción llevan `.toque`
+ * y deben ser flex o inline-flex para que respeten la altura. Sin @layer: gana a las utilidades.
+ */
+@media (pointer: coarse) {
+  button:not([data-close-button]),
+  [role="tab"],
+  select,
+  summary,
+  input:not([type="checkbox"], [type="radio"], [type="hidden"], [type="file"], [type="range"]) {
+    min-height: 44px;
+  }
+
+  button:not([data-close-button]),
+  [role="tab"] {
+    min-width: 44px;
+  }
+
+  .toque {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }

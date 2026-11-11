@@ -30,7 +30,7 @@ const ITEMS_NAV: ItemNav[] = [
 
 function Marca({ className }: { className?: string }) {
   return (
-    <Link to="/" className={cn('flex items-center gap-3 min-w-0', className)}>
+    <Link to="/" className={cn('toque flex items-center gap-3 min-w-0', className)}>
       <img src="/favicon.svg" alt="" className="h-8 w-8 shrink-0" />
       <span className="min-w-0 leading-tight">
         <span className="block truncate font-display text-[1.05rem] font-semibold text-slate-900 dark:text-slate-50">
@@ -53,7 +53,7 @@ function EnlaceNav({ item, onNavegar }: { item: ItemNav; onNavegar?: () => void 
       onClick={onNavegar}
       className={({ isActive }) =>
         cn(
-          'group relative flex items-center gap-3 rounded-md px-3 py-1.5 text-[0.9rem] transition-colors',
+          'toque group relative flex items-center gap-3 rounded-md px-3 py-1.5 text-[0.9rem] transition-colors',
           isActive
             ? 'bg-slate-200/60 font-medium text-slate-950 dark:bg-slate-800/70 dark:text-white'
             : 'text-slate-600 hover:bg-slate-200/40 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800/40 dark:hover:text-slate-100'
