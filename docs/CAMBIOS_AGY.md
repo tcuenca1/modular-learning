@@ -33,6 +33,53 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P32. Escrituras concurrentes sin pérdida de datos
+
+- **Commit:** 293c251 `fix(core): P32 escrituras concurrentes sin perdida de datos`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/infrastructure/persistence/almacen.py
+  - backend/src/modular_learning/infrastructure/persistence/{json_repositorios,json_repaso,json_guias}.py
+  - backend/src/modular_learning/core/ports/repositorios.py
+  - backend/src/modular_learning/core/application/materias.py
+  - backend/tests/unit/application/fake_adapters.py
+  - backend/tests/integration/infrastructure/test_concurrencia.py, backend/tests/unit/application/test_cronograma_atomico.py, backend/tests/integration/api/test_api.py
+
+### Qué hice
+Reproduje con 16 hilos (cada uno con su cliente) sobre una copia de `data/examples`: `POST /api/materias` daba 500 en varios y solo persistían 1-2 de 16 (el temporal `.tmp` era el mismo para todas las escrituras y cada repositorio reescribe el documento entero).
+- `AlmacenDocumentos.bloquear(clave)`: candado reentrante por documento (en disco, la clave es la ruta real, así que varias instancias del almacén sobre la misma carpeta comparten candado). Los repositorios JSON (materias, cronogramas, registro, plugins, proyectos, tarjetas, historial, guías) lo toman en cada ciclo leer-modificar-escribir. Incluida la migración inicial del catálogo, que también escribe.
+- `AlmacenArchivos.escribir`: temporal único por escritura (`uuid`) y reemplazo con reintentos ante `PermissionError` (el `WinError 32` de Windows); no quedan `.tmp` y `listar` los ignora.
+- Cambio de puerto, que sí era imprescindible: añadí `CronogramaRepo.actualizar_cronograma(materia, transformar)` (atómico) porque agregar una clase leía y guardaba en dos llamadas y se perdían clases aunque cada llamada estuviera protegida (3 de 16 persistían). `MateriasService.agregar_clase`, `editar_clase` y `eliminar_clase` lo usan; actualicé el fake. Si la transformación lanza, no se guarda nada.
+- `DELETE` repetido o en paralelo: 200 la primera vez y 404 las demás (ya no hay 500).
+Limitación: el candado es por proceso. Con varios procesos/trabajadores sobre los mismos archivos no protege (el despliegue usa uno solo); en Postgres solo cubre el proceso.
+
+### Cómo lo verifiqué
+- pytest: 232 passed, 2 skipped
+- ruff check / ruff format: ok en lo tocado (los 2 archivos sin formatear de antes siguen igual)
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: ok (37 tests); el frontend no cambió
+- Tests nuevos:
+  - tests/integration/infrastructure/test_concurrencia.py::test_n_asignaturas_a_la_vez_persisten_todas (24 hilos)
+  - tests/integration/infrastructure/test_concurrencia.py::test_instancias_distintas_del_almacen_comparten_candado
+  - tests/integration/infrastructure/test_concurrencia.py::test_n_clases_a_la_vez_persisten_todas
+  - tests/integration/infrastructure/test_concurrencia.py::test_editar_y_eliminar_clases_a_la_vez
+  - tests/integration/infrastructure/test_concurrencia.py::test_eliminar_dos_veces_a_la_vez_no_falla
+  - tests/integration/infrastructure/test_concurrencia.py::test_registro_y_config_de_plugins_concurrentes
+  - tests/integration/infrastructure/test_concurrencia.py::test_escrituras_al_mismo_documento_no_dejan_temporales_ni_json_roto
+  - tests/unit/application/test_cronograma_atomico.py (3 tests)
+  - tests/integration/api/test_api.py::test_eliminar_asignatura_dos_veces_no_da_500
+  Comprobé que los 7 tests de concurrencia fallan con el código anterior (git stash de `backend/src`) y pasan con el cambio.
+- Prueba manual: repetí el script de 16 hilos 5 veces sobre una copia de `data/examples`: 16/16 asignaturas, 16/16 clases, sin 500; DELETE doble → [200, 404] y 8 en paralelo → un 200 y siete 404.
+
+### Dudas o hallazgos
+- Las operaciones de `IngestaService` que leen y guardan el cronograma (`ingesta.py` alrededor de las líneas 141, 252 y 344) siguen siendo leer→guardar en dos llamadas; pueden perder una actualización si coinciden con una edición manual. No las toqué (fuera del pedido).
+- `crear_materia` comprueba duplicados y guarda en dos pasos: dos altas simultáneas del mismo nombre no pierden datos pero ambas responden 201 en vez de una 409.
+- `AlmacenPostgres` no tiene candado entre procesos ni transacción de lectura-modificación; hace falta si se escala a más de un trabajador.
+
+### Revisión de Claude
+
+---
+
 ## P31. Rutas del cliente y errores que filtran el servidor
 
 - **Commit:** 3c3e674 `fix(core): P31 rutas del cliente dentro de su base y errores sin rutas`
