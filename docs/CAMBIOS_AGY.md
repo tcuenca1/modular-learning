@@ -33,6 +33,41 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P35. Plugins sin nombres de asignatura escritos a mano
+
+- **Commit:** a82debf `refactor(core): P35 plugins sin nombres de asignatura ni hasattr`
+- **Estado:** hecha
+- **Archivos:**
+  - backend/src/modular_learning/core/ports/plugin_practico.py
+  - backend/src/modular_learning/core/application/plugins.py
+  - backend/src/modular_learning/infrastructure/plugins/{cisco,nodered,web}.py
+  - backend/tests/unit/application/fake_adapters.py
+  - backend/tests/unit/application/test_plugins_service.py
+
+### Qué hice
+- `PluginPracticoBase` declara ahora lo que el servicio usa: `metadatos` (nuevo dataclass `PluginMetadatos`: id, nombre, categoría, materia por defecto, palabras clave, claves de selección, tipos de archivo, carpeta convencional, extensión de archivos y textos de presentación), `analizar_carpeta` (abstracto) y `analizar_archivo` (por defecto devuelve `None`).
+- Cada plugin declara el suyo (`METADATOS` en `cisco.py`, `nodered.py`, `web.py`): ahí viven ahora «Internet de las Cosas», «Programacion Web» y «Tecnologias de Conmutacion I». `NodeRedPlugin.analizar_archivo` delega en `analizar_flujo` y `WebPlugin.analizar_carpeta` en `analizar_proyecto`.
+- `PluginsService`: `listar_info_plugins`, `obtener_plugin`, `procesar_archivo_plugin` y `actualizar_plugin` recorren los plugins registrados y usan solo sus metadatos; desaparece el `if/elif` por plugin, `hasattr` y `METADATOS_PLUGINS`. El orden de sincronización con «todos» se conserva con `orden_sincronizacion` (Node-RED, Cisco, Web).
+- Dos diferencias menores: `listar_info_plugins` solo lista los plugins registrados (antes listaba siempre los tres conocidos; en producción están los tres), y el mensaje de `procesar_archivo_plugin` para un plugin que no analiza archivos ahora es genérico («no soporta el análisis de archivos»); esa función no la usa nadie más que sus tests.
+
+### Cómo lo verifiqué
+- pytest: 250 passed, 2 skipped
+- ruff check / ruff format: ok (`147 files already formatted`)
+- import-linter: 3 contratos cumplidos, 0 rotos
+- npm run lint / build / test: ok (37 tests); el frontend no cambió
+- `git grep -n "Internet de las Cosas\|Programacion Web\|Tecnologias de Conmutacion" backend/src/modular_learning/core`: sin resultados (también sin `hasattr` en `plugins.py`)
+- Tests nuevos:
+  - tests/unit/application/test_plugins_service.py (14 tests con `FakePluginPractico`: info, configuración, enrutado por config/defecto/palabra clave/orden de registro, carpeta asignada/convencional/archivos con límite de 3 y exclusión de memoria, memoria con límite, orden con «todos», selección desconocida, `procesar_archivo_plugin`, `registrar_plugin`)
+- Prueba manual (diferencial): cargué el `plugins.py` antiguo desde git y lo ejecuté junto al nuevo con los plugins reales, el lector real y un árbol temporal (carpetas convencionales con flujos `.json`, una configuración IOS y un proyecto web; sin carpetas; solo memoria). Comparé `actualizar_plugin` con 9 selecciones × 3 escenarios (27 casos): todas las salidas son idénticas; `obtener_plugin` con 12 nombres de asignatura y una configuración propia: sin diferencias; `listar_info_plugins`: igual.
+
+### Dudas o hallazgos
+- Las palabras clave («red», «internet», «web»…) siguen siendo heurísticas amplias (p. ej. «red» captura nombres con «redes» si no hubiera Cisco antes); no las cambié para no alterar el enrutado.
+- `apps/api/routers/plugins.py` mantiene `OPCIONES_PLUGIN` con las etiquetas de los tres plugins escritas a mano; podría salir de los metadatos.
+
+### Revisión de Claude
+
+---
+
 ## P34. Dependencias y CI
 
 - **Commit:** 7f59c16 `chore(ci): P34 pypdf 6.21.4, pasos de CI nuevos y dependabot`
