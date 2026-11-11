@@ -46,11 +46,19 @@ jobs:
       - name: Verificar estilo y calidad de código (Ruff)
         run: ruff check backend
 
+      - name: Verificar formato (Ruff Format)
+        run: ruff format --check backend
+
       - name: Validar contratos de arquitectura hexagonal (Import Linter)
         run: lint-imports --config backend/pyproject.toml
 
       - name: Ejecutar suite de pruebas (Pytest)
         run: pytest -q backend
+
+      - name: Auditar dependencias de Python (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit ./backend
 
   frontend:
     name: Frontend (Linter y Compilación Vite)
@@ -75,5 +83,11 @@ jobs:
       - name: Ejecutar linter (Oxlint)
         run: npm run lint
 
+      - name: Ejecutar pruebas (Vitest)
+        run: npm test
+
       - name: Compilar frontend React (Vite & Tailwind v4)
         run: npm run build
+
+      - name: Auditar dependencias de npm (solo gravedad alta o crítica)
+        run: npm audit --audit-level=high

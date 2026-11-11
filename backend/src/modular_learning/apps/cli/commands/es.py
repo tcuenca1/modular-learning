@@ -53,9 +53,7 @@ def _procesar_archivo_cli(ruta_archivo: str, silabo_service) -> None:
         with spinner(f"Extrayendo y estructurando cronograma para '{nombre_materia}'..."):
             res = silabo_service.procesar_archivo_individual(ruta_archivo, nombre_materia)
 
-        print(
-            f"✅ [ÉXITO] Se extrajeron {res['total_clases']} clases para '{res['materia']}'."
-        )
+        print(f"✅ [ÉXITO] Se extrajeron {res['total_clases']} clases para '{res['materia']}'.")
         print(f"📄 Guardado en: {res['ruta_salida']}\n")
     except Exception as e:
         print(f"❌ [ERROR] Falló el procesamiento de '{nombre_materia}': {e}")

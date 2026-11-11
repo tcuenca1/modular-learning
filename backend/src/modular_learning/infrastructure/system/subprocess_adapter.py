@@ -16,9 +16,7 @@ def ejecutar_comando(comando: str | list[str]) -> str:
         raise ValueError("El comando a ejecutar está vacío.")
 
     try:
-        resultado = subprocess.run(
-            args, shell=False, check=True, capture_output=True, text=True
-        )
+        resultado = subprocess.run(args, shell=False, check=True, capture_output=True, text=True)
         return resultado.stdout
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"El comando falló con código {e.returncode}: {e.stderr}") from e
