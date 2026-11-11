@@ -184,7 +184,7 @@ export function CalendarioView() {
                     <span
                       className={cn(
                         'cifra inline-block px-1 text-xs',
-                        fuera ? 'text-slate-400 dark:text-slate-600' : 'text-slate-600 dark:text-slate-400',
+                        fuera ? 'text-slate-400 dark:text-slate-500' : 'text-slate-600 dark:text-slate-400',
                         esHoy && 'marcador font-semibold text-slate-900 dark:text-slate-50'
                       )}
                     >

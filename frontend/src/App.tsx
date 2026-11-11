@@ -22,8 +22,14 @@ function RedirigirConQuery({ ruta, tab }: { ruta: string; tab?: string }) {
 function Marco() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+      <a
+        href="#contenido"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-md focus:bg-indigo-700 focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+      >
+        Saltar al contenido
+      </a>
       <Sidebar />
-      <main className="min-w-0 md:pl-60">
+      <main id="contenido" tabIndex={-1} className="min-w-0 outline-none md:pl-60">
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8 md:py-12">
           <Outlet />
         </div>

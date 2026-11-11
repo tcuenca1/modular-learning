@@ -22,8 +22,10 @@
   --color-slate-100: #ece7db;
   --color-slate-200: #ddd6c6;
   --color-slate-300: #c4bba7;
-  --color-slate-400: #9c9381;
-  --color-slate-500: #756d5e;
+  /* 400 y 500 se usan como texto secundario: su valor cambia con el tema (ver @layer base)
+     para llegar a 4,5:1 sobre el papel claro y sobre el grafito oscuro. */
+  --color-slate-400: var(--ml-slate-400);
+  --color-slate-500: var(--ml-slate-500);
   --color-slate-600: #5a5347;
   --color-slate-700: #433e35;
   --color-slate-800: #2d2a25;
@@ -34,7 +36,7 @@
   --color-indigo-100: #d5e5da;
   --color-indigo-200: #adcbb6;
   --color-indigo-300: #7fae8e;
-  --color-indigo-400: #4f8e67;
+  --color-indigo-400: #63a37c;
   --color-indigo-500: #2f7550;
   --color-indigo-600: #245f41;
   --color-indigo-700: #1d4c35;
@@ -99,6 +101,9 @@
   --color-purple-900: var(--color-indigo-900);
   --color-purple-950: var(--color-indigo-950);
 
+  /* Rojo de texto/avisos: más oscuro en claro y más claro en oscuro (ver @layer base) */
+  --color-rose-600: var(--ml-rose-600);
+
   /* Marcador fluorescente: solo para lo que toca hoy */
   --color-marcador: #f2d54a;
 
@@ -113,6 +118,18 @@
 }
 
 @layer base {
+  :root {
+    --ml-slate-400: #6f6757;
+    --ml-slate-500: #645c4e;
+    --ml-rose-600: #c70036;
+  }
+
+  html.dark {
+    --ml-slate-400: #aba291;
+    --ml-slate-500: #9c9381;
+    --ml-rose-600: #ff6384;
+  }
+
   html {
     color-scheme: light dark;
   }
@@ -395,4 +412,10 @@
   .prose {
     font-size: 10pt;
   }
+}
+
+/* Foco visible en todos los select (fuera de @layer: gana a `focus:outline-none` de las utilidades) */
+select:focus-visible {
+  outline: 2px solid var(--color-indigo-500);
+  outline-offset: 2px;
 }

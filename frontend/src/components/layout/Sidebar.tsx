@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import {
   BookMarked,
@@ -119,6 +119,27 @@ function ContenidoSidebar({ onNavegar }: { onNavegar?: () => void }) {
 
 export function Sidebar() {
   const [abierto, setAbierto] = useState(false)
+  const botonMenu = useRef<HTMLButtonElement>(null)
+  const botonCerrar = useRef<HTMLButtonElement>(null)
+
+  const cerrar = () => {
+    setAbierto(false)
+    botonMenu.current?.focus()
+  }
+
+  // Con el cajón abierto: foco dentro y Escape lo cierra devolviendo el foco al botón
+  useEffect(() => {
+    if (!abierto) return
+    botonCerrar.current?.focus()
+    const alPulsar = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setAbierto(false)
+        botonMenu.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', alPulsar)
+    return () => document.removeEventListener('keydown', alPulsar)
+  }, [abierto])
 
   return (
     <>
@@ -133,10 +154,13 @@ export function Sidebar() {
         <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle compacto />
           <button
+            ref={botonMenu}
             type="button"
             onClick={() => setAbierto(true)}
             className="rounded-md p-2 text-slate-600 hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-slate-800"
             aria-label="Abrir menú"
+            aria-expanded={abierto}
+            aria-controls="menu-movil"
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -145,11 +169,18 @@ export function Sidebar() {
 
       {abierto && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-slate-950/40" onClick={() => setAbierto(false)} />
-          <aside className="absolute inset-y-0 left-0 w-64 border-r border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950">
+          <div className="absolute inset-0 bg-slate-950/40" onClick={cerrar} />
+          <aside
+            id="menu-movil"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú principal"
+            className="absolute inset-y-0 left-0 w-64 border-r border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950"
+          >
             <button
+              ref={botonCerrar}
               type="button"
-              onClick={() => setAbierto(false)}
+              onClick={cerrar}
               className="absolute right-3 top-5 rounded-md p-1.5 text-slate-500 hover:bg-slate-200/60 dark:hover:bg-slate-800"
               aria-label="Cerrar menú"
             >

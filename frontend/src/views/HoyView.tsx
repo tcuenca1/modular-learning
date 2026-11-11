@@ -60,7 +60,7 @@ function capitalizar(texto: string): string {
 /** Una marca por clase del cronograma: llenas las completadas, la siguiente resaltada. */
 function Regleta({ stat }: { stat: MateriaStat }) {
   return (
-    <div className="flex flex-wrap gap-[3px]" aria-label={`${stat.completados} de ${stat.total} clases`}>
+    <div role="img" className="flex flex-wrap gap-[3px]" aria-label={`${stat.completados} de ${stat.total} clases`}>
       {Array.from({ length: stat.total }, (_, i) => (
         <span
           key={i}

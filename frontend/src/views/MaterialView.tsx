@@ -964,7 +964,7 @@ export function MaterialView({
                   <Card key={i} className={!esc.existe ? 'border-dashed opacity-75' : ''}>
                     <CardHeader className="p-4 pb-2">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-semibold">{esc.materia}</CardTitle>
+                        <CardTitle as="h3" className="text-sm font-semibold">{esc.materia}</CardTitle>
                         <Badge variant={esc.existe ? 'secondary' : 'destructive'}>
                           {esc.existe ? `${esc.pendientes.length} nuevos` : 'No existe la carpeta'}
                         </Badge>

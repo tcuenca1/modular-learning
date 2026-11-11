@@ -169,14 +169,18 @@ export function AsignaturasView() {
           <div className="flex min-w-0 max-w-full flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <BookMarked className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+              <label
+                htmlFor="selector-asignatura"
+                className="text-xs font-medium text-slate-600 dark:text-slate-400"
+              >
                 Asignatura:
-              </span>
+              </label>
             </div>
 
             {materias.length > 0 ? (
               <div className="flex min-w-0 max-w-full items-center gap-2">
                 <select
+                  id="selector-asignatura"
                   value={materiaActiva}
                   onChange={(e) => setMateriaActiva(e.target.value)}
                   className="h-8 min-w-0 max-w-full truncate rounded-md border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-900 shadow-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
@@ -193,6 +197,7 @@ export function AsignaturasView() {
                     <Input
                       value={nuevoNombre}
                       onChange={(e) => setNuevoNombre(e.target.value)}
+                      aria-label="Nuevo nombre de la asignatura"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') void handleRenombrar()
                         if (e.key === 'Escape') setRenombrando(false)
@@ -245,6 +250,7 @@ export function AsignaturasView() {
                     if (e.key === 'Escape') setCreando(false)
                   }}
                   placeholder="Nombre de la nueva asignatura"
+                  aria-label="Nombre de la nueva asignatura"
                   className="h-8 text-xs w-52 max-w-full"
                   maxLength={80}
                   autoFocus

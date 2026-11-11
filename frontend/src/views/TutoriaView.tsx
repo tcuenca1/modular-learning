@@ -534,6 +534,7 @@ export function TutoriaView() {
                   <Input
                     value={dudaInput}
                     onChange={(e) => setDudaInput(e.target.value)}
+                    aria-label="Tu pregunta sobre este paso"
                     placeholder="Pregunta lo que no te quedó claro…"
                     className="text-xs"
                     disabled={enviandoDuda}
@@ -586,10 +587,11 @@ export function TutoriaView() {
             {/* Selector de Asignatura y Nivel */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <label htmlFor="tutoria-materia" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Asignatura
                 </label>
                 <select
+                  id="tutoria-materia"
                   value={materia}
                   onChange={(e) => { setMateria(e.target.value); setClaseId(undefined); }}
                   className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
@@ -603,10 +605,11 @@ export function TutoriaView() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <label htmlFor="tutoria-nivel" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Profundidad
                 </label>
                 <select
+                  id="tutoria-nivel"
                   value={nivel}
                   onChange={(e) => setNivel(e.target.value)}
                   className="mt-1 h-9 w-full rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-900 shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
@@ -653,11 +656,12 @@ export function TutoriaView() {
 
             {/* Tema de estudio */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <label htmlFor="tutoria-tema" className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                 <BookOpen className="h-3.5 w-3.5 text-indigo-500" />
                 Tema
               </label>
               <Input
+                id="tutoria-tema"
                 value={tema}
                 onChange={(e) => { setTema(e.target.value); setClaseId(undefined); }}
                 placeholder="Ej. Enrutamiento BGP"
