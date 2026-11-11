@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Callable, Iterator
 from typing import Any
 
@@ -103,7 +104,9 @@ class InMemoryCronogramaRepo(CronogramaRepo):
         materia: str,
         transformar: Callable[[list[dict[str, Any]]], list[dict[str, Any]] | None],
     ) -> list[dict[str, Any]]:
-        clases = self.obtener_cronograma(materia) or []
+        # Como el adaptador en disco, trabaja sobre una copia: si `transformar` falla no queda
+        # nada a medias en lo guardado (lo comprueba test_contrato_repositorios.py)
+        clases = copy.deepcopy(self.obtener_cronograma(materia) or [])
         resultado = transformar(clases)
         nuevas = clases if resultado is None else resultado
         self.guardar_cronograma(materia, nuevas)
