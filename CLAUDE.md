@@ -56,6 +56,7 @@ Reglas que hacen cumplir `import-linter` (ver `backend/pyproject.toml`) y la rev
 - Código, identificadores, docstrings, mensajes de error y commits **en español** (sin tildes en los commits, como el historial). Commits con Conventional Commits: `feat(web): ...`, `refactor(core): ...`.
 - Python ≥ 3.10, líneas de hasta 100 caracteres, `from __future__ import annotations`, `__all__` explícito en cada módulo.
 - Los prompts de LLM viven en `core/prompts/*.md` y se cargan con `LectorDocumentosPort.leer_prompt`.
+- Con `ML_REQUIERE_ACCESO` (nube) hay login por cuentas: `almacen_por_defecto()` devuelve el almacén de la cuenta de la petición (`cuentas/<id>/…`) y falla sin cuenta activa; lo no personal (usuarios) usa `almacen_global()`. Los middlewares son ASGI puros para que el `ContextVar` de la cuenta llegue a los endpoints. Ver `docs/DESPLIEGUE.md`.
 - Los repositorios JSON no abren archivos directamente: leen y escriben documentos en un `AlmacenDocumentos` (`infrastructure/persistence/almacen.py`), que son archivos en `data/` en local y la tabla `documentos` de Postgres cuando hay `DATABASE_URL` (despliegue en Render + Neon, ver `docs/DESPLIEGUE.md`). Un repositorio nuevo usa `DocumentoJson` con su clave relativa.
 
 ## Cuidado

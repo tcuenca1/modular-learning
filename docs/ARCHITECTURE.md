@@ -131,7 +131,7 @@ Implementaciones concretas de los puertos secundarios:
   - Construida con `Typer`, `Rich`, `Questionary` y `Halo` (`apps/cli/main.py`).
   - Subcomandos: `ml init`, `ml es`, `ml im`, `ml quiz`, `ml stats` y `ml up`, más la utilidad `apps/cli/commands/snapshot.py`.
 - **`apps/api/` (Servidor Web `ml-web`)**:
-  - Aplicación FastAPI (`apps/api/main.py`) con 11 routers en `apps/api/routers/` (`config`, `materias`, `silabo`, `material`, `proyectos`, `tutoria`, `guias`, `quiz`, `repaso`, `plugins`, `stats`), almacén de sesiones en memoria (`SessionStore`), middleware opcional de autenticación HTTP Basic (`AccesoBasico` en `apps/api/acceso.py`), endpoint de healthcheck `GET /api/salud` y servicio de archivos estáticos de la SPA desde `backend/src/modular_learning/apps/api/static/`.
+  - Aplicación FastAPI (`apps/api/main.py`) con 11 routers en `apps/api/routers/` (`config`, `materias`, `silabo`, `material`, `proyectos`, `tutoria`, `guias`, `quiz`, `repaso`, `plugins`, `stats`), almacén de sesiones en memoria (`SessionStore`), middleware de sesión por cuentas (`Autenticacion` en `apps/api/autenticacion.py`, solo con `ML_REQUIERE_ACCESO`) y router `auth`, endpoint de healthcheck `GET /api/salud` y servicio de archivos estáticos de la SPA desde `backend/src/modular_learning/apps/api/static/`.
 - **`frontend/` (SPA en React 19 + TypeScript + Tailwind CSS v4 + Vite)**:
   - **Menú lateral de 5 entradas (`frontend/src/components/layout/Sidebar.tsx` y `frontend/src/App.tsx`)**:
     1. **Hoy** (`/` → `HoyView.tsx`): portada diaria con la clase de hoy o próxima, guías pendientes de confirmar, tarjetas de repaso vencidas, aviso de material sin convertir (en modo local/híbrido) y progreso por asignatura con resumen desplegable («Ver progreso completo»).

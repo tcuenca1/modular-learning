@@ -30,7 +30,9 @@ variable, todo sigue en `data/`.
 3. Rellena las variables que pide:
    - `DATABASE_URL`: la cadena de Neon.
    - `GEMINI_API_KEY`: tu clave de Gemini.
-   - `ML_USUARIO` y `ML_CONTRASENA`: el acceso a la web (sin contraseña responde 503).
+   - `ML_USUARIO` y `ML_CONTRASENA`: la cuenta de **administrador** (lo que escribes en «Correo o usuario» y «Contraseña»). Sin contraseña la API responde 503. Si olvidas la contraseña, cámbiala aquí y reinicia: el arranque la sincroniza y cierra las sesiones anteriores. Ver «Cuentas y login».
+   - `ML_SECRETO_SESION` (opcional; el blueprint lo genera): firma las sesiones. Si falta se deriva de `ML_CONTRASENA`, así que las sesiones sobreviven a los reinicios sin configurar nada.
+   - `ML_SEMBRAR_EJEMPLOS=1`: carga `data/examples` en la cuenta de administrador la primera vez que arranca (solo si la cuenta no tiene datos). Quítala cuando subas tus datos reales.
    - `ML_EN_NUBE`: definida automáticamente como `1` en `render.yaml` (indica a la app que oculte el escaneo e ingesta de carpetas locales). En modo híbrido (app local conectada a Neon con `DATABASE_URL`), se deja sin definir para conservar el escaneo local de material. Con `ML_EN_NUBE=1`, `GET /api/config` no devuelve las rutas del servidor (`carpeta_material` y `ruta_obsidian` van vacías) y los errores del API muestran mensajes sin rutas absolutas (el detalle queda en el log).
    - `ML_HOSTS_PERMITIDOS` (opcional): hosts que acepta el servidor, separados por comas
      (`mi-app.onrender.com,localhost`); un `Host` distinto recibe 400, salvo `/api/salud`. Por
@@ -48,9 +50,37 @@ variable, todo sigue en `data/`.
 Cada push a la rama vuelve a desplegar. En el plan gratuito el servicio se duerme tras 15
 minutos sin uso: la primera visita después tarda alrededor de un minuto.
 
+## Cuentas y login
+
+Con `ML_REQUIERE_ACCESO=1` (lo fija el `Dockerfile`) la web pide iniciar sesión.
+
+- **Cuentas propias:** correo (o usuario) y contraseña de 10 a 128 caracteres, guardadas con hash `scrypt` en el documento `auth/usuarios.json`. No hay registro abierto: el administrador crea las cuentas en **Ajustes › Cuenta › Crear usuario** (se puede hacer desde el teléfono) y puede desactivarlas o restablecer su contraseña.
+- **Sesión:** cookie `ml_sesion` `HttpOnly`, `SameSite=Lax` y `Secure` en la nube, firmada con HMAC y válida 14 días. Cambiar la contraseña cierra las demás sesiones. Cinco intentos fallidos en 15 minutos bloquean ese usuario desde ese origen.
+- **Datos por cuenta:** cada documento se guarda bajo `cuentas/<id>/…` (asignaturas, cronogramas, repaso, historial, guías, ajustes y memoria de plugins). Una cuenta nunca ve los datos de otra, y el servidor se niega a leer datos sin una cuenta activa. Las sesiones de tutoría y quizzes en memoria también son de la cuenta que las creó, y la bóveda de notas del disco del servidor es una subcarpeta por cuenta.
+- **Cuenta nueva:** empieza sin asignaturas. Solo el administrador recibe los datos de ejemplo (`ML_SEMBRAR_EJEMPLOS`).
+- **Local:** sin `ML_REQUIERE_ACCESO` no hay login y todo sigue en `data/` como siempre.
+
+### Subir tus datos reales a tu cuenta (desde tu PC)
+
+Cuando tengas acceso a tu PC, con la cadena de Neon en `DATABASE_URL` y `ML_REQUIERE_ACCESO=1`:
+
+```bash
+python deploy/subir_datos.py --usuario TU_USUARIO                       # simula
+python deploy/subir_datos.py --usuario TU_USUARIO --reemplazar --subir  # borra los ejemplos y sube los tuyos
+```
+
+La cuenta debe existir (el administrador se crea al arrancar el servidor). Los ajustes se reemplazan por rutas del servidor.
+
+## Rendimiento y cómo medirlo
+
+- **Instantánea en memoria:** `AlmacenPostgres` carga toda la tabla `documentos` en una consulta y sirve lecturas y listados de memoria; las escrituras actualizan la base y la instantánea. Caduca a los 30 s (`ML_CACHE_SEGUNDOS`) para ver cambios hechos por otro proceso, como `subir_datos.py`. Con 80 ms de latencia por consulta, la pantalla Hoy pasó de 16 a 2 consultas en frío y de 7 a 0 en caliente. Está pensado para un solo proceso y pocos datos (≤ 3 usuarios).
+- **Precalentado:** al arrancar, el servidor carga la instantánea en segundo plano; así Neon empieza a despertar mientras el servidor termina de iniciar.
+- **Medición:** cada respuesta lleva `Server-Timing: app;dur=<ms>` y las peticiones de más de 700 ms (`ML_UMBRAL_LENTA_MS`) dejan en el log `Petición lenta: GET /ruta -> 200 en 1234 ms`. En Render se lee en **Logs**, también desde el teléfono.
+- **Lo que no se puede evitar en el plan gratuito:** Render duerme el servicio tras 15 minutos sin tráfico (la primera visita tarda alrededor de un minuto) y Neon suspende su cómputo tras unos 5 minutos sin consultas (la primera consulta tarda 1-3 s). Para que Neon y Render estén en la misma región, revisa ambas en sus paneles: cada consulta entre regiones distintas suma 50-150 ms.
+
 ## Qué cambia o no funciona en la nube
 
-- **Arranque del contenedor (`deploy/arranque.sh`)**: el punto de entrada `arranque` del `Dockerfile` crea `/app/data/boveda` y `/app/data/material`, siembra `/app/data` una única vez desde `/app/semilla` cuando no existe `DATABASE_URL` y lanza `ml-web` con `ML_REQUIERE_ACCESO=1` (autenticación HTTP Basic obligatoria salvo en `GET /api/salud`).
+- **Arranque del contenedor (`deploy/arranque.sh`)**: el punto de entrada `arranque` del `Dockerfile` crea `/app/data/boveda` y `/app/data/material`, siembra `/app/data` una única vez desde `/app/semilla` cuando no existe `DATABASE_URL` y lanza `ml-web` con `ML_REQUIERE_ACCESO=1` (login por cuentas obligatorio en `/api/*`, salvo `GET /api/salud` y las rutas de inicio de sesión).
 - **Ingesta desde carpetas y sincronización de material**: leen carpetas locales del equipo del estudiante, por lo que no están disponibles en Render (`ML_EN_NUBE=1`).
 - **Presentaciones `.pptx` sin LibreOffice**: la imagen `python:3.12-slim` del `Dockerfile` no incluye LibreOffice para mantener bajo el consumo de memoria en el plan gratuito; si se sube un `.pptx` individual, `IngestaService` aplica automáticamente el plan B (`python-pptx`) extrayendo texto, tablas y notas del orador sin renderizado visual de diapositivas.
 - **Bóveda de Obsidian**: las notas generadas durante las tutorías se escriben en el disco temporal del contenedor (`/app/data/boveda`) y se pierden al reiniciar el servicio en Render; la clase y las tarjetas de repaso sí quedan guardadas en Postgres.
