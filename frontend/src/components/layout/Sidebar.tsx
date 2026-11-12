@@ -182,7 +182,7 @@ export function Sidebar() {
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-slate-200 bg-slate-50/95 px-4 backdrop-blur md:hidden dark:border-slate-800 dark:bg-slate-950/95">
         <Marca />
         <div className="flex shrink-0 items-center gap-2">
-          <ThemeToggle compacto />
+          <ThemeToggle variante="icono" />
           {autenticacion && usuario && (
             <button
               type="button"

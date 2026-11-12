@@ -92,3 +92,17 @@ describe('Gestión de tema (theme.ts)', () => {
     expect(css).toContain('html.dark .hoja .prose')
   })
 })
+
+describe('siguienteTema', () => {
+  it('cicla claro → oscuro → sistema → claro', async () => {
+    vi.stubGlobal('localStorage', { getItem: () => null, setItem: () => {} })
+    vi.stubGlobal('window', {
+      matchMedia: () => ({ matches: false, addEventListener: () => {} }),
+    })
+    vi.stubGlobal('document', { documentElement: { classList: { add: () => {}, remove: () => {} } } })
+    const { siguienteTema } = await import('./theme')
+    expect(siguienteTema('light')).toBe('dark')
+    expect(siguienteTema('dark')).toBe('system')
+    expect(siguienteTema('system')).toBe('light')
+  })
+})

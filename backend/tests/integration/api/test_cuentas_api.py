@@ -378,3 +378,14 @@ def test_config_no_se_cambia_con_login_aunque_no_sea_la_nube(entorno):
     admin = _admin(entorno)
     r = admin.post("/api/config", json={"carpeta_material": "/tmp", "ruta_obsidian": "/tmp/b"})
     assert r.status_code == 403
+
+
+def test_si_ml_contrasena_es_corta_el_login_explica_que_falta_la_cuenta(entorno, monkeypatch):
+    monkeypatch.setenv(
+        "ML_CONTRASENA", "corta"
+    )  # menos de 10 caracteres: no se puede crear el admin
+    c = _crear_cliente()
+    r = entrar(c, ADMIN, "corta")
+    assert r.status_code == 503
+    assert "ML_CONTRASENA" in r.json()["detail"] and "10 caracteres" in r.json()["detail"]
+    assert c.get("/api/salud").status_code == 200  # el servicio sigue vivo

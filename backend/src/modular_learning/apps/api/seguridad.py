@@ -91,6 +91,10 @@ class CabecerasSeguridad:
                     cabeceras.setdefault("Cache-Control", CACHE_ASSETS)
                 elif path == "/" or path == "/index.html":
                     cabeceras.setdefault("Cache-Control", "no-cache")
+                elif path.startswith("/api/"):
+                    # Datos de una cuenta: ni el navegador ni un proxy los guardan (el botón
+                    # «atrás» tras cerrar sesión no debe mostrarlos)
+                    cabeceras.setdefault("Cache-Control", "no-store")
             await send(mensaje)
 
         await self.app(scope, receive, enviar)

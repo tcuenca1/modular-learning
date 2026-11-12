@@ -116,7 +116,9 @@ function PuertaAcceso({ children }: { children: ReactNode }) {
     } catch {
       // Aunque falle la red, se vuelve al login; el servidor decide si la cookie sigue viva
     }
-    setEstado((e) => (e.fase === 'listo' ? { ...e, usuario: null } : e))
+    // Recarga completa en la portada: borra el estado en memoria y la URL (con su tema, asignatura
+    // o clase) de la cuenta anterior, para que la siguiente persona no vea nada suyo.
+    window.location.replace('/')
   }, [])
 
   const valor = useMemo<ContextoSesion>(

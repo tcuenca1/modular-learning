@@ -121,3 +121,10 @@ def app_con_stream(crear_cliente):
 def test_la_web_estatica_no_sirve_archivos_fuera_de_static(crear_cliente, ruta):
     r = crear_cliente().get(ruta)
     assert "[build-system]" not in r.text and "setuptools" not in r.text
+
+
+def test_las_respuestas_de_la_api_no_se_guardan_en_cache(crear_cliente):
+    cliente = crear_cliente()
+    assert cliente.get("/api/materias").headers["cache-control"] == "no-store"
+    assert cliente.get("/api/salud").headers["cache-control"] == "no-store"
+    assert "no-store" not in cliente.get("/").headers["cache-control"]  # la web estática sí cachea

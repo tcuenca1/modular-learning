@@ -2,6 +2,13 @@ export type Tema = 'light' | 'dark' | 'system'
 
 const CLAVE_STORAGE = 'ml_theme'
 
+const CICLO: Tema[] = ['light', 'dark', 'system']
+
+/** El tema que sigue al actual al tocar el botón único: claro → oscuro → sistema → claro. */
+export function siguienteTema(actual: Tema): Tema {
+  return CICLO[(CICLO.indexOf(actual) + 1) % CICLO.length]
+}
+
 export function obtenerTemaGuardado(): Tema {
   try {
     const valor = localStorage.getItem(CLAVE_STORAGE)

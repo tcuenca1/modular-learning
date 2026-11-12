@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Monitor, Moon, Sun } from 'lucide-react'
-import { aplicarTema, obtenerTemaGuardado, type Tema } from '@/lib/theme'
+import { aplicarTema, obtenerTemaGuardado, siguienteTema, type Tema } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 
 interface ThemeToggleProps {
   compacto?: boolean
+  /** Un solo icono discreto que cambia de tema al tocarlo (para la cabecera móvil). */
+  variante?: 'icono'
   className?: string
 }
 
@@ -14,12 +16,32 @@ const OPCIONES: { valor: Tema; etiqueta: string; icono: typeof Sun }[] = [
   { valor: 'system', etiqueta: 'Sistema', icono: Monitor },
 ]
 
-export function ThemeToggle({ compacto = true, className }: ThemeToggleProps) {
+export function ThemeToggle({ compacto = true, variante, className }: ThemeToggleProps) {
   const [tema, setTemaState] = useState<Tema>(obtenerTemaGuardado)
 
   const cambiar = (nuevo: Tema) => {
     setTemaState(nuevo)
     aplicarTema(nuevo)
+  }
+
+  if (variante === 'icono') {
+    const actual = OPCIONES.find((o) => o.valor === tema) ?? OPCIONES[2]
+    const Icono = actual.icono
+    const proximo = OPCIONES.find((o) => o.valor === siguienteTema(tema)) ?? OPCIONES[0]
+    return (
+      <button
+        type="button"
+        onClick={() => cambiar(proximo.valor)}
+        title={`Tema ${actual.etiqueta}: toca para cambiar a ${proximo.etiqueta}`}
+        aria-label={`Tema ${actual.etiqueta}. Cambiar a ${proximo.etiqueta}`}
+        className={cn(
+          'cursor-pointer rounded-md p-2 text-slate-500 transition-colors hover:bg-slate-200/60 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200',
+          className
+        )}
+      >
+        <Icono className="h-4 w-4" strokeWidth={1.75} />
+      </button>
+    )
   }
 
   if (compacto) {
