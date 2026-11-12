@@ -34,6 +34,11 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { useEventStream } from '@/hooks/useEventStream'
+import {
+  borrarTutoriaGuardada,
+  guardarTutoria,
+  leerTutoriaGuardada,
+} from '@/lib/tutoriaGuardada'
 import { clave } from '@/lib/asignaturas'
 
 /** Línea discreta con la pregunta fallada que motiva la sesión de refuerzo. */
@@ -66,6 +71,11 @@ interface DudaChat {
 export function TutoriaView() {
   const [params] = useSearchParams()
   const materiaInicial = params.get('materia') || ''
+  // Destino con el que se abrió la vista: una tutoría guardada solo se retoma con el mismo destino
+  const [origen] = useState(
+    () => `${params.get('materia') || ''}|${params.get('tema') || ''}|${params.get('clase_id') || ''}`
+  )
+  const [guardada] = useState(() => leerTutoriaGuardada(origen))
 
   // Estado de configuración previa
   const [materias, setMaterias] = useState<string[]>([])
@@ -79,21 +89,49 @@ export function TutoriaView() {
   const [iniciando, setIniciando] = useState(false)
 
   // Estado de sesión activa
-  const [sesion, setSesion] = useState<SesionTutoriaResponse | null>(null)
-  const [pasoActual, setPasoActual] = useState(0)
-  const [explicaciones, setExplicaciones] = useState<Record<number, string>>({})
+  const [sesion, setSesion] = useState<SesionTutoriaResponse | null>(guardada?.sesion ?? null)
+  const [pasoActual, setPasoActual] = useState(guardada?.pasoActual ?? 0)
+  const [explicaciones, setExplicaciones] = useState<Record<number, string>>(guardada?.explicaciones ?? {})
   // Error por paso: mientras exista no se relanza el stream solo (evita bucles) y se ofrece «Reintentar»
-  const [erroresPaso, setErroresPaso] = useState<Record<number, string>>({})
-  const [pasosCompletados, setPasosCompletados] = useState<Set<number>>(new Set())
+  const [erroresPaso, setErroresPaso] = useState<Record<number, string>>(() => {
+    // Un paso con texto pero sin terminar quedó cortado por la recarga: se ofrece «Reintentar»
+    const cortados: Record<number, string> = {}
+    for (const [paso, texto] of Object.entries(guardada?.explicaciones ?? {})) {
+      if (texto && !guardada?.completados.includes(Number(paso))) {
+        cortados[Number(paso)] = 'La página se recargó mientras se escribía.'
+      }
+    }
+    return cortados
+  })
+  const [pasosCompletados, setPasosCompletados] = useState<Set<number>>(
+    new Set(guardada?.completados ?? [])
+  )
 
   // Dudas inline por paso
-  const [dudasPorPaso, setDudasPorPaso] = useState<Record<number, DudaChat[]>>({})
+  const [dudasPorPaso, setDudasPorPaso] = useState<Record<number, DudaChat[]>>(guardada?.dudas ?? {})
   const [dudaInput, setDudaInput] = useState('')
   const [enviandoDuda, setEnviandoDuda] = useState(false)
 
   // Finalización
   const [finalizando, setFinalizando] = useState(false)
   const [resumenFinal, setResumenFinal] = useState<FinalizarTutoriaResponse | null>(null)
+
+  // La tutoría en curso se copia en sessionStorage: sobrevive a recargas y a que el móvil
+  // descarte la pestaña. Al terminar o abandonar la sesión se borra.
+  useEffect(() => {
+    if (!sesion || resumenFinal) {
+      borrarTutoriaGuardada()
+      return
+    }
+    guardarTutoria({
+      origen,
+      sesion,
+      pasoActual,
+      explicaciones,
+      completados: [...pasosCompletados],
+      dudas: dudasPorPaso,
+    })
+  }, [origen, sesion, resumenFinal, pasoActual, explicaciones, pasosCompletados, dudasPorPaso])
 
   // Cargar catálogo de materias al montar
   useEffect(() => {

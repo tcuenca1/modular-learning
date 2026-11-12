@@ -1887,3 +1887,14 @@ npm lint/build/test; Playwright: el texto escrito sobrevive a cambiar de pestañ
 
 ### Dudas o hallazgos
 Recargar la página (o que el navegador del móvil descarte la pestaña) sigue perdiendo el estado en memoria.
+
+## P59 · La tutoría en curso sobrevive a recargas
+
+### Qué hice
+`lib/tutoriaGuardada.ts` copia la tutoría (sesión, paso, explicaciones, pasos completados, dudas) en `sessionStorage` y `TutoriaView` la retoma al abrirse con el mismo destino (`materia|tema|clase_id`); con otro destino empieza limpia. Un paso con texto a medias se marca como cortado y ofrece «Reintentar». Se borra al terminar o abandonar la sesión, al cerrar sesión y cuando caduca (nunca cruza cuentas).
+
+### Cómo lo verifiqué
+vitest (5 tests nuevos, 83 en total), lint, build; Playwright con la API simulada: tras recargar en el paso 2 se conserva paso y texto, y un destino distinto no retoma la sesión.
+
+### Dudas o hallazgos
+Si el servidor se reinicia, la sesión guardada ya no existe allí: el paso pendiente mostrará el error con «Reintentar».

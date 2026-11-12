@@ -14,6 +14,7 @@ import { api, EVENTO_SESION_EXPIRADA } from '@/api/client'
 import type { Usuario } from '@/api/types'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Button } from '@/components/ui/button'
+import { borrarTutoriaGuardada } from '@/lib/tutoriaGuardada'
 import { VistaActivaContext } from '@/hooks/useVistaActiva'
 import { SesionContext } from '@/hooks/useSesion'
 import type { ContextoSesion } from '@/hooks/useSesion'
@@ -172,8 +173,10 @@ function PuertaAcceso({ children }: { children: ReactNode }) {
 
   // Cualquier 401 posterior (sesión caducada) devuelve al login
   useEffect(() => {
-    const alExpirar = () =>
+    const alExpirar = () => {
+      borrarTutoriaGuardada() // lo guardado es de la cuenta que caducó
       setEstado((e) => (e.fase === 'listo' && e.autenticacion ? { ...e, usuario: null } : e))
+    }
     window.addEventListener(EVENTO_SESION_EXPIRADA, alExpirar)
     return () => window.removeEventListener(EVENTO_SESION_EXPIRADA, alExpirar)
   }, [])
@@ -184,6 +187,7 @@ function PuertaAcceso({ children }: { children: ReactNode }) {
     } catch {
       // Aunque falle la red, se vuelve al login; el servidor decide si la cookie sigue viva
     }
+    borrarTutoriaGuardada()
     // Recarga completa en la portada: borra el estado en memoria y la URL (con su tema, asignatura
     // o clase) de la cuenta anterior, para que la siguiente persona no vea nada suyo.
     window.location.replace('/')
