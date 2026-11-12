@@ -227,10 +227,15 @@ def _almacen_postgres(url: str) -> AlmacenPostgres:
     return AlmacenPostgres(url)
 
 
-def almacen_por_defecto() -> AlmacenDocumentos:
+def almacen_global() -> AlmacenDocumentos:
     """Postgres si hay DATABASE_URL (despliegue en la nube); si no, archivos en ML_DATA_DIR."""
     url = os.getenv("DATABASE_URL", "").strip()
     return _almacen_postgres(url) if url else AlmacenArchivos()
+
+
+def almacen_por_defecto() -> AlmacenDocumentos:
+    """El almacén de los repositorios de datos (hoy el global; luego el de la cuenta activa)."""
+    return almacen_global()
 
 
 def almacen_en(ruta: str | None) -> tuple[AlmacenDocumentos, str] | None:
@@ -279,5 +284,6 @@ __all__ = [
     "AlmacenPostgres",
     "DocumentoJson",
     "almacen_en",
+    "almacen_global",
     "almacen_por_defecto",
 ]

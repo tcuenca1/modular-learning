@@ -11,6 +11,7 @@ from modular_learning.core.domain.guia_offline import GuiaOffline
 from modular_learning.core.domain.materias import Materia, slug_materia
 from modular_learning.core.domain.proyectos import HuellaProyecto, Proyecto, TipoProyecto
 from modular_learning.core.domain.repaso_espaciado import Tarjeta
+from modular_learning.core.domain.usuarios import Usuario, UsuarioDuplicado
 from modular_learning.core.ports.boveda import BovedaNotasPort
 from modular_learning.core.ports.config import AjustesPort
 from modular_learning.core.ports.conversor_pdf import ConversorPdfPort
@@ -29,6 +30,7 @@ from modular_learning.core.ports.repositorios import (
     MateriaRepo,
     RegistroMaterialesRepo,
 )
+from modular_learning.core.ports.usuarios import HasheadorContrasenaPort, UsuariosRepo
 
 
 class FakeLLM(LLMPort):
@@ -594,3 +596,42 @@ class FakeConversorPdfPort(ConversorPdfPort):
 
     def borrar_temporal(self, ruta_pdf: str) -> None:
         self.temporales_borrados.append(ruta_pdf)
+
+
+class InMemoryUsuariosRepo(UsuariosRepo):
+    """Cuentas en memoria."""
+
+    def __init__(self) -> None:
+        self.usuarios: list[Usuario] = []
+
+    def listar(self) -> list[Usuario]:
+        return list(self.usuarios)
+
+    def obtener(self, usuario_id: str) -> Usuario | None:
+        return next((u for u in self.usuarios if u.id == usuario_id), None)
+
+    def obtener_por_correo(self, correo: str) -> Usuario | None:
+        return next((u for u in self.usuarios if u.correo == correo), None)
+
+    def guardar(self, usuario: Usuario) -> None:
+        if any(u.correo == usuario.correo and u.id != usuario.id for u in self.usuarios):
+            raise UsuarioDuplicado(f"Ya existe una cuenta con el correo {usuario.correo}.")
+        for i, u in enumerate(self.usuarios):
+            if u.id == usuario.id:
+                self.usuarios[i] = usuario
+                return
+        self.usuarios.append(usuario)
+
+
+class FakeHasheador(HasheadorContrasenaPort):
+    """Hash instantáneo y legible, solo para tests (nunca en producción)."""
+
+    def __init__(self) -> None:
+        self.verificaciones: list[str] = []
+
+    def hashear(self, contrasena: str) -> str:
+        return f"fake${contrasena[::-1]}"
+
+    def verificar(self, contrasena: str, hash_guardado: str) -> bool:
+        self.verificaciones.append(contrasena)
+        return hash_guardado == f"fake${contrasena[::-1]}"
