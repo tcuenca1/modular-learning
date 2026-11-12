@@ -14,7 +14,7 @@ from modular_learning.apps.api.dependencies import (
     get_silabo_service,
 )
 from modular_learning.apps.api.errores import error_cliente, error_interno
-from modular_learning.apps.api.schemas import GuardarCronograma
+from modular_learning.apps.api.schemas import GenerarCronograma, GuardarCronograma
 from modular_learning.core.application.materias import MateriasService
 from modular_learning.core.application.silabo import EXTENSIONES_SILABO, SilaboService
 
@@ -49,6 +49,21 @@ def extraer_silabo(
             raise error_interno(e) from e
 
     return {"materia": materia_final, "datos": datos}
+
+
+@router.post("/generar")
+def generar_cronograma(
+    body: GenerarCronograma,
+    servicio: Annotated[SilaboService, Depends(get_silabo_service)],
+) -> dict[str, Any]:
+    """Borrador de cronograma de introducción a partir del nombre de la materia (no se guarda)."""
+    try:
+        datos = servicio.generar_cronograma(body.materia, body.num_clases, body.nivel)
+    except ValueError as e:
+        raise error_cliente(e, 422) from e
+    except Exception as e:
+        raise error_interno(e) from e
+    return {"materia": datos["asignatura"], "datos": datos}
 
 
 @router.post("/guardar")

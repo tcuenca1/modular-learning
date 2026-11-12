@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -47,6 +47,12 @@ class RevisionGuia(BaseModel):
 class RespuestaQuiz(BaseModel):
     quiz_id: str
     respuestas: list[str]
+
+
+class GenerarCronograma(BaseModel):
+    materia: str = Field(min_length=1, max_length=200)
+    num_clases: int = Field(default=10, ge=6, le=16)
+    nivel: Literal["basico", "medio", "avanzado"] = "medio"
 
 
 class GuardarCronograma(BaseModel):

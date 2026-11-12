@@ -565,3 +565,46 @@ def test_eliminar_asignatura_dos_veces_no_da_500(client):
     assert client.post("/api/materias", json={"nombre": "Temporal"}).status_code == 201
     assert client.delete("/api/materias/temporal").status_code == 200
     assert client.delete("/api/materias/temporal").status_code == 404
+
+
+def test_generar_cronograma_devuelve_un_borrador_sin_guardarlo(app, client):
+    from modular_learning.apps.api.dependencies import get_silabo_service
+    from modular_learning.core.application.silabo import SilaboService
+    from tests.unit.application.fake_adapters import (
+        FakeLLM,
+        InMemoryCronogramaRepo,
+        InMemoryLectorDocumentosPort,
+        InMemoryMateriaRepo,
+    )
+
+    clases = [
+        {"tema": f"Tema {i}", "objetivo": "Comprender.", "contenido": "Subtemas."}
+        for i in range(10)
+    ]
+    servicio = SilaboService(
+        FakeLLM(json_default=clases),
+        InMemoryCronogramaRepo(),
+        InMemoryMateriaRepo(),
+        InMemoryLectorDocumentosPort(),
+    )
+    app.dependency_overrides[get_silabo_service] = lambda: servicio
+
+    r = client.post("/api/silabo/generar", json={"materia": "Redes de Datos"})
+    assert r.status_code == 200
+    cuerpo = r.json()
+    assert cuerpo["materia"] == "Redes de Datos" and len(cuerpo["datos"]["clases"]) == 10
+    assert client.get("/api/materias/redes-de-datos/cronograma").json() == {
+        "clases": []
+    }  # no se guardó
+
+    assert client.post("/api/silabo/generar", json={"materia": "a/b"}).status_code == 422
+    assert (
+        client.post("/api/silabo/generar", json={"materia": "Redes", "num_clases": 99}).status_code
+        == 422
+    )
+    assert (
+        client.post(
+            "/api/silabo/generar", json={"materia": "Redes", "nivel": "experto"}
+        ).status_code
+        == 422
+    )
