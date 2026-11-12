@@ -337,3 +337,44 @@ def test_el_admin_arranca_con_datos_de_ejemplo_y_los_demas_vacios(entorno, monke
     admin.post("/api/materias/ejemplo-asignatura/clases", json={"tema": "Tema propio"})
     otra = cliente_de(ADMIN, CLAVE_ADMIN)
     assert len(otra.get("/api/materias/ejemplo-asignatura/cronograma").json()["clases"]) == 2
+
+
+# ----------------------------------------------------------------------------- endurecimiento (P49)
+def test_el_secreto_de_sesion_es_aleatorio_persistente_y_no_depende_de_la_contrasena(
+    entorno, monkeypatch
+):
+    monkeypatch.delenv("ML_SECRETO_SESION", raising=False)
+    primero = _crear_cliente()
+    entrar(primero, ADMIN, CLAVE_ADMIN)
+    guardado = (entorno / "data" / "auth" / "secreto.json").read_text(encoding="utf-8")
+    assert "secreto" in guardado and CLAVE_ADMIN not in guardado
+    # Un reinicio (otra app) reutiliza el secreto: la sesión sigue valiendo
+    segundo = _crear_cliente()
+    segundo.cookies.set("ml_sesion", primero.cookies["ml_sesion"])
+    assert segundo.get("/api/materias").status_code == 200
+
+
+def test_secreto_explicito_por_variable_de_entorno(entorno, monkeypatch):
+    monkeypatch.setenv("ML_SECRETO_SESION", "x" * 40)
+    c = _crear_cliente()
+    entrar(c, ADMIN, CLAVE_ADMIN)
+    assert not (entorno / "data" / "auth" / "secreto.json").exists()
+
+
+def test_la_contrasena_del_admin_cambiada_en_la_web_sobrevive_a_un_reinicio(entorno):
+    admin = _admin(entorno)
+    assert (
+        admin.post(
+            "/api/auth/contrasena", json={"actual": CLAVE_ADMIN, "nueva": "elegida-en-la-web-12"}
+        ).status_code
+        == 200
+    )
+    # Reinicio del servidor con la misma ML_CONTRASENA del entorno
+    assert entrar(_crear_cliente(), ADMIN, "elegida-en-la-web-12").status_code == 200
+    assert entrar(_crear_cliente(), ADMIN, CLAVE_ADMIN).status_code == 401
+
+
+def test_config_no_se_cambia_con_login_aunque_no_sea_la_nube(entorno):
+    admin = _admin(entorno)
+    r = admin.post("/api/config", json={"carpeta_material": "/tmp", "ruta_obsidian": "/tmp/b"})
+    assert r.status_code == 403

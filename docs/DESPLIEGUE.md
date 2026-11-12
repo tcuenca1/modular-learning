@@ -30,8 +30,8 @@ variable, todo sigue en `data/`.
 3. Rellena las variables que pide:
    - `DATABASE_URL`: la cadena de Neon.
    - `GEMINI_API_KEY`: tu clave de Gemini.
-   - `ML_USUARIO` y `ML_CONTRASENA`: la cuenta de **administrador** (lo que escribes en «Correo o usuario» y «Contraseña»). Sin contraseña la API responde 503. Si olvidas la contraseña, cámbiala aquí y reinicia: el arranque la sincroniza y cierra las sesiones anteriores. Ver «Cuentas y login».
-   - `ML_SECRETO_SESION` (opcional; el blueprint lo genera): firma las sesiones. Si falta se deriva de `ML_CONTRASENA`, así que las sesiones sobreviven a los reinicios sin configurar nada.
+   - `ML_USUARIO` y `ML_CONTRASENA`: la cuenta de **administrador** (lo que escribes en «Correo o usuario» y «Contraseña»). Sin contraseña la API responde 503. La contraseña que cambies en Ajustes › Cuenta se conserva entre reinicios; si la olvidas, pon un valor **distinto** en `ML_CONTRASENA` y reinicia: el arranque lo detecta, restablece la contraseña y cierra las sesiones anteriores. Ver «Cuentas y login».
+   - `ML_SECRETO_SESION` (opcional; el blueprint lo genera): firma las sesiones. Si falta, el servidor genera un secreto aleatorio una vez y lo guarda en la base (`auth/secreto.json`), así las sesiones sobreviven a los reinicios. Nunca se deriva de la contraseña.
    - `ML_SEMBRAR_EJEMPLOS=1`: carga `data/examples` en la cuenta de administrador la primera vez que arranca (solo si la cuenta no tiene datos). Quítala cuando subas tus datos reales.
    - `ML_EN_NUBE`: definida automáticamente como `1` en `render.yaml` (indica a la app que oculte el escaneo e ingesta de carpetas locales). En modo híbrido (app local conectada a Neon con `DATABASE_URL`), se deja sin definir para conservar el escaneo local de material. Con `ML_EN_NUBE=1`, `GET /api/config` no devuelve las rutas del servidor (`carpeta_material` y `ruta_obsidian` van vacías) y los errores del API muestran mensajes sin rutas absolutas (el detalle queda en el log).
    - `ML_HOSTS_PERMITIDOS` (opcional): hosts que acepta el servidor, separados por comas
@@ -54,7 +54,7 @@ minutos sin uso: la primera visita después tarda alrededor de un minuto.
 
 Con `ML_REQUIERE_ACCESO=1` (lo fija el `Dockerfile`) la web pide iniciar sesión.
 
-- **Cuentas propias:** correo (o usuario) y contraseña de 10 a 128 caracteres, guardadas con hash `scrypt` en el documento `auth/usuarios.json`. No hay registro abierto: el administrador crea las cuentas en **Ajustes › Cuenta › Crear usuario** (se puede hacer desde el teléfono) y puede desactivarlas o restablecer su contraseña.
+- **Cuentas propias:** correo (o usuario) y contraseña de 10 a 128 caracteres, guardadas con hash `scrypt` en el documento `auth/usuarios.json`. No hay registro abierto: el administrador crea las cuentas en **Ajustes › Cuenta › Crear usuario** (se puede hacer desde el teléfono) y puede desactivarlas o restablecer su contraseña. Cinco fallos por origen y usuario, o 20 por cuenta desde cualquier origen, bloquean 15 minutos.
 - **Sesión:** cookie `ml_sesion` `HttpOnly`, `SameSite=Lax` y `Secure` en la nube, firmada con HMAC y válida 14 días. Cambiar la contraseña cierra las demás sesiones. Cinco intentos fallidos en 15 minutos bloquean ese usuario desde ese origen.
 - **Datos por cuenta:** cada documento se guarda bajo `cuentas/<id>/…` (asignaturas, cronogramas, repaso, historial, guías, ajustes y memoria de plugins). Una cuenta nunca ve los datos de otra, y el servidor se niega a leer datos sin una cuenta activa. Las sesiones de tutoría y quizzes en memoria también son de la cuenta que las creó, y la bóveda de notas del disco del servidor es una subcarpeta por cuenta.
 - **Cuenta nueva:** empieza sin asignaturas. Solo el administrador recibe los datos de ejemplo (`ML_SEMBRAR_EJEMPLOS`).

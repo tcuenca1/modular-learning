@@ -209,3 +209,51 @@ def test_no_se_puede_desactivar_al_admin(servicio):
     admin = servicio.asegurar_admin("estudiante", "Admin", "clave-del-entorno-1")
     with pytest.raises(UsuarioInvalido):
         servicio.actualizar_usuario(admin.id, activo=False)
+
+
+# ----------------------------------------------------------------------------- endurecimiento (P49)
+def test_la_contrasena_cambiada_en_la_web_sobrevive_a_los_reinicios(servicio):
+    admin = servicio.asegurar_admin("estudiante", "Admin", "clave-del-entorno-1")
+    servicio.cambiar_contrasena(admin.id, "clave-del-entorno-1", "clave-elegida-en-la-web")
+    # Reinicio con la misma ML_CONTRASENA: no se pisa la contraseña elegida
+    servicio.asegurar_admin("estudiante", "Admin", "clave-del-entorno-1")
+    servicio.iniciar_sesion("estudiante", "clave-elegida-en-la-web")
+    with pytest.raises(CredencialesInvalidas):
+        servicio.iniciar_sesion("estudiante", "clave-del-entorno-1")
+    # Solo cuando ML_CONTRASENA cambia se restablece (recuperación)
+    servicio.asegurar_admin("estudiante", "Admin", "clave-nueva-del-entorno")
+    servicio.iniciar_sesion("estudiante", "clave-nueva-del-entorno")
+
+
+def test_se_puede_desactivar_a_un_admin_si_queda_otro_activo(servicio):
+    viejo = servicio.asegurar_admin("antiguo", "Admin", "clave-del-entorno-1")
+    nuevo = servicio.asegurar_admin("nuevo", "Admin", "clave-del-entorno-2")  # cambió ML_USUARIO
+    servicio.actualizar_usuario(viejo.id, activo=False)
+    with pytest.raises(CredencialesInvalidas):
+        servicio.iniciar_sesion("antiguo", "clave-del-entorno-1")
+    with pytest.raises(UsuarioInvalido):  # el último no
+        servicio.actualizar_usuario(nuevo.id, activo=False)
+
+
+def test_tope_de_fallos_por_cuenta_aunque_cambie_el_origen(servicio):
+    servicio.crear_usuario("ana@correo.com", "Ana", CLAVE)
+    for i in range(20):
+        with pytest.raises(CredencialesInvalidas):
+            servicio.iniciar_sesion("ana@correo.com", "mala-clave-123", origen=f"10.0.0.{i}")
+    with pytest.raises(DemasiadosIntentos):
+        servicio.iniciar_sesion("ana@correo.com", CLAVE, origen="10.9.9.9")  # ni desde otro origen
+
+
+def test_el_limitador_acota_su_memoria_y_es_seguro_entre_hilos():
+    from concurrent.futures import ThreadPoolExecutor
+
+    from modular_learning.core.domain.usuarios import LimitadorIntentos
+
+    limitador = LimitadorIntentos(maximo=5, ventana=900)
+    limitador.MAXIMO_CLAVES = 100
+    with ThreadPoolExecutor(8) as pool:
+        list(pool.map(lambda i: limitador.registrar_fallo(f"clave-{i}", 1.0), range(500)))
+    assert len(limitador._fallos) <= 100
+    # Con el tiempo las caducadas se podan y vuelve a haber sitio
+    limitador.registrar_fallo("nueva", 5_000.0)
+    assert "nueva" in limitador._fallos and len(limitador._fallos) == 1

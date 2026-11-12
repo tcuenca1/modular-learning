@@ -200,8 +200,12 @@ def create_app(
             raise HTTPException(status_code=404, detail="Endpoint no encontrado")
 
         if full_path:
-            posible_archivo = RUTA_ESTATICOS / full_path
-            if posible_archivo.is_file():
+            posible_archivo = (RUTA_ESTATICOS / full_path).resolve()
+            # Solo archivos dentro de static/: "../" (o su forma codificada) no sale de ahí
+            if (
+                posible_archivo.is_relative_to(RUTA_ESTATICOS.resolve())
+                and posible_archivo.is_file()
+            ):
                 return FileResponse(posible_archivo)
 
         if index_html.exists() and assets_dir.exists():

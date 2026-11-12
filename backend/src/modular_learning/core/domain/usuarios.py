@@ -9,6 +9,7 @@ import hmac
 import json
 import re
 import secrets
+import threading
 from dataclasses import asdict, dataclass
 from typing import Any
 
@@ -81,6 +82,8 @@ class Usuario:
     es_admin: bool = False
     activo: bool = True
     creado: str = ""
+    # Huella de la ML_CONTRASENA con que se sincronizó (solo el administrador del entorno)
+    huella_entorno: str = ""
 
     @staticmethod
     def nuevo_id() -> str:
@@ -154,9 +157,12 @@ class LimitadorIntentos:
     (origen + usuario) bloquea esa clave hasta que pasa la ventana. En memoria y por proceso.
     """
 
+    MAXIMO_CLAVES = 10_000  # tope de memoria: claves inventadas no crecen sin límite
+
     def __init__(self, maximo: int = 5, ventana: int = 900):
         self.maximo, self.ventana = maximo, ventana
         self._fallos: dict[str, list[float]] = {}
+        self._candado = threading.Lock()  # los endpoints síncronos corren en hilos distintos
 
     def _vigentes(self, clave: str, ahora: float) -> list[float]:
         vigentes = [t for t in self._fallos.get(clave, []) if ahora - t < self.ventana]
@@ -167,15 +173,22 @@ class LimitadorIntentos:
         return vigentes
 
     def comprobar(self, clave: str, ahora: float) -> None:
-        vigentes = self._vigentes(clave, ahora)
-        if len(vigentes) >= self.maximo:
-            raise DemasiadosIntentos(int(self.ventana - (ahora - vigentes[0])))
+        with self._candado:
+            vigentes = self._vigentes(clave, ahora)
+            if len(vigentes) >= self.maximo:
+                raise DemasiadosIntentos(int(self.ventana - (ahora - vigentes[0])))
 
     def registrar_fallo(self, clave: str, ahora: float) -> None:
-        self._fallos.setdefault(clave, []).append(ahora)
+        with self._candado:
+            if len(self._fallos) >= self.MAXIMO_CLAVES:
+                for k in list(self._fallos):  # poda las claves ya caducadas
+                    self._vigentes(k, ahora)
+            if len(self._fallos) < self.MAXIMO_CLAVES:
+                self._fallos.setdefault(clave, []).append(ahora)
 
     def limpiar(self, clave: str) -> None:
-        self._fallos.pop(clave, None)
+        with self._candado:
+            self._fallos.pop(clave, None)
 
 
 __all__ = [

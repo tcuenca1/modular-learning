@@ -17,13 +17,13 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
-      # Cuenta de administrador: ML_USUARIO es lo que escribes en «Correo o usuario». Cambiar
-      # ML_CONTRASENA y reiniciar es la forma de recuperar el acceso si la olvidas
+      # Cuenta de administrador: ML_USUARIO es lo que escribes en «Correo o usuario». Si la
+      # olvidas, pon otra distinta en ML_CONTRASENA y reinicia: se restablece
       - key: ML_USUARIO
         sync: false
       - key: ML_CONTRASENA
         sync: false
-      # Firma las sesiones; si falta se deriva de ML_CONTRASENA (cambiarla cierra las sesiones)
+      # Firma las sesiones; si falta, el servidor genera uno aleatorio y lo guarda en la base
       - key: ML_SECRETO_SESION
         generateValue: true
       # Carga los datos de ejemplo en la cuenta de administrador la primera vez

@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import os
+import secrets
 from dataclasses import dataclass
 from typing import Any
 
@@ -38,7 +37,11 @@ from modular_learning.infrastructure.documents.lector_documentos import LectorDo
 from modular_learning.infrastructure.llm.gemini_adapter import LLM_GeminiAdapter
 from modular_learning.infrastructure.obsidian.boveda_obsidian import BovedaObsidianAdapter
 from modular_learning.infrastructure.pdf.exportador_pdf import ExportadorPdfPyMuPDF
-from modular_learning.infrastructure.persistence.almacen import cuentas_activas
+from modular_learning.infrastructure.persistence.almacen import (
+    DocumentoJson,
+    almacen_global,
+    cuentas_activas,
+)
 from modular_learning.infrastructure.persistence.json_ajustes import JsonAjustesRepo
 from modular_learning.infrastructure.persistence.json_guias import JsonGuiasRepo
 from modular_learning.infrastructure.persistence.json_repaso import (
@@ -100,26 +103,31 @@ _global_container: Container | None = None
 
 def _secreto_de_sesion() -> str:
     """
-    ML_SECRETO_SESION, o uno derivado de ML_CONTRASENA para que las sesiones sobrevivan a los
-    reinicios sin configurar nada más (Render duerme y reinicia el servicio a menudo).
+    ML_SECRETO_SESION o, si falta, un secreto aleatorio que se genera una vez y se guarda en el
+    almacén global (`auth/secreto.json`): así las sesiones sobreviven a los reinicios sin
+    configurar nada. Nunca se deriva de la contraseña: un token robado permitiría probar
+    contraseñas sin conexión.
     """
     explicito = os.getenv("ML_SECRETO_SESION", "").strip()
     if explicito:
         return explicito
-    contrasena = os.getenv("ML_CONTRASENA", "")
-    if not contrasena:
-        return ""
-    return hmac.new(b"modular-learning/sesion", contrasena.encode(), hashlib.sha256).hexdigest()
+    documento = DocumentoJson("auth/secreto.json", None, almacen_global())
+    with documento.bloqueo():
+        guardado = documento.leer({})
+        if isinstance(guardado, dict) and len(str(guardado.get("secreto", ""))) >= 32:
+            return str(guardado["secreto"])
+        secreto = secrets.token_hex(32)
+        documento.escribir({"secreto": secreto})
+        return secreto
 
 
 def construir_autenticacion() -> AutenticacionService | None:
     """Servicio de cuentas, o None si el login no está activo o falta ML_CONTRASENA."""
     if not cuentas_activas():
         return None
-    secreto = _secreto_de_sesion()
-    if not secreto:
-        return None
-    return AutenticacionService(JsonUsuariosRepo(), HasheadorScrypt(), secreto)
+    if not os.getenv("ML_CONTRASENA", ""):
+        return None  # sin contraseña de administrador la API responde 503
+    return AutenticacionService(JsonUsuariosRepo(), HasheadorScrypt(), _secreto_de_sesion())
 
 
 def build_container(settings: Any | None = None) -> Container:
@@ -151,7 +159,7 @@ def build_container(settings: Any | None = None) -> Container:
     plugins_service = PluginsService(
         plugins=plugins_dict,
         ajustes_port=ajustes_repo,
-        carpeta_plugins=str(global_settings.ruta_plugins_memoria()),
+        carpeta_plugins=None if cuentas_activas() else str(global_settings.ruta_plugins_memoria()),
         lector_docs=lector_docs,
         config_repo=plugin_config_repo,
     )
