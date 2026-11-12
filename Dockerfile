@@ -23,19 +23,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar manifiestos de empaquetado y código fuente de Python
+# Capa de dependencias: solo depende de pyproject.toml, así que un cambio de código no vuelve a
+# instalarlas (es lo más lento del build). Se extraen del propio manifiesto para no duplicarlas.
 COPY backend/pyproject.toml backend/README.md ./backend/
+RUN python - <<'PY' > /tmp/requisitos.txt
+import tomllib
+p = tomllib.load(open("backend/pyproject.toml", "rb"))["project"]
+print("\n".join(p["dependencies"] + p["optional-dependencies"]["web"] + p["optional-dependencies"]["nube"]))
+PY
+RUN pip install --no-cache-dir -r /tmp/requisitos.txt
+
+# Código de la aplicación (sin dependencias: ya están) y el bundle web de la etapa anterior
 COPY backend/src/ ./backend/src/
-
-# Copiar el bundle web compilado desde la etapa frontend-builder
 COPY --from=frontend-builder /app/backend/src/modular_learning/apps/api/static ./backend/src/modular_learning/apps/api/static
+RUN pip install --no-cache-dir --no-deps "./backend"
 
-# Instalar la aplicación con la web y el almacén en Postgres (activo si hay DATABASE_URL)
-RUN pip install --no-cache-dir "./backend[web,nube]"
-
-# Datos iniciales para el modo archivos (sin DATABASE_URL): deploy/arranque.sh los copia a
-# ML_DATA_DIR si está vacía
-COPY data/ ./semilla/
+# Datos iniciales (solo los ejemplos, nunca los datos reales): con DATABASE_URL se cargan en la
+# cuenta de administrador; sin ella (modo archivos) deploy/arranque.sh los copia a ML_DATA_DIR
+COPY data/examples/ ./semilla/
 COPY deploy/arranque.sh /usr/local/bin/arranque
 RUN sed -i 's/\r$//' /usr/local/bin/arranque && chmod +x /usr/local/bin/arranque
 
