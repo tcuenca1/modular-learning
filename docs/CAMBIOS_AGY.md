@@ -33,6 +33,67 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P55. Animaciones sutiles
+
+- **Commit:** `feat(web): P55 animaciones sutiles que respetan "reducir movimiento"`
+- **Estado:** hecha
+- **Archivos:** `frontend/src/{index.css, App.tsx, components/layout/Sidebar.tsx, lib/movimiento.test.ts}` y los `animate-pulse` de varias vistas
+
+### Qué hice
+Botones y pestañas se «hunden» al pulsar (120 ms), cada vista entra con un fundido (180 ms), el menú móvil desliza el cajón (200 ms) y hay un esqueleto de carga. Solo `transform` y `opacity`. Todo está dentro de `prefers-reduced-motion: no-preference`, igual en PC y en móvil.
+
+### Cómo lo verifiqué
+- En Chromium, PC (ratón) y móvil (táctil), con y sin «reducir movimiento»: con movimiento normal corren (`transform: matrix(0.97…)`, `entrada-vista`, `cajon-entra`) y con reducirlo ninguna. Test que garantiza que nada se anima fuera de ese bloque, solo propiedades baratas y máx. 200 ms.
+
+### Dudas o hallazgos
+- No medí el coste en un móvil gama baja real.
+
+### Revisión de Claude
+
+---
+
+## P53 y P54. Generar el cronograma de una materia a partir de su nombre
+
+- **Commits:** `feat(core): P53 generar un cronograma de introduccion…` y `feat(web): P54 boton "Generar con IA"…`
+- **Estado:** hechas
+- **Archivos:** `core/prompts/08_generar_cronograma.md`, `core/application/silabo.py`, `apps/api/{routers/silabo.py, schemas.py}`, `frontend/src/{api/client.ts, views/SilabosView.tsx}`, tests
+
+### Qué hice
+`SilaboService.generar_cronograma(nombre, num_clases=10, nivel="medio")` pide a la IA un plan general de 6 a 16 clases y lo normaliza (sin fechas, pendientes, numeradas, textos limpios y acotados). `POST /api/silabo/generar` devuelve la misma forma que `/extraer`; en **Asignaturas › Clases**, una asignatura sin clases ofrece «Generar con IA · usa IA» y abre la pantalla de revisión que ya existía; no se guarda nada hasta «Guardar cronograma». El prompt prohíbe inventar institución, profesor, fechas, evaluaciones y bibliografía.
+- Seguridad del prompt: el nombre se valida como cualquier asignatura y sus saltos de línea se colapsan.
+
+### Cómo lo verifiqué
+- 23 tests del servicio con `FakeLLM` (formato, recortes, respuestas rotas, fallback a texto, nombres inválidos, parámetros fuera de rango, que no guarda nada, que el prompt real se formatea) y un test de API.
+- **No pude llamar a Gemini** (no hay clave en este entorno): en el navegador simulé solo la respuesta de `/generar`; el resto (revisión, guardado real de 10 clases, Hoy «Te toca …») fue real. **La calidad de lo que devuelva Gemini no está verificada.**
+
+### Dudas o hallazgos
+- En móvil la tabla de revisión es estrecha (la columna Tema se recorta); ya era así con el sílabo subido.
+- Sin fechas, esas clases no aparecen en el calendario; sí en Hoy y en la tutoría.
+
+### Revisión de Claude
+
+---
+
+## P51 y P52. Selector de tema discreto y sesión limpia al cambiar de usuario
+
+- **Commits:** `feat(web): P51 selector de tema discreto en la cabecera movil` y `fix(web): P52 al salir no queda nada de la cuenta anterior`
+- **Estado:** hechas
+- **Archivos:** `ThemeToggle.tsx`, `Sidebar.tsx`, `lib/theme.ts`, `App.tsx`, `apps/api/seguridad.py`, tests
+
+### Qué hice
+- **P51:** en la cabecera móvil el grupo de tres botones con marco pasa a un icono sin marco que cambia de tema al tocarlo (claro → oscuro → sistema); la marca ya no se trunca.
+- **P52:** al cambiar de usuario aparecía la pantalla del anterior porque «Salir» solo cambiaba de estado y la URL quedaba (con `?tema=…`, asignatura, clase). Los datos nunca se mezclaban (el servidor los separa por cuenta). Ahora «Salir» recarga `/` y las respuestas de `/api/*` llevan `Cache-Control: no-store`.
+
+### Cómo lo verifiqué
+- En el navegador: el admin abrió `?tema=TEMA-PRIVADO`, salió y entró otra cuenta: aterrizó en `/` con el campo vacío y sin asignaturas ajenas. Tests: `siguienteTema` y `test_las_respuestas_de_la_api_no_se_guardan_en_cache`.
+
+### Dudas o hallazgos
+- Cerrar sesión borra la cookie pero no invalida el token (stateless, 14 días): quien lo copió lo conserva hasta que caduque o se cambie la contraseña.
+
+### Revisión de Claude
+
+---
+
 ## P49. Endurecer el login tras la revisión de seguridad
 
 - **Commit:** affbc3e `fix(web): P49 endurecer el login tras la revision de seguridad`
