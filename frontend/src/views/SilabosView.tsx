@@ -7,6 +7,7 @@ import {
   FileText,
   Plus,
   Save,
+  Sparkles,
   Trash2,
   UploadCloud,
   X,
@@ -86,6 +87,9 @@ export function SilabosView({
   const [extracting, setExtracting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [clasesExtraidas, setClasesExtraidas] = useState<ClaseCronograma[]>([])
+  // De dónde salen las clases que se están revisando: un sílabo subido o un borrador de la IA
+  const [origenBorrador, setOrigenBorrador] = useState<'silabo' | 'ia'>('silabo')
+  const [generando, setGenerando] = useState(false)
   const [recarga, setRecarga] = useState(0)
 
   const cargarCatalogo = useCallback(async (seleccionar?: string) => {
@@ -480,6 +484,7 @@ export function SilabosView({
         setSubidaMateria(nueva.subidaMateria)
       }
       setClasesExtraidas(res.datos.clases || [])
+      setOrigenBorrador('silabo')
       toast.success('Clases extraídas', {
         description: `Se estructuraron ${res.datos.clases?.length || 0} sesiones de clase.`,
       })
@@ -489,6 +494,31 @@ export function SilabosView({
       })
     } finally {
       setExtracting(false)
+    }
+  }
+
+  const handleGenerarConIA = async () => {
+    const nombre = materiaSeleccionadaObj?.nombre
+    if (!nombre || generando) return
+    try {
+      setGenerando(true)
+      const res = await api.generarCronograma(nombre)
+      const clases = res.datos.clases || []
+      setClasesExtraidas(clases)
+      setOrigenBorrador('ia')
+      setFile(null)
+      setMateriaSelect(nombre)
+      setSubidaMateria(nombre)
+      setMostrandoSubirSilabo(true) // abre la pantalla de revisión, con las clases ya cargadas
+      toast.success('Borrador generado', {
+        description: `${clases.length} clases de introducción. Revísalas antes de guardar.`,
+      })
+    } catch (err) {
+      toast.error('No pude generar las clases', {
+        description: err instanceof Error ? err.message : String(err),
+      })
+    } finally {
+      setGenerando(false)
     }
   }
 
@@ -509,6 +539,7 @@ export function SilabosView({
         description: `Guardado en ${ultimoTramo(res.ruta)}`,
       })
       setClasesExtraidas([])
+      setOrigenBorrador('silabo')
       setFile(null)
       setMostrandoSubirSilabo(false)
       await cargarCatalogo(subidaMateria.trim())
@@ -914,7 +945,7 @@ export function SilabosView({
                     <p className="mt-1 text-xs text-slate-400">
                       Sube el sílabo oficial para estructurar las sesiones automáticamente o añade clases manualmente.
                     </p>
-                    <div className="mt-4 flex justify-center gap-3">
+                    <div className="mt-4 flex flex-wrap justify-center gap-3">
                       <Button
                         size="sm"
                         onClick={() => setMostrandoSubirSilabo(true)}
@@ -930,7 +961,27 @@ export function SilabosView({
                       >
                         <Plus className="h-3.5 w-3.5" /> Añadir clase
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerarConIA}
+                        disabled={generando}
+                        className="gap-1.5 text-xs"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        {generando ? (
+                          'Generando…'
+                        ) : (
+                          <>
+                            Generar con IA <AvisoIA />
+                          </>
+                        )}
+                      </Button>
                     </div>
+                    <p className="mt-3 text-xs text-slate-500">
+                      «Generar con IA» propone unas 10 clases de introducción a la materia (nivel medio) que
+                      puedes revisar antes de guardar.
+                    </p>
                   </div>
                 ) : (
                   <div className="rounded-lg border border-slate-200 dark:border-slate-800">
@@ -1148,11 +1199,17 @@ export function SilabosView({
               <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <CardTitle>Revisa las clases extraídas</CardTitle>
+                    <CardTitle>
+                      {origenBorrador === 'ia'
+                        ? 'Revisa el borrador generado por IA'
+                        : 'Revisa las clases extraídas'}
+                    </CardTitle>
                     <Badge variant="outline">{clasesExtraidas.length} clases</Badge>
                   </div>
                   <CardDescription>
-                    Corrige lo que haga falta antes de guardar en el cronograma.
+                    {origenBorrador === 'ia'
+                      ? 'Es un plan general de introducción, sin fechas ni datos de tu curso. Edita, quita o corrige lo que haga falta antes de guardar.'
+                      : 'Corrige lo que haga falta antes de guardar en el cronograma.'}
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
