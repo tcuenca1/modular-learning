@@ -163,6 +163,20 @@ export function useEventStream<T = unknown>({
               const line = lines[i].trim()
               if (!line) continue
 
+              if (line.startsWith('event: error')) {
+                // El backend envía el detalle en la línea `data:` siguiente
+                const sig = lines[i + 1]?.trim() ?? ''
+                let msg = 'Error en el stream'
+                if (sig.startsWith('data: ')) {
+                  try {
+                    msg = JSON.parse(sig.slice(6)).error || msg
+                  } catch {
+                    msg = sig.slice(6)
+                  }
+                }
+                throw new Error(msg)
+              }
+
               if (line.startsWith('event: fin')) {
                 stopStream()
                 onEnd?.()
@@ -191,10 +205,8 @@ export function useEventStream<T = unknown>({
             }
           }
 
-          if (isMountedRef.current) {
-            setIsStreaming(false)
-            onEnd?.()
-          }
+          // Terminar sin `event: fin` ni error explícito = conexión cortada a medias
+          throw new Error('La conexión se cerró antes de terminar la respuesta.')
         } catch (err: unknown) {
           if ((err as Error)?.name === 'AbortError') {
             // Cancelación intencionada
