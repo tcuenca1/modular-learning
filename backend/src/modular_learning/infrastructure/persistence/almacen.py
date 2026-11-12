@@ -135,9 +135,18 @@ class AlmacenArchivos(AlmacenDocumentos):
 
 
 class AlmacenPostgres(AlmacenDocumentos):
-    """Documentos en la tabla `documentos` de Postgres, con un pool de conexiones y caché en memoria."""
+    """
+    Documentos en la tabla `documentos` de Postgres, con un pool de conexiones y una instantánea
+    en memoria de toda la tabla.
 
-    def __init__(self, url: str, pool: Any | None = None):
+    Cada consulta a la base remota (Neon) cuesta un viaje de red, así que se carga la tabla
+    entera en una sola consulta y las lecturas y listados se sirven de memoria. Las escrituras
+    actualizan la base y la instantánea. La instantánea caduca a los `segundos_cache`
+    (ML_CACHE_SEGUNDOS, 30 por defecto) para ver cambios hechos por otro proceso, como el script
+    `deploy/subir_datos.py`. Pensado para un único proceso del servidor y pocos datos.
+    """
+
+    def __init__(self, url: str, pool: Any | None = None, segundos_cache: float | None = None):
         if pool is None:
             from psycopg_pool import ConnectionPool
 
@@ -151,7 +160,14 @@ class AlmacenPostgres(AlmacenDocumentos):
                 open=True,
             )
         self._pool = pool
-        self._cache: dict[str, str | None] = {}
+        self._segundos_cache = (
+            segundos_cache
+            if segundos_cache is not None
+            else float(os.getenv("ML_CACHE_SEGUNDOS", "30"))
+        )
+        self._instantanea: dict[str, str] | None = None
+        self._cargada_en = 0.0
+        self._candado_carga = threading.Lock()
         with self._pool.connection() as conn:
             conn.execute(
                 f"CREATE TABLE IF NOT EXISTS {TABLA} ("
@@ -160,19 +176,29 @@ class AlmacenPostgres(AlmacenDocumentos):
                 "actualizado timestamptz NOT NULL DEFAULT now())"
             )
 
+    def _vigente(self) -> dict[str, str]:
+        """Instantánea de la tabla; se vuelve a cargar (una consulta) si no existe o caducó."""
+        instantanea = self._instantanea
+        if instantanea is not None and time.monotonic() - self._cargada_en < self._segundos_cache:
+            return instantanea
+        with self._candado_carga:
+            instantanea = self._instantanea
+            if instantanea is None or time.monotonic() - self._cargada_en >= self._segundos_cache:
+                with self._pool.connection() as conn:
+                    filas = conn.execute(f"SELECT clave, contenido FROM {TABLA}").fetchall()
+                instantanea = {clave: contenido for clave, contenido in filas}
+                self._instantanea = instantanea
+                self._cargada_en = time.monotonic()
+            return instantanea
+
+    def precalentar(self) -> None:
+        """Carga la instantánea (y de paso despierta la base de datos) antes de la primera petición."""
+        self._vigente()
+
     def leer(self, clave: str) -> str | None:
-        if clave in self._cache:
-            return self._cache[clave]
-        with self._pool.connection() as conn:
-            fila = conn.execute(
-                f"SELECT contenido FROM {TABLA} WHERE clave = %s", (clave,)
-            ).fetchone()
-        contenido = fila[0] if fila else None
-        self._cache[clave] = contenido
-        return contenido
+        return self._vigente().get(clave)
 
     def escribir(self, clave: str, contenido: str) -> None:
-        self._cache[clave] = contenido
         with self._pool.connection() as conn:
             conn.execute(
                 f"INSERT INTO {TABLA} (clave, contenido) VALUES (%s, %s) "
@@ -180,27 +206,20 @@ class AlmacenPostgres(AlmacenDocumentos):
                 "SET contenido = EXCLUDED.contenido, actualizado = now()",
                 (clave, contenido),
             )
+        self._vigente()[clave] = contenido
 
     def listar(self, prefijo: str = "") -> list[str]:
-        # left() en lugar de LIKE: los "_" de los nombres no deben actuar como comodines
-        with self._pool.connection() as conn:
-            filas = conn.execute(
-                f"SELECT clave, contenido FROM {TABLA} WHERE left(clave, %s) = %s ORDER BY clave",
-                (len(prefijo), prefijo),
-            ).fetchall()
-        for clave_doc, contenido_doc in filas:
-            self._cache[clave_doc] = contenido_doc
-        return [f[0] for f in filas]
+        return sorted(c for c in self._vigente() if c.startswith(prefijo))
 
     def eliminar(self, clave: str) -> bool:
-        self._cache.pop(clave, None)
         with self._pool.connection() as conn:
             cursor = conn.execute(f"DELETE FROM {TABLA} WHERE clave = %s", (clave,))
+        self._vigente().pop(clave, None)
         return cursor.rowcount > 0
 
     def vaciar_cache(self) -> None:
-        """Invalida la caché local en memoria."""
-        self._cache.clear()
+        """Invalida la instantánea: la próxima lectura vuelve a consultar la base."""
+        self._instantanea = None
 
 
 @lru_cache(maxsize=4)

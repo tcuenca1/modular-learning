@@ -5,7 +5,9 @@ Ensambla los routers de la API e inyecta el contenedor IoC mediante app.state.
 
 from __future__ import annotations
 
+import logging
 import os
+import threading
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -36,10 +38,32 @@ from modular_learning.apps.api.seguridad import (
     hosts_permitidos,
 )
 from modular_learning.apps.api.session_store import SessionStore
+from modular_learning.apps.api.tiempos import MedirTiempos
+from modular_learning.infrastructure.persistence.almacen import almacen_por_defecto
 
 load_dotenv()
 
+logger = logging.getLogger("modular_learning.api")
+
 RUTA_ESTATICOS = Path(__file__).parent / "static"
+
+
+def _precalentar_almacen() -> None:
+    """
+    Con Postgres, carga la instantánea de datos en segundo plano al arrancar: así la primera
+    petición no paga la consulta y Neon empieza a despertar mientras el servidor termina de iniciar.
+    """
+
+    def tarea() -> None:
+        try:
+            almacen = almacen_por_defecto()
+            precalentar = getattr(almacen, "precalentar", None)
+            if precalentar:
+                precalentar()
+        except Exception as e:
+            logger.warning("No se pudo precalentar el almacén: %s", e)
+
+    threading.Thread(target=tarea, name="precalentar-almacen", daemon=True).start()
 
 
 def create_app(
@@ -54,6 +78,8 @@ def create_app(
     sin_docs = {"docs_url": None, "redoc_url": None, "openapi_url": None} if en_nube() else {}
     app = FastAPI(title="Modular Learning Web", version="2.0.0", **sin_docs)
 
+    _precalentar_almacen()
+
     # Inyección del contenedor IoC y almacén de sesiones en el estado de la aplicación
     app.state.container = container
     app.state.session_store = session_store or SessionStore()
@@ -65,6 +91,7 @@ def create_app(
 
     # De dentro hacia fuera: compresión, cabeceras de seguridad y, la primera barrera, el Host
     app.add_middleware(GZipMiddleware, minimum_size=1024)
+    app.add_middleware(MedirTiempos)
     app.add_middleware(CabecerasSeguridad, hsts=en_nube())
     app.add_middleware(HostsConfiables, allowed_hosts=hosts_permitidos())
 
