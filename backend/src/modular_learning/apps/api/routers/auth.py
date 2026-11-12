@@ -102,6 +102,17 @@ def iniciar_sesion(
     respuesta: Response,
     servicio: Annotated[AutenticacionService, Depends(_servicio)],
 ) -> dict[str, Any]:
+    if not servicio.listar_usuarios():
+        # Ninguna cuenta existe: el arranque no pudo crear la del administrador (p. ej. porque
+        # ML_CONTRASENA es demasiado corta). Decirlo evita que parezca "credenciales incorrectas".
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "El servidor aún no tiene la cuenta de administrador. Revisa en Render que "
+                "ML_USUARIO y ML_CONTRASENA estén definidas y que la contraseña tenga al menos "
+                "10 caracteres; el servicio se reinicia solo al guardar."
+            ),
+        )
     try:
         usuario, token = servicio.iniciar_sesion(body.correo, body.contrasena, _origen(request))
     except CredencialesInvalidas as e:
