@@ -24,9 +24,13 @@ export function validarCoincidencia(nueva: string, confirmacion: string): string
   return null
 }
 
-/** Primer error del formulario de acceso, o null si se puede enviar. */
-export function validarLogin(correo: string, contrasena: string): string | null {
-  return validarCorreo(correo) ?? (contrasena ? null : 'Escribe tu contraseña.')
+/**
+ * Primer error del formulario de acceso, o null si se puede enviar.
+ * El usuario puede no ser un correo (p. ej. el administrador), así que solo exige que no esté vacío.
+ */
+export function validarLogin(usuario: string, contrasena: string): string | null {
+  if (!usuario.trim()) return 'Escribe tu correo o usuario.'
+  return contrasena ? null : 'Escribe tu contraseña.'
 }
 
 /** Primer error del formulario de cambio de contraseña, o null si se puede enviar. */

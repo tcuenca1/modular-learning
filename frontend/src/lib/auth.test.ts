@@ -37,9 +37,11 @@ describe('validarCoincidencia', () => {
 })
 
 describe('validarLogin', () => {
-  it('pide correo válido y contraseña', () => {
-    expect(validarLogin('', 'x')).toBe('Escribe tu correo.')
+  it('solo exige usuario y contraseña no vacíos (el usuario puede no ser un correo)', () => {
+    expect(validarLogin('', 'x')).toBe('Escribe tu correo o usuario.')
+    expect(validarLogin('   ', 'x')).toBe('Escribe tu correo o usuario.')
     expect(validarLogin('a@b.co', '')).toBe('Escribe tu contraseña.')
+    expect(validarLogin('admin', 'x')).toBeNull()
     expect(validarLogin('a@b.co', 'x')).toBeNull()
   })
 })

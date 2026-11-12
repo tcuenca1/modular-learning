@@ -6,7 +6,7 @@ import type { Usuario } from '@/api/types'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { validarCorreo, validarLogin } from '@/lib/auth'
+import { validarLogin } from '@/lib/auth'
 
 interface LoginViewProps {
   alAcceder: (usuario: Usuario) => void
@@ -31,7 +31,7 @@ export function LoginView({ alAcceder }: LoginViewProps) {
     const invalido = validarLogin(correo, contrasena)
     if (invalido) {
       setError(invalido)
-      ;(validarCorreo(correo) ? refCorreo : refContrasena).current?.focus()
+      ;(correo.trim() ? refContrasena : refCorreo).current?.focus()
       return
     }
     setError('')
@@ -71,16 +71,17 @@ export function LoginView({ alAcceder }: LoginViewProps) {
         >
           <div className="space-y-1.5">
             <label htmlFor={idCorreo} className="text-sm font-medium text-slate-800 dark:text-slate-200">
-              Correo
+              Correo o usuario
             </label>
             <Input
               ref={refCorreo}
               id={idCorreo}
-              type="email"
+              type="text"
               name="correo"
               autoComplete="username"
               inputMode="email"
               autoCapitalize="none"
+              autoCorrect="off"
               spellCheck={false}
               autoFocus
               required
