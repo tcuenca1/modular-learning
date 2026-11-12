@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import os
+import secrets
 from dataclasses import dataclass
 from typing import Any
 
 from modular_learning import settings as global_settings
+from modular_learning.core.application.autenticacion import AutenticacionService
 from modular_learning.core.application.configuracion import ConfiguracionService
 from modular_learning.core.application.evaluacion import EvaluacionService
 from modular_learning.core.application.guias import GuiaOfflineService
@@ -34,6 +37,11 @@ from modular_learning.infrastructure.documents.lector_documentos import LectorDo
 from modular_learning.infrastructure.llm.gemini_adapter import LLM_GeminiAdapter
 from modular_learning.infrastructure.obsidian.boveda_obsidian import BovedaObsidianAdapter
 from modular_learning.infrastructure.pdf.exportador_pdf import ExportadorPdfPyMuPDF
+from modular_learning.infrastructure.persistence.almacen import (
+    DocumentoJson,
+    almacen_global,
+    cuentas_activas,
+)
 from modular_learning.infrastructure.persistence.json_ajustes import JsonAjustesRepo
 from modular_learning.infrastructure.persistence.json_guias import JsonGuiasRepo
 from modular_learning.infrastructure.persistence.json_repaso import (
@@ -47,10 +55,12 @@ from modular_learning.infrastructure.persistence.json_repositorios import (
     JsonProyectosRepo,
     JsonRegistroMaterialesRepo,
 )
+from modular_learning.infrastructure.persistence.json_usuarios import JsonUsuariosRepo
 from modular_learning.infrastructure.plugins.cisco import CiscoPlugin
 from modular_learning.infrastructure.plugins.nodered import NodeRedPlugin
 from modular_learning.infrastructure.plugins.web import WebPlugin
 from modular_learning.infrastructure.proyectos.inspector_local import InspectorProyectosLocal
+from modular_learning.infrastructure.seguridad.hasheador_scrypt import HasheadorScrypt
 
 
 @dataclass
@@ -84,9 +94,40 @@ class Container:
     repaso_service: RepasoService
     guias_service: GuiaOfflineService
     proyectos_service: ProyectosService
+    # Solo existe con login activo (ML_REQUIERE_ACCESO) y contraseña de administrador configurada
+    autenticacion_service: AutenticacionService | None = None
 
 
 _global_container: Container | None = None
+
+
+def _secreto_de_sesion() -> str:
+    """
+    ML_SECRETO_SESION o, si falta, un secreto aleatorio que se genera una vez y se guarda en el
+    almacén global (`auth/secreto.json`): así las sesiones sobreviven a los reinicios sin
+    configurar nada. Nunca se deriva de la contraseña: un token robado permitiría probar
+    contraseñas sin conexión.
+    """
+    explicito = os.getenv("ML_SECRETO_SESION", "").strip()
+    if explicito:
+        return explicito
+    documento = DocumentoJson("auth/secreto.json", None, almacen_global())
+    with documento.bloqueo():
+        guardado = documento.leer({})
+        if isinstance(guardado, dict) and len(str(guardado.get("secreto", ""))) >= 32:
+            return str(guardado["secreto"])
+        secreto = secrets.token_hex(32)
+        documento.escribir({"secreto": secreto})
+        return secreto
+
+
+def construir_autenticacion() -> AutenticacionService | None:
+    """Servicio de cuentas, o None si el login no está activo o falta ML_CONTRASENA."""
+    if not cuentas_activas():
+        return None
+    if not os.getenv("ML_CONTRASENA", ""):
+        return None  # sin contraseña de administrador la API responde 503
+    return AutenticacionService(JsonUsuariosRepo(), HasheadorScrypt(), _secreto_de_sesion())
 
 
 def build_container(settings: Any | None = None) -> Container:
@@ -118,7 +159,7 @@ def build_container(settings: Any | None = None) -> Container:
     plugins_service = PluginsService(
         plugins=plugins_dict,
         ajustes_port=ajustes_repo,
-        carpeta_plugins=str(global_settings.ruta_plugins_memoria()),
+        carpeta_plugins=None if cuentas_activas() else str(global_settings.ruta_plugins_memoria()),
         lector_docs=lector_docs,
         config_repo=plugin_config_repo,
     )
@@ -228,6 +269,7 @@ def build_container(settings: Any | None = None) -> Container:
         repaso_service=repaso_service,
         guias_service=guias_service,
         proyectos_service=proyectos_service,
+        autenticacion_service=construir_autenticacion(),
     )
 
     global _global_container

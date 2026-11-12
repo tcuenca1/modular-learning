@@ -6,12 +6,14 @@ import {
   GraduationCap,
   Menu,
   ListChecks,
+  LogOut,
   Settings,
   X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { api } from '@/api/client'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { useSesion } from '@/hooks/useSesion'
 import { cn } from '@/lib/utils'
 
 interface ItemNav {
@@ -83,6 +85,32 @@ function EnlaceNav({ item, onNavegar }: { item: ItemNav; onNavegar?: () => void 
   )
 }
 
+/** Correo del usuario y botón «Salir»; solo con autenticación activa. */
+function CuentaSidebar() {
+  const { autenticacion, usuario, salir } = useSesion()
+  const [saliendo, setSaliendo] = useState(false)
+  if (!autenticacion || !usuario) return null
+  return (
+    <div className="space-y-1 border-t border-slate-200 px-3 pt-3 dark:border-slate-800">
+      <p className="truncate px-3 text-xs text-slate-600 dark:text-slate-400" title={usuario.correo}>
+        {usuario.correo}
+      </p>
+      <button
+        type="button"
+        disabled={saliendo}
+        onClick={() => {
+          setSaliendo(true)
+          void salir()
+        }}
+        className="toque flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-1.5 text-[0.9rem] text-slate-600 transition-colors hover:bg-slate-200/40 hover:text-slate-900 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-slate-800/40 dark:hover:text-slate-100"
+      >
+        <LogOut className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden />
+        {saliendo ? 'Saliendo…' : 'Salir'}
+      </button>
+    </div>
+  )
+}
+
 function ContenidoSidebar({ onNavegar }: { onNavegar?: () => void }) {
   const [online, setOnline] = useState<boolean | null>(null)
 
@@ -112,6 +140,7 @@ function ContenidoSidebar({ onNavegar }: { onNavegar?: () => void }) {
         <div className="flex items-center justify-end px-3">
           <ThemeToggle compacto />
         </div>
+        <CuentaSidebar />
       </div>
     </div>
   )
@@ -119,6 +148,7 @@ function ContenidoSidebar({ onNavegar }: { onNavegar?: () => void }) {
 
 export function Sidebar() {
   const [abierto, setAbierto] = useState(false)
+  const { autenticacion, usuario, salir } = useSesion()
   const botonMenu = useRef<HTMLButtonElement>(null)
   const botonCerrar = useRef<HTMLButtonElement>(null)
 
@@ -153,6 +183,16 @@ export function Sidebar() {
         <Marca />
         <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle compacto />
+          {autenticacion && usuario && (
+            <button
+              type="button"
+              onClick={() => void salir()}
+              className="rounded-md p-2 text-slate-600 hover:bg-slate-200/60 dark:text-slate-300 dark:hover:bg-slate-800"
+              aria-label={`Salir (${usuario.correo})`}
+            >
+              <LogOut className="h-5 w-5" aria-hidden />
+            </button>
+          )}
           <button
             ref={botonMenu}
             type="button"

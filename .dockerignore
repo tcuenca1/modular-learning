@@ -24,3 +24,7 @@ session-*.md
 frontend/node_modules/
 frontend/dist/
 backend/src/modular_learning/apps/api/static/
+# Datos reales del usuario: solo viajan los ejemplos (data/examples)
+data/*
+!data/examples/
+!data/examples/**

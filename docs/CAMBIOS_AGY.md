@@ -33,6 +33,152 @@ entradas anteriores: Claude añade debajo de cada una su veredicto.
 
 ---
 
+## P49. Endurecer el login tras la revisión de seguridad
+
+- **Commit:** affbc3e `fix(web): P49 endurecer el login tras la revision de seguridad`
+- **Estado:** hecha (con tres puntos pendientes de decidir)
+- **Archivos:** `apps/api/main.py`, `bootstrap.py`, `core/domain/usuarios.py`, `core/application/autenticacion.py`, `routers/config.py`, docs, tests
+
+### Qué hice
+Un agente Sonnet revisó el login en modo solo lectura; verifiqué cada hallazgo antes de aceptarlo.
+- **Crítico, confirmado ejecutándolo y anterior al login:** `spa_fallback` servía cualquier archivo del servidor (`GET /%2e%2e/…/pyproject.toml` devolvía su contenido). Ahora solo sirve archivos dentro de `static/`. En lo desplegado hasta ahora lo protegía el acceso HTTP Basic (solo quien tenía la contraseña podía explotarlo); al hacer pública la web estática habría quedado abierto, por eso es obligatorio que este arreglo viaje con el login.
+- **Secreto de sesión:** ya no se deriva de `ML_CONTRASENA` (una cookie propia permitía probar contraseñas sin conexión): es `ML_SECRETO_SESION` o uno aleatorio guardado en `auth/secreto.json`.
+- **Contraseña del admin:** ya no se revierte en cada reinicio; `ML_CONTRASENA` solo la restablece si cambia respecto de la última vez.
+- Se puede desactivar un admin si queda otro activo; tope de 20 fallos por cuenta; limitador con candado y memoria acotada; `POST /api/config` 403 con login; la memoria de plugins global ya no se ofrece a las cuentas.
+
+### Cómo lo verifiqué
+- pytest 371 passed (con Postgres local), ruff, import-linter, npm 73 tests. Tests nuevos para cada punto (recorrido de rutas con 3 variantes, secreto persistente tras reinicio, contraseña conservada, tope por cuenta, limitador entre hilos).
+
+### Dudas o hallazgos
+- **No corregidos** (anotados en «Hallazgos»): IP de `X-Forwarded-For` (hay que confirmar los saltos de confianza de Render), `Secure` solo con `ML_EN_NUBE`, login sin comprobación de `Origin`, y el coste de scrypt por intento.
+- Descartados por el revisor tras comprobarlos: IDOR, escalada, enumeración de usuarios, mezcla de cuentas por hilos o SSE, XSS en nombres.
+
+### Revisión de Claude
+
+---
+
+## P48. Subir datos a una cuenta, variables del blueprint y documentación
+
+- **Commit:** 933b013 `chore(deploy): P48 subir datos a una cuenta, variables del blueprint y documentacion`
+- **Estado:** hecha
+- **Archivos:** `deploy/subir_datos.py`, `render.yaml`, `docs/DESPLIEGUE.md`, `docs/ARCHITECTURE.md`, `CLAUDE.md`
+
+### Qué hice
+`subir_datos.py` acepta `--usuario` (cuenta destino) y `--reemplazar` (borra antes los datos de ejemplo de esa cuenta); con login exige `--usuario` y avisa si la cuenta no existe. `render.yaml` añade `ML_SECRETO_SESION` y `ML_SEMBRAR_EJEMPLOS`. Documentación: cuentas y login, subir los datos reales, rendimiento y cómo medirlo, límites del plan gratuito.
+
+### Cómo lo verifiqué
+- Contra Postgres local: cuenta inexistente → error claro; `--reemplazar --subir` borró 1 documento y subió 6 a la cuenta de Ana.
+
+### Dudas o hallazgos
+- Tus datos reales (`data/`) solo se pueden subir desde tu PC; para la prueba desde el teléfono la cuenta de administrador lleva los datos de ejemplo.
+
+### Revisión de Claude
+
+---
+
+## P47. Login por cuentas con datos aislados por usuario
+
+- **Commit:** e0b79a1 `feat(web): P47 login por cuentas con datos aislados por usuario`
+- **Estado:** hecha
+- **Archivos:** `apps/api/{autenticacion.py, routers/auth.py, main.py, session_store.py, routers/config.py}`, `bootstrap.py`, `infrastructure/persistence/{almacen.py, semilla.py, json_ajustes.py, json_repositorios.py}`, tests `test_cuentas_api.py`, `test_almacen.py`
+
+### Qué hice
+Middleware ASGI de sesión por cookie (`HttpOnly`, `SameSite=Lax`, `Secure` en la nube) que protege todo `/api/*` salvo salud, login y `yo`; la web estática es pública para poder mostrar el login. Rutas `/api/auth` (yo, login con 429, logout, cambio de contraseña, y solo admin: alta, listado, desactivar, restablecer). **Aislamiento:** `AlmacenPorCuenta` antepone `cuentas/<id>/` a cada clave según la cuenta de la petición (ContextVar) y sin cuenta el almacén se niega a servir datos; también son por cuenta `SessionStore`, la bóveda del servidor y la carpeta de material. Una cuenta nueva empieza sin asignaturas (antes recibía las 5 del autor). El arranque crea el admin con `ML_USUARIO`/`ML_CONTRASENA` y, con `ML_SEMBRAR_EJEMPLOS`, le carga `data/examples`. Se retira el acceso HTTP Basic.
+- Dos defectos aparecieron al probar: `AlmacenArchivos.listar` no era recursivo (Postgres sí) y resembraba encima de datos existentes; y el almacén Postgres podía construirse dos veces en paralelo. Ambos corregidos con test.
+
+### Cómo lo verifiqué
+- 26 tests de API de cuentas más el de listado recursivo; **además un recorrido de punta a punta contra un Postgres 16 local** (admin con ejemplos, alta de Ana, datos aislados, claves `cuentas/<id>/…` en la tabla).
+
+### Dudas o hallazgos
+- La revisión de seguridad independiente encontró fallos reales, corregidos en P49.
+
+### Revisión de Claude
+
+---
+
+## P46. Núcleo de cuentas de usuario
+
+- **Commit:** cb32622 `feat(core): P46 cuentas de usuario con contrasena, sesiones firmadas y bloqueo de intentos`
+- **Estado:** hecha
+- **Archivos:** `core/domain/usuarios.py`, `core/ports/usuarios.py`, `core/application/autenticacion.py`, `infrastructure/seguridad/hasheador_scrypt.py`, `infrastructure/persistence/json_usuarios.py`, `fake_adapters.py`, tests
+
+### Qué hice
+Dominio (validaciones, token firmado con HMAC-SHA256 con id + huella de la contraseña + caducidad, limitador de 5 fallos en 15 min), puertos, `AutenticacionService` (sesión, alta, desactivar, restablecer, cambiar contraseña, `asegurar_admin`), hash `scrypt` con la biblioteca estándar (sin dependencias nuevas) y repositorio en `auth/usuarios.json`. Con una cuenta inexistente también se verifica un hash, para no revelar cuáles existen por el tiempo de respuesta.
+
+### Cómo lo verifiqué
+- 34 tests nuevos (`test_autenticacion_service.py`, `test_usuarios_infra.py`), todo el conjunto en verde, import-linter 3 contratos.
+
+### Dudas o hallazgos
+- El limitador es por proceso (se reinicia al reiniciar el servidor).
+
+### Revisión de Claude
+
+---
+
+## P45. Interfaz de login y cuenta (hecha por un agente Sonnet y revisada por mí)
+
+- **Commits:** 1d689d0 `feat(web): P45 pantalla de login y puerta de acceso` y 9f66f86 `feat(web): P45 pestana Cuenta con cambio de contrasena y gestion de usuarios`
+- **Estado:** hecha
+- **Archivos:** `frontend/src/{App.tsx, api/client.ts, api/types.ts, hooks/useEventStream.ts, hooks/useSesion.ts, lib/auth.ts, lib/auth.test.ts, views/LoginView.tsx, views/CuentaView.tsx, views/AjustesView.tsx, components/layout/Sidebar.tsx}`
+
+### Qué hice
+`LoginView` (campo «Correo o usuario», contraseña con ojo, errores con `role="alert"`), puerta de acceso en `App.tsx` que consulta `/api/auth/yo`, vuelta al login ante un 401, botón «Salir» y pestaña **Cuenta** (cambiar contraseña y, para el admin, listar/crear/activar/restablecer usuarios). El JS inicial queda en 307 KB.
+
+### Cómo lo verifiqué
+- npm lint/build/test: 73 tests. El agente lo probó con un servidor falso; **yo lo probé contra el backend real** a 375 px con Chromium: login con clave mala (mensaje correcto), login con Enter, datos de ejemplo del admin en Hoy y la pestaña Cuenta (capturas revisadas).
+
+### Dudas o hallazgos
+- No probé en el navegador el alta, activar/desactivar ni restablecer contraseña (sí cubiertos por los tests de la API).
+- En móvil el título de la cabecera se trunca («Modular Lea…») por los controles de 44 px.
+
+### Revisión de Claude
+
+---
+
+## P44. Dockerfile: capa de dependencias cacheable y sin datos reales
+
+- **Commit:** 018a67a `build(docker): P44 capa de dependencias cacheable y sin datos reales en la imagen`
+- **Estado:** a medias (no pude construir la imagen)
+- **Archivos:** `Dockerfile`, `.dockerignore`
+
+### Qué hice
+Las dependencias se extraen de `pyproject.toml` con `tomllib` y se instalan en una capa que solo depende de ese archivo; el código se instala después con `--no-deps`. Un cambio de código ya no reinstala google-genai, pymupdf, psycopg, etc. La imagen solo lleva `data/examples` como semilla y `.dockerignore` excluye el resto de `data/`.
+
+### Cómo lo verifiqué
+- Reproduje los pasos de instalación en un venv limpio (26 s; la app importa). **No pude construir la imagen:** hay cliente de Docker pero no demonio.
+
+### Dudas o hallazgos
+- Falta comprobar el build real (por ejemplo en Render) y el tiempo que ahorra la caché.
+
+### Revisión de Claude
+
+---
+
+## P43. Rendimiento del almacén en la nube
+
+- **Commit:** b6bbdc3 `perf(infra): P43 instantanea en memoria del almacen Postgres, precalentado y Server-Timing`
+- **Estado:** hecha
+- **Archivos:** `infrastructure/persistence/almacen.py`, `apps/api/main.py`, `apps/api/tiempos.py` (nuevo), tests `test_almacen_cache.py` y `test_tiempos.py`
+
+### Qué hice
+Midiendo la pantalla Hoy (11 llamadas en paralelo) contra un Postgres 16 local con latencia simulada por consulta (pool de 4, como en producción): 16 consultas en frío y 7 en caliente. Con 80 ms de latencia eso es 0,79 s y 0,21 s; con 200 ms, 1,55 s y 0,46 s.
+- `AlmacenPostgres` carga toda la tabla en una consulta y sirve lecturas y listados de memoria; las escrituras actualizan base e instantánea; caduca a los 30 s (`ML_CACHE_SEGUNDOS`).
+- El servidor precalienta la instantánea en segundo plano al arrancar.
+- `MedirTiempos`: cabecera `Server-Timing` y aviso `Petición lenta` (> 700 ms) en el log.
+Resultado: 2 consultas en frío y 0 en caliente; a 80 ms, 0,31 s y 0,11 s; a 200 ms, 0,49 s y 0,10 s.
+
+### Cómo lo verifiqué
+- pytest 302 passed (con Postgres local: `ML_TEST_DATABASE_URL`), ruff y import-linter en verde.
+- Tests nuevos: `test_almacen_cache.py` (4, con pool falso que cuenta consultas) y `test_tiempos.py` (3).
+
+### Dudas o hallazgos
+- **Diagnóstico honesto:** con estas cifras la base de datos *no* explica por sí sola una lentitud «en cada pantalla»; lo que más pesa en el plan gratuito es la CPU muy limitada de Render y los viajes de red del móvil. Esta mejora quita lo evitable; lo demás hay que medirlo en producción con los avisos de `Petición lenta`.
+- No se mide aquí la CPU real de Render (0,1 vCPU aproximadamente): puede ser unas 10 veces más lenta que este contenedor.
+
+### Revisión de Claude
+
+---
+
 ## P42. Tests de lo que hoy está sin cubrir
 
 - **Commit:** 999f630 `test(core): P42 tests de sincronizador, contrato de repositorios y cobertura de plugins`

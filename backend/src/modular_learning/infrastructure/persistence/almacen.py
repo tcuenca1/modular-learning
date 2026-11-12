@@ -18,7 +18,9 @@ import threading
 import time
 import uuid
 from abc import ABC, abstractmethod
-from contextlib import AbstractContextManager
+from collections.abc import Iterator
+from contextlib import AbstractContextManager, contextmanager
+from contextvars import ContextVar
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -114,17 +116,21 @@ class AlmacenArchivos(AlmacenDocumentos):
                 os.remove(temporal)
 
     def listar(self, prefijo: str = "") -> list[str]:
-        carpeta, _, inicio_nombre = prefijo.rpartition("/")
+        """Claves que empiezan por `prefijo`, también en subcarpetas (igual que en Postgres)."""
+        carpeta = prefijo.rpartition("/")[0]
         base = os.path.join(self.raiz, *carpeta.split("/")) if carpeta else str(self.raiz)
         if not os.path.isdir(base):
             return []
-        return sorted(
-            f"{carpeta}/{nombre}" if carpeta else nombre
-            for nombre in os.listdir(base)
-            if nombre.startswith(inicio_nombre)
-            and not nombre.endswith(".tmp")
-            and os.path.isfile(os.path.join(base, nombre))
-        )
+        claves = []
+        for raiz, _, nombres in os.walk(base):
+            for nombre in nombres:
+                if nombre.endswith(".tmp"):
+                    continue
+                relativa = os.path.relpath(os.path.join(raiz, nombre), self.raiz)
+                clave = relativa.replace(os.sep, "/")
+                if clave.startswith(prefijo):
+                    claves.append(clave)
+        return sorted(claves)
 
     def eliminar(self, clave: str) -> bool:
         ruta = self._ruta(clave)
@@ -135,9 +141,18 @@ class AlmacenArchivos(AlmacenDocumentos):
 
 
 class AlmacenPostgres(AlmacenDocumentos):
-    """Documentos en la tabla `documentos` de Postgres, con un pool de conexiones y caché en memoria."""
+    """
+    Documentos en la tabla `documentos` de Postgres, con un pool de conexiones y una instantánea
+    en memoria de toda la tabla.
 
-    def __init__(self, url: str, pool: Any | None = None):
+    Cada consulta a la base remota (Neon) cuesta un viaje de red, así que se carga la tabla
+    entera en una sola consulta y las lecturas y listados se sirven de memoria. Las escrituras
+    actualizan la base y la instantánea. La instantánea caduca a los `segundos_cache`
+    (ML_CACHE_SEGUNDOS, 30 por defecto) para ver cambios hechos por otro proceso, como el script
+    `deploy/subir_datos.py`. Pensado para un único proceso del servidor y pocos datos.
+    """
+
+    def __init__(self, url: str, pool: Any | None = None, segundos_cache: float | None = None):
         if pool is None:
             from psycopg_pool import ConnectionPool
 
@@ -151,7 +166,14 @@ class AlmacenPostgres(AlmacenDocumentos):
                 open=True,
             )
         self._pool = pool
-        self._cache: dict[str, str | None] = {}
+        self._segundos_cache = (
+            segundos_cache
+            if segundos_cache is not None
+            else float(os.getenv("ML_CACHE_SEGUNDOS", "30"))
+        )
+        self._instantanea: dict[str, str] | None = None
+        self._cargada_en = 0.0
+        self._candado_carga = threading.Lock()
         with self._pool.connection() as conn:
             conn.execute(
                 f"CREATE TABLE IF NOT EXISTS {TABLA} ("
@@ -160,19 +182,29 @@ class AlmacenPostgres(AlmacenDocumentos):
                 "actualizado timestamptz NOT NULL DEFAULT now())"
             )
 
+    def _vigente(self) -> dict[str, str]:
+        """Instantánea de la tabla; se vuelve a cargar (una consulta) si no existe o caducó."""
+        instantanea = self._instantanea
+        if instantanea is not None and time.monotonic() - self._cargada_en < self._segundos_cache:
+            return instantanea
+        with self._candado_carga:
+            instantanea = self._instantanea
+            if instantanea is None or time.monotonic() - self._cargada_en >= self._segundos_cache:
+                with self._pool.connection() as conn:
+                    filas = conn.execute(f"SELECT clave, contenido FROM {TABLA}").fetchall()
+                instantanea = {clave: contenido for clave, contenido in filas}
+                self._instantanea = instantanea
+                self._cargada_en = time.monotonic()
+            return instantanea
+
+    def precalentar(self) -> None:
+        """Carga la instantánea (y de paso despierta la base de datos) antes de la primera petición."""
+        self._vigente()
+
     def leer(self, clave: str) -> str | None:
-        if clave in self._cache:
-            return self._cache[clave]
-        with self._pool.connection() as conn:
-            fila = conn.execute(
-                f"SELECT contenido FROM {TABLA} WHERE clave = %s", (clave,)
-            ).fetchone()
-        contenido = fila[0] if fila else None
-        self._cache[clave] = contenido
-        return contenido
+        return self._vigente().get(clave)
 
     def escribir(self, clave: str, contenido: str) -> None:
-        self._cache[clave] = contenido
         with self._pool.connection() as conn:
             conn.execute(
                 f"INSERT INTO {TABLA} (clave, contenido) VALUES (%s, %s) "
@@ -180,38 +212,103 @@ class AlmacenPostgres(AlmacenDocumentos):
                 "SET contenido = EXCLUDED.contenido, actualizado = now()",
                 (clave, contenido),
             )
+        self._vigente()[clave] = contenido
 
     def listar(self, prefijo: str = "") -> list[str]:
-        # left() en lugar de LIKE: los "_" de los nombres no deben actuar como comodines
-        with self._pool.connection() as conn:
-            filas = conn.execute(
-                f"SELECT clave, contenido FROM {TABLA} WHERE left(clave, %s) = %s ORDER BY clave",
-                (len(prefijo), prefijo),
-            ).fetchall()
-        for clave_doc, contenido_doc in filas:
-            self._cache[clave_doc] = contenido_doc
-        return [f[0] for f in filas]
+        return sorted(c for c in self._vigente() if c.startswith(prefijo))
 
     def eliminar(self, clave: str) -> bool:
-        self._cache.pop(clave, None)
         with self._pool.connection() as conn:
             cursor = conn.execute(f"DELETE FROM {TABLA} WHERE clave = %s", (clave,))
+        self._vigente().pop(clave, None)
         return cursor.rowcount > 0
 
     def vaciar_cache(self) -> None:
-        """Invalida la caché local en memoria."""
-        self._cache.clear()
+        """Invalida la instantánea: la próxima lectura vuelve a consultar la base."""
+        self._instantanea = None
+
+
+_CANDADO_CONSTRUCCION = threading.Lock()
 
 
 @lru_cache(maxsize=4)
-def _almacen_postgres(url: str) -> AlmacenPostgres:
+def _construir_almacen_postgres(url: str) -> AlmacenPostgres:
     return AlmacenPostgres(url)
 
 
-def almacen_por_defecto() -> AlmacenDocumentos:
+def _almacen_postgres(url: str) -> AlmacenPostgres:
+    """Una sola instancia por URL aunque dos hilos la pidan a la vez (el arranque y el precalentado)."""
+    with _CANDADO_CONSTRUCCION:
+        return _construir_almacen_postgres(url)
+
+
+def almacen_global() -> AlmacenDocumentos:
     """Postgres si hay DATABASE_URL (despliegue en la nube); si no, archivos en ML_DATA_DIR."""
     url = os.getenv("DATABASE_URL", "").strip()
     return _almacen_postgres(url) if url else AlmacenArchivos()
+
+
+# ---------------------------------------------------------------------------- cuentas
+_cuenta_activa: ContextVar[str | None] = ContextVar("cuenta_activa", default=None)
+
+
+def cuentas_activas() -> bool:
+    """True en el despliegue con login (ML_REQUIERE_ACCESO): cada cuenta ve solo sus datos."""
+    return os.getenv("ML_REQUIERE_ACCESO", "").strip().lower() in ("1", "true", "si", "sí")
+
+
+def cuenta_actual() -> str | None:
+    """Id de la cuenta de la petición en curso (None fuera de una petición o sin login)."""
+    return _cuenta_activa.get()
+
+
+@contextmanager
+def en_cuenta(cuenta_id: str | None) -> Iterator[None]:
+    """Ejecuta el bloque con esa cuenta activa (la fija el middleware en cada petición)."""
+    token = _cuenta_activa.set(cuenta_id)
+    try:
+        yield
+    finally:
+        _cuenta_activa.reset(token)
+
+
+class AlmacenPorCuenta(AlmacenDocumentos):
+    """Vista de un almacén que antepone `cuentas/<id>/` a cada clave: datos aislados por cuenta."""
+
+    def __init__(self, base: AlmacenDocumentos, cuenta_id: str):
+        if not cuenta_id or not cuenta_id.isalnum():
+            raise ValueError("Identificador de cuenta no válido.")
+        self._base = base
+        self.prefijo = f"cuentas/{cuenta_id}/"
+
+    def leer(self, clave: str) -> str | None:
+        return self._base.leer(self.prefijo + clave)
+
+    def escribir(self, clave: str, contenido: str) -> None:
+        self._base.escribir(self.prefijo + clave, contenido)
+
+    def listar(self, prefijo: str = "") -> list[str]:
+        return [c[len(self.prefijo) :] for c in self._base.listar(self.prefijo + prefijo)]
+
+    def eliminar(self, clave: str) -> bool:
+        return self._base.eliminar(self.prefijo + clave)
+
+    def bloquear(self, clave: str) -> AbstractContextManager[Any]:
+        return self._base.bloquear(self.prefijo + clave)
+
+
+def almacen_por_defecto() -> AlmacenDocumentos:
+    """
+    El almacén de los repositorios de datos. Con login activo es el de la cuenta de la petición;
+    si no hay cuenta (código fuera de una petición) falla en lugar de mezclar datos de todos.
+    """
+    base = almacen_global()
+    if not cuentas_activas():
+        return base
+    cuenta = cuenta_actual()
+    if cuenta is None:
+        raise PermissionError("No hay una cuenta activa: inicia sesión para acceder a los datos.")
+    return AlmacenPorCuenta(base, cuenta)
 
 
 def almacen_en(ruta: str | None) -> tuple[AlmacenDocumentos, str] | None:
@@ -257,8 +354,13 @@ class DocumentoJson:
 __all__ = [
     "AlmacenArchivos",
     "AlmacenDocumentos",
+    "AlmacenPorCuenta",
     "AlmacenPostgres",
     "DocumentoJson",
     "almacen_en",
+    "almacen_global",
     "almacen_por_defecto",
+    "cuenta_actual",
+    "cuentas_activas",
+    "en_cuenta",
 ]

@@ -5,7 +5,10 @@ Ensambla los routers de la API e inyecta el contenedor IoC mediante app.state.
 
 from __future__ import annotations
 
+import logging
 import os
+import threading
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,8 +18,9 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.gzip import GZipMiddleware
 
 from modular_learning import bootstrap
-from modular_learning.apps.api.acceso import AccesoBasico, parametros_acceso
+from modular_learning.apps.api.autenticacion import Autenticacion
 from modular_learning.apps.api.routers import (
+    auth,
     config,
     guias,
     material,
@@ -36,10 +40,70 @@ from modular_learning.apps.api.seguridad import (
     hosts_permitidos,
 )
 from modular_learning.apps.api.session_store import SessionStore
+from modular_learning.apps.api.tiempos import MedirTiempos
+from modular_learning.infrastructure.persistence.almacen import (
+    almacen_global,
+    almacen_por_defecto,
+    cuentas_activas,
+    en_cuenta,
+)
+from modular_learning.infrastructure.persistence.semilla import sembrar_cuenta
 
 load_dotenv()
 
+logger = logging.getLogger("modular_learning.api")
+
 RUTA_ESTATICOS = Path(__file__).parent / "static"
+
+
+def _precalentar_almacen() -> None:
+    """
+    Con Postgres, carga la instantánea de datos en segundo plano al arrancar: así la primera
+    petición no paga la consulta y Neon empieza a despertar mientras el servidor termina de iniciar.
+    """
+
+    def tarea() -> None:
+        try:
+            almacen = almacen_global()
+            precalentar = getattr(almacen, "precalentar", None)
+            if precalentar:
+                precalentar()
+        except Exception as e:
+            logger.warning("No se pudo precalentar el almacén: %s", e)
+
+    threading.Thread(target=tarea, name="precalentar-almacen", daemon=True).start()
+
+
+def _servicio_de_autenticacion(app: FastAPI, container: bootstrap.Container | None):
+    cont = container or bootstrap.get_container()
+    app.state.container = cont
+    return cont.autenticacion_service
+
+
+def _preparar_cuentas(app: FastAPI) -> None:
+    """Al arrancar: deja lista la cuenta de administrador y, si se pide, sus datos de ejemplo."""
+    servicio = app.state.container.autenticacion_service if app.state.container else None
+    if servicio is None:
+        logger.error("Login activo pero falta ML_CONTRASENA: la API responde 503.")
+        return
+    identificador = os.getenv("ML_USUARIO", "").strip() or "estudiante"
+    admin = servicio.asegurar_admin(
+        identificador, os.getenv("ML_NOMBRE_ADMIN", "Administrador"), os.getenv("ML_CONTRASENA", "")
+    )
+    if os.getenv("ML_SEMBRAR_EJEMPLOS", "").strip().lower() in ("1", "true", "si", "sí"):
+        semilla = os.getenv("ML_SEMILLA_DIR", "/app/semilla")
+        with en_cuenta(admin.id):
+            sembrar_cuenta(almacen_por_defecto(), semilla)
+
+
+@asynccontextmanager
+async def _ciclo_de_vida(app: FastAPI):
+    if cuentas_activas():
+        try:
+            _preparar_cuentas(app)
+        except Exception as e:  # no tumbar el servidor: el detalle queda en el log
+            logger.error("No se pudo preparar la cuenta de administrador: %s", e, exc_info=e)
+    yield
 
 
 def create_app(
@@ -52,19 +116,23 @@ def create_app(
     """
     # En la nube la documentación interactiva de la API no se publica
     sin_docs = {"docs_url": None, "redoc_url": None, "openapi_url": None} if en_nube() else {}
-    app = FastAPI(title="Modular Learning Web", version="2.0.0", **sin_docs)
+    app = FastAPI(
+        title="Modular Learning Web", version="2.0.0", lifespan=_ciclo_de_vida, **sin_docs
+    )
+
+    _precalentar_almacen()
 
     # Inyección del contenedor IoC y almacén de sesiones en el estado de la aplicación
     app.state.container = container
     app.state.session_store = session_store or SessionStore()
 
-    # En la nube toda la web pide usuario y contraseña (ver apps/api/acceso.py)
-    acceso = parametros_acceso()
-    if acceso is not None:
-        app.add_middleware(AccesoBasico, **acceso)
+    # Con login activo (ML_REQUIERE_ACCESO) `/api/` exige sesión por cuenta (ver autenticacion.py)
+    if cuentas_activas():
+        app.add_middleware(Autenticacion, servicio=_servicio_de_autenticacion(app, container))
 
     # De dentro hacia fuera: compresión, cabeceras de seguridad y, la primera barrera, el Host
     app.add_middleware(GZipMiddleware, minimum_size=1024)
+    app.add_middleware(MedirTiempos)
     app.add_middleware(CabecerasSeguridad, hsts=en_nube())
     app.add_middleware(HostsConfiables, allowed_hosts=hosts_permitidos())
 
@@ -74,6 +142,7 @@ def create_app(
         return {"ok": True}
 
     # Registro de routers
+    app.include_router(auth.router)
     app.include_router(config.router)
     app.include_router(materias.router)
     app.include_router(tutoria.router)
@@ -131,8 +200,12 @@ def create_app(
             raise HTTPException(status_code=404, detail="Endpoint no encontrado")
 
         if full_path:
-            posible_archivo = RUTA_ESTATICOS / full_path
-            if posible_archivo.is_file():
+            posible_archivo = (RUTA_ESTATICOS / full_path).resolve()
+            # Solo archivos dentro de static/: "../" (o su forma codificada) no sale de ahí
+            if (
+                posible_archivo.is_relative_to(RUTA_ESTATICOS.resolve())
+                and posible_archivo.is_file()
+            ):
                 return FileResponse(posible_archivo)
 
         if index_html.exists() and assets_dir.exists():

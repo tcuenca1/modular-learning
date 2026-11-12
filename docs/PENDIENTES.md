@@ -271,4 +271,8 @@ Encontrados al implementar P30 a P42 (detalle en cada informe de `docs/CAMBIOS_A
   en local mejoraría FCP/LCP y permitiría quitar los dominios de Google de la CSP (P33).
 - **`OPCIONES_PLUGIN`** (`apps/api/routers/plugins.py`) repite a mano las etiquetas que ya salen de los
   metadatos de los plugins.
-
+- **Login (revisión de seguridad, pendiente de decidir):** el limitador toma la IP del último valor de
+  `X-Forwarded-For` (hay que confirmar cuántos saltos de confianza tiene Render); la cookie lleva `Secure`
+  solo con `ML_EN_NUBE`; el login no comprueba `Origin` (login CSRF, riesgo bajo con `SameSite=Lax`); las
+  sesiones no se pueden revocar una a una (solo al cambiar la contraseña) y cada intento cuesta un scrypt
+  de ~16 MiB, lo que permite agotar CPU con muchos intentos.

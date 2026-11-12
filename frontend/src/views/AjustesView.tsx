@@ -1,21 +1,28 @@
 import { useSearchParams } from 'react-router-dom'
-import { Layers, Settings } from 'lucide-react'
+import { Layers, Settings, UserRound } from 'lucide-react'
+import { useSesion } from '@/hooks/useSesion'
 import { cn } from '@/lib/utils'
+import { CuentaView } from '@/views/CuentaView'
 import { ConfigView } from '@/views/ConfigView'
 import { PluginsView } from '@/views/PluginsView'
 
 const PESTANAS = [
   { id: 'config', nombre: 'Configuración', icono: Settings },
   { id: 'plugins', nombre: 'Plugins', icono: Layers },
+  { id: 'cuenta', nombre: 'Cuenta', icono: UserRound },
 ] as const
 
 type Pestana = (typeof PESTANAS)[number]['id']
 
 export function AjustesView() {
   const [params, setParams] = useSearchParams()
+  const { autenticacion } = useSesion()
 
+  // «Cuenta» solo existe con autenticación activa
+  const pestanas = PESTANAS.filter((p) => p.id !== 'cuenta' || autenticacion)
   const tabParam = params.get('tab')
-  const activa: Pestana = tabParam === 'plugins' ? 'plugins' : 'config'
+  const activa: Pestana =
+    tabParam === 'plugins' ? 'plugins' : tabParam === 'cuenta' && autenticacion ? 'cuenta' : 'config'
 
   const cambiarTab = (nueva: Pestana) => {
     const p = new URLSearchParams(params)
@@ -31,7 +38,7 @@ export function AjustesView() {
     <div className="space-y-6">
       {/* Selector de Pestañas: Configuración, Plugins */}
       <div role="tablist" className="flex gap-6 border-b border-slate-200 dark:border-slate-800">
-        {PESTANAS.map((p) => {
+        {pestanas.map((p) => {
           const Icono = p.icono
           const esActiva = activa === p.id
           return (
@@ -58,6 +65,7 @@ export function AjustesView() {
       {/* Contenido según pestaña */}
       {activa === 'config' && <ConfigView />}
       {activa === 'plugins' && <PluginsView />}
+      {activa === 'cuenta' && <CuentaView />}
     </div>
   )
 }

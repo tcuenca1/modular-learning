@@ -5,6 +5,12 @@ Uso, desde la raíz del repositorio y con la cadena de conexión de Neon en DATA
     venv/Scripts/python.exe deploy/subir_datos.py            # muestra qué subiría
     venv/Scripts/python.exe deploy/subir_datos.py --subir    # lo sube
 
+Con el login por cuentas (la nube), los datos van a UNA cuenta: indica su correo o usuario.
+La cuenta debe existir (el administrador se crea solo al arrancar el servidor la primera vez):
+
+    venv/Scripts/python.exe deploy/subir_datos.py --usuario TU_USUARIO --subir
+    venv/Scripts/python.exe deploy/subir_datos.py --usuario TU_USUARIO --reemplazar --subir
+
 Sube cronogramas, materias, repaso, historial, guías y memoria de plugins tal cual. Los ajustes
 se reemplazan por rutas del servidor: allí no existen la bóveda de Obsidian ni las carpetas de
 material de este equipo. Volver a ejecutarlo sobrescribe en la nube lo que haya cambiado.
@@ -18,10 +24,14 @@ import os
 import sys
 
 from modular_learning import settings
+from modular_learning.core.domain.usuarios import normalizar_identificador
 from modular_learning.infrastructure.persistence.almacen import (
     AlmacenArchivos,
+    AlmacenDocumentos,
+    AlmacenPorCuenta,
     AlmacenPostgres,
 )
+from modular_learning.infrastructure.persistence.json_usuarios import JsonUsuariosRepo
 
 # Rutas dentro del contenedor (ML_DATA_DIR=/app/data en el Dockerfile)
 AJUSTES_NUBE = {
@@ -47,6 +57,15 @@ def main() -> int:
     parser.add_argument(
         "--subir", action="store_true", help="subir de verdad (sin esto, simula)"
     )
+    parser.add_argument(
+        "--usuario",
+        help="correo o usuario de la cuenta que recibe los datos (obligatorio si hay login)",
+    )
+    parser.add_argument(
+        "--reemplazar",
+        action="store_true",
+        help="borra antes todos los datos de esa cuenta (por ejemplo, los de ejemplo)",
+    )
     args = parser.parse_args()
 
     url = os.getenv("DATABASE_URL", "").strip()
@@ -59,11 +78,29 @@ def main() -> int:
     print(f"Datos locales en {origen.raiz}: {len(claves)} documentos")
     for clave in claves:
         print(f"  {clave}")
+    destino: AlmacenDocumentos = AlmacenPostgres(url)
+    if args.usuario:
+        cuenta = JsonUsuariosRepo(destino).obtener_por_correo(normalizar_identificador(args.usuario))
+        if cuenta is None:
+            print(
+                f"No existe la cuenta «{args.usuario}». Abre la web una vez con ese usuario "
+                "(o créala en Ajustes › Cuenta) y vuelve a ejecutar.",
+                file=sys.stderr,
+            )
+            return 1
+        destino = AlmacenPorCuenta(destino, cuenta.id)
+        print(f"Destino: cuenta {cuenta.correo} ({cuenta.id})")
+    elif os.getenv("ML_REQUIERE_ACCESO", "").strip().lower() in ("1", "true", "si", "sí"):
+        print("Con ML_REQUIERE_ACCESO hay que indicar --usuario.", file=sys.stderr)
+        return 1
     if not args.subir:
         print("\nSimulación: añade --subir para copiarlos a Postgres.")
         return 0
-
-    destino = AlmacenPostgres(url)
+    if args.reemplazar:
+        borrados = destino.listar("")
+        for clave in borrados:
+            destino.eliminar(clave)
+        print(f"Borrados {len(borrados)} documentos previos de la cuenta.")
     for clave in claves:
         contenido = origen.leer(clave)
         if contenido is None:

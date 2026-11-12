@@ -108,3 +108,16 @@ def app_con_stream(crear_cliente):
     # Antes del comodín de la SPA, que si no respondería 404
     cliente.app.router.routes.insert(0, APIRoute("/api/prueba-sse", prueba_sse))
     return cliente
+
+
+@pytest.mark.parametrize(
+    "ruta",
+    [
+        "/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/pyproject.toml",
+        "/..%2f..%2f..%2f..%2f..%2fpyproject.toml",
+        "/assets/../../../../../pyproject.toml",
+    ],
+)
+def test_la_web_estatica_no_sirve_archivos_fuera_de_static(crear_cliente, ruta):
+    r = crear_cliente().get(ruta)
+    assert "[build-system]" not in r.text and "setuptools" not in r.text

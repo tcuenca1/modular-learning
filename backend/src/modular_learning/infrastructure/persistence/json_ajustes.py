@@ -6,7 +6,12 @@ import os
 from typing import Any
 
 from modular_learning.core.ports.config import AjustesPort
-from modular_learning.infrastructure.persistence.almacen import AlmacenDocumentos, DocumentoJson
+from modular_learning.infrastructure.persistence.almacen import (
+    AlmacenDocumentos,
+    DocumentoJson,
+    cuenta_actual,
+    cuentas_activas,
+)
 
 DEFAULT_CARPETA_MATERIAL = "C:/Universidad"
 DEFAULT_OBSIDIAN = "obsidian_vault"
@@ -18,6 +23,12 @@ class JsonAjustesRepo(AjustesPort):
     def __init__(self, ruta_archivo: str | None = None, almacen: AlmacenDocumentos | None = None):
         self._documento = DocumentoJson("config/ajustes.json", ruta_archivo, almacen)
 
+    @staticmethod
+    def _por_cuenta(ruta: str) -> str:
+        """Con login, cada cuenta escribe en su propia subcarpeta del disco del servidor."""
+        cuenta = cuenta_actual() if cuentas_activas() else None
+        return os.path.join(ruta, cuenta) if cuenta else ruta
+
     def _leer(self) -> dict[str, Any]:
         datos = self._documento.leer({})
         return datos if isinstance(datos, dict) else {}
@@ -27,14 +38,16 @@ class JsonAjustesRepo(AjustesPort):
         return bool(datos.get("carpeta_material") and datos.get("ruta_obsidian"))
 
     def carpeta_material(self) -> str:
-        return (
+        return self._por_cuenta(
             self._leer().get("carpeta_material")
             or os.getenv("RUTA_BASE_UNIVERSIDAD")
             or DEFAULT_CARPETA_MATERIAL
         )
 
     def ruta_boveda(self) -> str:
-        return self._leer().get("ruta_obsidian") or os.getenv("RUTA_OBSIDIAN") or DEFAULT_OBSIDIAN
+        return self._por_cuenta(
+            self._leer().get("ruta_obsidian") or os.getenv("RUTA_OBSIDIAN") or DEFAULT_OBSIDIAN
+        )
 
     def obtener_ajustes(self) -> dict[str, Any]:
         return {
