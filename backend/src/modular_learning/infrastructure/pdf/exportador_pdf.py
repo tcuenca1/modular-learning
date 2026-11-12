@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import tempfile
 from pathlib import Path
 
@@ -16,7 +17,7 @@ class ExportadorPdfPyMuPDF(ExportadorPdfPort):
     """Genera documentos PDF en formato A5 a partir de una GuiaOffline."""
 
     def __init__(self) -> None:
-        self._md = markdown_it.MarkdownIt()
+        self._md = markdown_it.MarkdownIt().enable("table")
 
     def exportar_guia(self, guia: GuiaOffline) -> bytes:
         page_rect = fitz.Rect(0, 0, 420, 595)  # A5 (148 x 210 mm)
@@ -32,6 +33,11 @@ class ExportadorPdfPyMuPDF(ExportadorPdfPort):
               p { margin: 5px 0; }
               ul, ol { margin: 5px 0; padding-left: 18px; }
               li { margin-bottom: 3px; }
+              table { border-collapse: collapse; margin: 6px 0; }
+              th { background-color: #e2e8f0; font-weight: bold; text-align: left; }
+              th, td { border: 1px solid #cbd5e1; padding: 3px 6px; font-size: 8.5pt; }
+              blockquote { margin: 6px 0 6px 6px; padding-left: 8px; border-left: 3px solid #fcd34d; color: #475569; }
+              pre { background-color: #f1f5f9; padding: 5px; }
               code { font-family: monospace; font-size: 8.5pt; background-color: #f1f5f9; padding: 1px 3px; }
               .portada { text-align: center; margin-top: 80px; margin-bottom: 40px; }
               .cifra { font-size: 8pt; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
@@ -45,7 +51,7 @@ class ExportadorPdfPyMuPDF(ExportadorPdfPort):
             f"""
             <div class="portada">
               <p class="cifra">Modular Learning · Guía de Estudio Offline</p>
-              <h1>{guia.materia}</h1>
+              <h1>{html.escape(guia.materia)}</h1>
               <p class="subtitulo">{len(guia.clases)} clases · Versión {guia.extension.capitalize()}</p>
             </div>
             <div class="indice">
@@ -56,7 +62,9 @@ class ExportadorPdfPyMuPDF(ExportadorPdfPort):
 
         for c in guia.clases:
             fecha_str = f" ({c.fecha})" if c.fecha else ""
-            html_partes.append(f"<li><strong>{c.tema}</strong>{fecha_str}</li>")
+            html_partes.append(
+                f"<li><strong>{html.escape(c.tema)}</strong>{html.escape(fecha_str)}</li>"
+            )
 
         html_partes.append('</ol></div><div class="salto-pagina"></div>')
 
@@ -65,7 +73,7 @@ class ExportadorPdfPyMuPDF(ExportadorPdfPort):
             html_partes.append(f"""
             <div class="bloque-clase">
               <p class="fecha-clase">CLASE {idx}{fecha_str}</p>
-              <h1>{c.tema}</h1>
+              <h1>{html.escape(c.tema)}</h1>
               {self._md.render(c.contenido or "*(Contenido en desarrollo)*")}
             </div>
             """)
@@ -82,7 +90,7 @@ class ExportadorPdfPyMuPDF(ExportadorPdfPort):
             """)
             for c in clases_con_respuestas:
                 html_partes.append(f"""
-                <h2>{c.tema}</h2>
+                <h2>{html.escape(c.tema)}</h2>
                 {self._md.render(c.respuestas)}
                 """)
             html_partes.append("</div>")

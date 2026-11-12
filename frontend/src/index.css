@@ -414,6 +414,25 @@
   .hoja .katex-display {
     break-inside: avoid;
   }
+  /* Los diálogos de impresión suelen traer «gráficos de fondo» desactivado: sin esto se pierden
+     los fondos y el código (texto claro sobre fondo oscuro) quedaba casi invisible. */
+  .hoja,
+  .hoja * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .hoja pre {
+    background: var(--color-slate-100);
+    border-color: var(--color-slate-300);
+    white-space: pre-wrap;
+    overflow: visible;
+    overflow-wrap: anywhere;
+  }
+  .hoja pre,
+  .hoja pre code,
+  .hoja pre code span {
+    color: var(--color-slate-900) !important;
+  }
   .prose {
     font-size: 10pt;
   }
