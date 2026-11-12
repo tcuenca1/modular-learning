@@ -207,6 +207,9 @@ function ListaGuias({
 
 export function GuiaView() {
   const [params] = useSearchParams()
+  // Solo estos valores relanzan la carga: cambiar de pestaña (?tab=) no debe reiniciar la selección
+  const materiaPedida = params.get('materia')
+  const temaPedido = params.get('tema')
   const [materias, setMaterias] = useState<MateriaConCronograma[] | null>(null)
   const [guias, setGuias] = useState<GuiaResumen[]>([])
   const [parciales, setParciales] = useState<ParcialItem[]>([])
@@ -246,10 +249,10 @@ export function GuiaView() {
       .then(([{ cronogramas }, { materias: catalogo }]) => {
         const lista = materiasConCronograma(cronogramas, catalogo)
         setMaterias(lista)
-        const pedida = params.get('materia')
+        const pedida = materiaPedida
         const elegida = lista.find((m) => pedida && clave(m.materia) === clave(pedida)) ?? lista[0]
         if (!elegida) return
-        const tema = params.get('tema')
+        const tema = temaPedido
         const porTema = tema ? elegida.clases.findIndex((c) => c.tema === tema) : -1
         const inicio = porTema >= 0 ? porTema : Math.max(0, elegida.clases.findIndex((c) => !esCompletada(c)))
         setMateria(elegida.materia)
@@ -259,7 +262,7 @@ export function GuiaView() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
     cargarGuias()
-  }, [params])
+  }, [materiaPedida, temaPedido])
 
   const actual = useMemo(() => materias?.find((m) => m.materia === materia), [materias, materia])
   const [ini, fin] = desde <= hasta ? [desde, hasta] : [hasta, desde]

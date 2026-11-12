@@ -14,6 +14,7 @@ import { api, EVENTO_SESION_EXPIRADA } from '@/api/client'
 import type { Usuario } from '@/api/types'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { Button } from '@/components/ui/button'
+import { VistaActivaContext } from '@/hooks/useVistaActiva'
 import { SesionContext } from '@/hooks/useSesion'
 import type { ContextoSesion } from '@/hooks/useSesion'
 
@@ -57,9 +58,45 @@ function RedirigirConQuery({ ruta, tab }: { ruta: string; tab?: string }) {
   return <Navigate to={`${ruta}${query ? `?${query}` : ''}`} replace />
 }
 
+/**
+ * Vistas con IA: siguen montadas al navegar a otra sección (solo se ocultan), así una tutoría,
+ * un quiz o una ingesta en curso no se pierden al mirar otra pantalla.
+ */
+const PERSISTENTES = {
+  '/estudiar': EstudiarView,
+  '/asignaturas': AsignaturasView,
+} as const
+type RutaPersistente = keyof typeof PERSISTENTES
+
+function esPersistente(ruta: string): ruta is RutaPersistente {
+  return ruta in PERSISTENTES
+}
+
 /** Marco de la aplicación: barra lateral y columna de contenido. */
 function Marco() {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+  const [visitadas, setVisitadas] = useState<Set<string>>(
+    () => new Set(esPersistente(pathname) ? [pathname] : [])
+  )
+  // Se sube al llegar con un destino explícito (p. ej. «Estudiar este tema» desde Hoy): esa vista
+  // se reinicia para aplicarlo. Entrar por el menú no reinicia nada.
+  const [generacion, setGeneracion] = useState<Record<string, number>>({})
+  const [rutaPrevia, setRutaPrevia] = useState(pathname)
+
+  // Todo se resuelve durante el render (patrón recomendado de React): así la vista existe desde el
+  // primer pintado y no hay un cuadro intermedio con el estado viejo.
+  if (rutaPrevia !== pathname) {
+    setRutaPrevia(pathname)
+    if (esPersistente(pathname)) {
+      const destino = new URLSearchParams(search)
+      destino.delete('tab')
+      if (destino.size > 0) setGeneracion((g) => ({ ...g, [pathname]: (g[pathname] ?? 0) + 1 }))
+    }
+  }
+  if (esPersistente(pathname) && !visitadas.has(pathname)) {
+    setVisitadas(new Set(visitadas).add(pathname))
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
       <a
@@ -72,11 +109,27 @@ function Marco() {
       <main id="contenido" tabIndex={-1} className="min-w-0 outline-none md:pl-60">
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8 md:py-12">
           {/* key={pathname}: cada vista entra con un fundido; las pestañas (?tab=) no la reinician */}
-          <div key={pathname} className="animar-entrada">
-            <Suspense fallback={<Cargando />}>
-              <Outlet />
-            </Suspense>
-          </div>
+          {!esPersistente(pathname) && (
+            <div key={pathname} className="animar-entrada">
+              <Suspense fallback={<Cargando />}>
+                <Outlet />
+              </Suspense>
+            </div>
+          )}
+          {(Object.keys(PERSISTENTES) as RutaPersistente[]).map((ruta) => {
+            if (!visitadas.has(ruta)) return null
+            const Vista = PERSISTENTES[ruta]
+            const activa = pathname === ruta
+            return (
+              <div key={`${ruta}:${generacion[ruta] ?? 0}`} hidden={!activa} className={activa ? 'animar-entrada' : undefined}>
+                <VistaActivaContext.Provider value={activa}>
+                  <Suspense fallback={<Cargando />}>
+                    <Vista />
+                  </Suspense>
+                </VistaActivaContext.Provider>
+              </div>
+            )
+          })}
         </div>
       </main>
     </div>
@@ -202,9 +255,9 @@ export default function App() {
           />
           <Route element={<Marco />}>
             <Route path="/" element={<HoyView />} />
-            <Route path="/estudiar" element={<EstudiarView />} />
+            <Route path="/estudiar" element={null} />
             <Route path="/calendario" element={<CalendarioView />} />
-            <Route path="/asignaturas" element={<AsignaturasView />} />
+            <Route path="/asignaturas" element={null} />
             <Route path="/ajustes" element={<AjustesView />} />
             <Route path="/guia/:id/revision" element={<RevisionGuiaView />} />
   

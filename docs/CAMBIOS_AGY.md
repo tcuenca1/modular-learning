@@ -1873,3 +1873,17 @@ pytest 421 passed (nuevos: `test_gemini_reintentos.py`, test API de 503/SSE), ru
 
 ### Dudas o hallazgos
 El PDF directo sigue mostrando las fórmulas LaTeX como texto (`$$…$$`); para fórmulas bonitas usar «Imprimir» → Guardar como PDF.
+
+## P58 · Se pierde lo que se está generando al cambiar de pestaña
+
+### Qué hice
+- Causa: cada vista guardaba su estado con `useState` y React la desmontaba al navegar o cambiar de pestaña (tutoría, quiz, guía, ingesta, generación de materia), cancelando el stream.
+- `App.tsx`: Estudiar y Asignaturas quedan montadas (solo se ocultan) al ir a otra sección; se reinician solo si se llega con un destino explícito (`?tema=`, `?materia=`…).
+- `PanelPersistente` en las pestañas de Estudiar (Tutoría/Repaso/Guía) y Asignaturas (Clases/Material/Proyectos).
+- Las vistas ocultas no tocan la URL (`VistaActivaContext`); `GuiaView` ya no recarga ni reinicia la selección al cambiar `?tab=`.
+
+### Cómo lo verifiqué
+npm lint/build/test; Playwright: el texto escrito sobrevive a cambiar de pestaña y a ir a Calendario y volver por el menú, sin errores de consola.
+
+### Dudas o hallazgos
+Recargar la página (o que el navegador del móvil descarte la pestaña) sigue perdiendo el estado en memoria.

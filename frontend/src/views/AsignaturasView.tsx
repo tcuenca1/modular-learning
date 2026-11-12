@@ -7,6 +7,8 @@ import type { MateriaItem } from '@/api/types'
 import { buscarMateriaPorClave } from '@/lib/asignaturas'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PanelPersistente } from '@/components/PanelPersistente'
+import { useVistaActiva } from '@/hooks/useVistaActiva'
 import { cn } from '@/lib/utils'
 import { MaterialView } from '@/views/MaterialView'
 import { SilabosView } from '@/views/SilabosView'
@@ -21,6 +23,7 @@ type Pestana = (typeof PESTANAS)[number]['id']
 
 export function AsignaturasView() {
   const [params, setParams] = useSearchParams()
+  const visible = useVistaActiva()
 
   // Retrocompatibilidad de pestañas
   const tabParam = params.get('tab')
@@ -94,7 +97,7 @@ export function AsignaturasView() {
 
   // La asignatura activa vive en la URL: sobrevive a recargas y se puede compartir el enlace
   useEffect(() => {
-    if (!materiaActiva) return
+    if (!materiaActiva || !visible) return // oculta: la URL es de otra vista
     setParams(
       (prev) => {
         if (prev.get('materia') === materiaActiva) return prev
@@ -104,7 +107,7 @@ export function AsignaturasView() {
       },
       { replace: true }
     )
-  }, [materiaActiva, setParams])
+  }, [materiaActiva, setParams, visible])
 
   const cambiarTab = (pId: Pestana) => {
     const p = new URLSearchParams(params)
@@ -308,29 +311,29 @@ export function AsignaturasView() {
       </div>
 
       {/* Contenido según pestaña */}
-      {activa === 'clases' && (
+      <PanelPersistente activo={activa === 'clases'}>
         <SilabosView
           embebido
           materiaActivaSlug={materiaActiva}
           onRecargarCatalogo={cargarMaterias}
         />
-      )}
+      </PanelPersistente>
 
-      {activa === 'material' && (
+      <PanelPersistente activo={activa === 'material'}>
         <MaterialView
           embebido
           modo="materiales"
           materiaFiltro={materiaActivaObj?.nombre || '__todas__'}
         />
-      )}
+      </PanelPersistente>
 
-      {activa === 'proyectos' && (
+      <PanelPersistente activo={activa === 'proyectos'}>
         <MaterialView
           embebido
           modo="proyectos"
           materiaFiltro={materiaActivaObj?.nombre || '__todas__'}
         />
-      )}
+      </PanelPersistente>
     </div>
   )
 }

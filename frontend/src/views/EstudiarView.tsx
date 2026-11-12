@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router-dom'
 import { FileDown, GraduationCap, Repeat2 } from 'lucide-react'
+import { PanelPersistente } from '@/components/PanelPersistente'
 import { cn } from '@/lib/utils'
 import { GuiaView } from '@/views/GuiaView'
 import { QuizView } from '@/views/QuizView'
@@ -62,10 +63,16 @@ export function EstudiarView() {
         })}
       </div>
 
-      {/* Contenido del modo activo */}
-      {activa === 'tutoria' && <TutoriaView />}
-      {activa === 'repaso' && <QuizView />}
-      {activa === 'guia' && <GuiaView />}
+      {/* Cada modo sigue montado al cambiar de pestaña: no se pierde lo que se esté generando */}
+      <PanelPersistente activo={activa === 'tutoria'}>
+        <TutoriaView />
+      </PanelPersistente>
+      <PanelPersistente activo={activa === 'repaso'}>
+        <QuizView />
+      </PanelPersistente>
+      <PanelPersistente activo={activa === 'guia'}>
+        <GuiaView />
+      </PanelPersistente>
     </div>
   )
 }
