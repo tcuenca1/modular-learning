@@ -1854,3 +1854,22 @@ ninguno
 
 ### Revisión de Claude
 **Aprobada.** Detalle menor: en `HoyView.tsx` quedaron dos líneas en blanco donde estaba el `enlaceTutoria` local (se limpia en P9).
+
+## P56 · Respuestas de tutoría que se cortan
+
+### Qué hice
+- Adaptador de Gemini: reintentos con espera creciente (1.5/3/6 s) ante 503 «alta demanda», 5xx y errores de red; 429 con esperas de 20/40/60 s; modelo de respaldo opcional (`GEMINI_MODELO_RESPALDO`). Si se agotan, lanza `LLMNoDisponible`, que la API convierte en 503 con mensaje claro (antes: 500 genérico).
+- Streaming: solo se reintenta si el fallo ocurre antes del primer trozo; si se corta a mitad, se avisa con un evento `error` explícito (el texto ya emitido no se duplica).
+- Web (`TutoriaView`, `useEventStream`): aviso permanente «La explicación se cortó…» con botón **Reintentar** (descarta el texto parcial y regenera el paso); ya no se relanza solo en bucle tras un error; un stream POST que termina sin `event: fin` cuenta como error.
+
+### Cómo lo verifiqué
+pytest 421 passed (nuevos: `test_gemini_reintentos.py`, test API de 503/SSE), ruff, import-linter, npm lint/build/test.
+
+## P57 · Imprimir guías pierde formato
+
+### Qué hice
+- Causa reproducida con Playwright (`page.pdf` sin gráficos de fondo): el código usa texto claro sobre fondo oscuro; sin fondos queda casi invisible. Se fuerza `print-color-adjust: exact` y un bloque de código claro en impresión, con `pre-wrap` para no cortar líneas.
+- «Descargar PDF directo» (PyMuPDF): ahora dibuja tablas, citas y bloques de código; los títulos se escapan.
+
+### Dudas o hallazgos
+El PDF directo sigue mostrando las fórmulas LaTeX como texto (`$$…$$`); para fórmulas bonitas usar «Imprimir» → Guardar como PDF.
