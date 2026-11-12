@@ -1,6 +1,14 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { BrowserRouter, Navigate, Outlet, Route, Routes, useSearchParams } from 'react-router-dom'
+import {
+  BrowserRouter,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+  useSearchParams,
+} from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { api, EVENTO_SESION_EXPIRADA } from '@/api/client'
 import type { Usuario } from '@/api/types'
@@ -31,8 +39,11 @@ const RevisionGuiaView = lazy(() =>
 /** Mientras baja el código de una vista: reserva el espacio para no mover el contenido. */
 function Cargando() {
   return (
-    <div role="status" aria-live="polite" className="min-h-[60vh]">
+    <div role="status" aria-live="polite" className="min-h-[60vh] space-y-4">
       <span className="sr-only">Cargando…</span>
+      <div className="h-9 w-2/3 rounded bg-slate-200 motion-safe:animate-pulse dark:bg-slate-800" />
+      <div className="h-4 w-1/3 rounded bg-slate-200 motion-safe:animate-pulse dark:bg-slate-800" />
+      <div className="h-40 rounded bg-slate-200/70 motion-safe:animate-pulse dark:bg-slate-800/70" />
     </div>
   )
 }
@@ -48,6 +59,7 @@ function RedirigirConQuery({ ruta, tab }: { ruta: string; tab?: string }) {
 
 /** Marco de la aplicación: barra lateral y columna de contenido. */
 function Marco() {
+  const { pathname } = useLocation()
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
       <a
@@ -59,9 +71,12 @@ function Marco() {
       <Sidebar />
       <main id="contenido" tabIndex={-1} className="min-w-0 outline-none md:pl-60">
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8 md:py-12">
-          <Suspense fallback={<Cargando />}>
-            <Outlet />
-          </Suspense>
+          {/* key={pathname}: cada vista entra con un fundido; las pestañas (?tab=) no la reinician */}
+          <div key={pathname} className="animar-entrada">
+            <Suspense fallback={<Cargando />}>
+              <Outlet />
+            </Suspense>
+          </div>
         </div>
       </main>
     </div>

@@ -446,7 +446,7 @@ export function TutoriaView() {
                     Paso {pasoActual + 1} de {sesion.pasos.length}
                   </span>
                   {isStreaming && (
-                    <Badge variant="secondary" className="gap-1.5 text-indigo-600 animate-pulse">
+                    <Badge variant="secondary" className="gap-1.5 text-indigo-600 motion-safe:animate-pulse">
                       <RotateCw className="h-3 w-3 animate-spin" /> Escribiendo…
                     </Badge>
                   )}

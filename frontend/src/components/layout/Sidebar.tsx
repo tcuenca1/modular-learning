@@ -209,13 +209,13 @@ export function Sidebar() {
 
       {abierto && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-slate-950/40" onClick={cerrar} />
+          <div className="animar-velo absolute inset-0 bg-slate-950/40" onClick={cerrar} />
           <aside
             id="menu-movil"
             role="dialog"
             aria-modal="true"
             aria-label="Menú principal"
-            className="absolute inset-y-0 left-0 w-64 border-r border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950"
+            className="animar-cajon absolute inset-y-0 left-0 w-64 border-r border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950"
           >
             <button
               ref={botonCerrar}
