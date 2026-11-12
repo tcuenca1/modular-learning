@@ -471,3 +471,43 @@ export interface RevisionGuiaResponse {
   pendientes: string[]
   dudas: { tema: string; dudas: string }[]
 }
+
+// Cuentas y sesión
+export interface Usuario {
+  id: string
+  correo: string
+  nombre: string
+  es_admin: boolean
+}
+
+export interface UsuarioAdmin extends Usuario {
+  activo: boolean
+  creado: string
+}
+
+export interface EstadoSesion {
+  /** false: modo local sin login, se entra directo a la app */
+  autenticacion: boolean
+  usuario: Usuario | null
+}
+
+export interface LoginRequest {
+  correo: string
+  contrasena: string
+}
+
+export interface CambiarContrasenaRequest {
+  actual: string
+  nueva: string
+}
+
+export interface CrearUsuarioRequest {
+  correo: string
+  nombre: string
+  contrasena: string
+}
+
+export interface ActualizarUsuarioRequest {
+  activo?: boolean
+  contrasena?: string
+}

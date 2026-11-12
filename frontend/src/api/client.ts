@@ -1,5 +1,12 @@
 import type {
   ActualizarPluginResponse,
+  ActualizarUsuarioRequest,
+  CambiarContrasenaRequest,
+  CrearUsuarioRequest,
+  EstadoSesion,
+  LoginRequest,
+  Usuario,
+  UsuarioAdmin,
   ClaseCronograma,
   ClaseGuia,
   Configuracion,
@@ -40,7 +47,18 @@ import type {
 
 const BASE_URL = ''
 
-async function handleResponse<T>(res: Response): Promise<T> {
+/** Evento global: el servidor respondió 401, la sesión terminó y hay que volver al login. */
+export const EVENTO_SESION_EXPIRADA = 'ml:sesion-expirada'
+
+export function avisarSesionExpirada(): void {
+  window.dispatchEvent(new Event(EVENTO_SESION_EXPIRADA))
+}
+
+async function handleResponse<T>(
+  res: Response,
+  opciones: { sinAvisoDeSesion?: boolean } = {}
+): Promise<T> {
+  if (res.status === 401 && !opciones.sinAvisoDeSesion) avisarSesionExpirada()
   if (!res.ok) {
     let errorMsg = `Error ${res.status}: ${res.statusText}`
     try {
@@ -56,7 +74,65 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json()
 }
 
+const JSON_HEADERS = { 'Content-Type': 'application/json' }
+
 export const api = {
+  // Cuentas y sesión
+  async getSesion(): Promise<EstadoSesion> {
+    const res = await fetch(`${BASE_URL}/api/auth/yo`)
+    return handleResponse<EstadoSesion>(res, { sinAvisoDeSesion: true })
+  },
+
+  async login(data: LoginRequest): Promise<{ usuario: Usuario }> {
+    const res = await fetch(`${BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(data),
+    })
+    return handleResponse<{ usuario: Usuario }>(res, { sinAvisoDeSesion: true })
+  },
+
+  async logout(): Promise<{ ok: boolean }> {
+    const res = await fetch(`${BASE_URL}/api/auth/logout`, { method: 'POST' })
+    return handleResponse<{ ok: boolean }>(res, { sinAvisoDeSesion: true })
+  },
+
+  async cambiarContrasena(data: CambiarContrasenaRequest): Promise<{ ok: boolean }> {
+    const res = await fetch(`${BASE_URL}/api/auth/contrasena`, {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(data),
+    })
+    // Aquí un 401 es "contraseña actual incorrecta", no sesión caducada
+    return handleResponse<{ ok: boolean }>(res, { sinAvisoDeSesion: true })
+  },
+
+  async getUsuarios(): Promise<{ usuarios: UsuarioAdmin[] }> {
+    const res = await fetch(`${BASE_URL}/api/auth/usuarios`)
+    return handleResponse<{ usuarios: UsuarioAdmin[] }>(res)
+  },
+
+  async crearUsuario(data: CrearUsuarioRequest): Promise<{ usuario: UsuarioAdmin }> {
+    const res = await fetch(`${BASE_URL}/api/auth/usuarios`, {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(data),
+    })
+    return handleResponse<{ usuario: UsuarioAdmin }>(res)
+  },
+
+  async actualizarUsuario(
+    id: string,
+    data: ActualizarUsuarioRequest
+  ): Promise<{ usuario: UsuarioAdmin }> {
+    const res = await fetch(`${BASE_URL}/api/auth/usuarios/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(data),
+    })
+    return handleResponse<{ usuario: UsuarioAdmin }>(res)
+  },
+
   // Configuración
   async getConfig(): Promise<Configuracion> {
     const res = await fetch(`${BASE_URL}/api/config`)

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { avisarSesionExpirada } from '@/api/client'
 
 export interface UseEventStreamOptions<T = unknown> {
   url: string
@@ -136,6 +137,7 @@ export function useEventStream<T = unknown>({
             signal: controller.signal,
           })
 
+          if (response.status === 401) avisarSesionExpirada()
           if (!response.ok) {
             throw new Error(`Error ${response.status}: ${response.statusText}`)
           }
