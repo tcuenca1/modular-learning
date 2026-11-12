@@ -4,20 +4,33 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import warnings
-from typing import Any
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-from modular_learning.core.ports.llm import LLMAdapterBase
+from modular_learning.core.ports.llm import LLMAdapterBase, LLMNoDisponible
 
 warnings.simplefilter("ignore")
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 load_dotenv()
+
+T = TypeVar("T")
+
+# Fallos del servidor o de red que suelen desaparecer solos (503 «alta demanda», cortes de red…)
+_PATRON_TRANSITORIO = re.compile(
+    r"\b(500|502|503|504)\b|UNAVAILABLE|INTERNAL|DEADLINE_EXCEEDED|overloaded|"
+    r"ConnectError|ReadTimeout|ConnectTimeout|RemoteProtocolError|ReadError|ConnectionReset",
+    re.IGNORECASE,
+)
+# Segundos de espera antes de cada reintento de un fallo pasajero
+ESPERAS_REINTENTO = (1.5, 3.0, 6.0)
 
 
 class LLM_GeminiAdapter(LLMAdapterBase):
@@ -25,6 +38,9 @@ class LLM_GeminiAdapter(LLMAdapterBase):
 
     def __init__(self):
         self.modelo_nombre = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+        # Modelo al que pasar si el principal sigue saturado tras los reintentos (opcional)
+        self.modelo_respaldo = os.getenv("GEMINI_MODELO_RESPALDO", "").strip()
+        self._esperas = ESPERAS_REINTENTO
         # El cliente se crea en la primera llamada: sin clave la app arranca igual y solo
         # fallan las funciones que consultan a Gemini, con un mensaje claro
         self._cliente: genai.Client | None = None
@@ -117,149 +133,166 @@ class LLM_GeminiAdapter(LLMAdapterBase):
                 historial_normalizado.append(types.Content(role=rol, parts=partes))
         return historial_normalizado
 
+    # ------------------------------------------------------------------ reintentos
+    def _modelos(self) -> list[str]:
+        """El modelo principal y, si está configurado (GEMINI_MODELO_RESPALDO), uno de respaldo."""
+        modelos = [self.modelo_nombre]
+        if self.modelo_respaldo and self.modelo_respaldo != self.modelo_nombre:
+            modelos.append(self.modelo_respaldo)
+        return modelos
+
+    @staticmethod
+    def _es_limite(e: Exception) -> bool:
+        return "429" in str(e) or "ResourceExhausted" in str(e) or "RESOURCE_EXHAUSTED" in str(e)
+
+    @staticmethod
+    def _es_transitorio(e: Exception) -> bool:
+        """Errores del servidor o de red que suelen desaparecer solos (p. ej. 503 «alta demanda»)."""
+        texto = f"{type(e).__name__} {e}"
+        return bool(_PATRON_TRANSITORIO.search(texto))
+
+    def _llamar(self, operacion: Callable[[str], T]) -> T:
+        """
+        Ejecuta `operacion(modelo)` reintentando los fallos pasajeros con espera creciente y, si
+        siguen, con el modelo de respaldo. Un error que no es pasajero (clave inválida, petición
+        rechazada) se propaga de inmediato; si se agotan los reintentos, LLMNoDisponible.
+        """
+        ultimo: Exception | None = None
+        for modelo in self._modelos():
+            transitorios = limites = 0
+            while True:
+                try:
+                    return operacion(modelo)
+                except Exception as e:
+                    if self._es_limite(e) and limites < 3:
+                        limites += 1
+                        print(f"⚠️ Límite de tasa (429). Esperando {20 * limites}s…")
+                        time.sleep(20 * limites)
+                    elif self._es_transitorio(e) and transitorios < len(self._esperas):
+                        time.sleep(self._esperas[transitorios])
+                        transitorios += 1
+                    elif self._es_limite(e) or self._es_transitorio(e):
+                        ultimo = e
+                        break  # prueba con el modelo de respaldo, si hay
+                    else:
+                        raise
+        raise LLMNoDisponible() from ultimo
+
+    # ------------------------------------------------------------------ generación
     def generar_texto(
         self, prompt: str, contexto_previo: list[dict] | None = None, formato_json: bool = False
     ) -> str:
-        try:
+        config = (
+            types.GenerateContentConfig(response_mime_type="application/json")
+            if formato_json
+            else None
+        )
+
+        def operacion(modelo: str) -> str:
             client = self._configurar()
-            max_reintentos = 3
-            intento = 0
+            if contexto_previo:
+                historial = self._normalizar_historial(contexto_previo)
+                chat = client.chats.create(model=modelo, history=historial)
+                return chat.send_message(prompt, config=config).text
+            return client.models.generate_content(model=modelo, contents=prompt, config=config).text
 
-            config = (
-                types.GenerateContentConfig(response_mime_type="application/json")
-                if formato_json
-                else None
-            )
-
-            while intento < max_reintentos:
-                try:
-                    if contexto_previo:
-                        historial = self._normalizar_historial(contexto_previo)
-                        chat = client.chats.create(model=self.modelo_nombre, history=historial)
-                        response = chat.send_message(prompt, config=config)
-                        return response.text
-                    else:
-                        response = client.models.generate_content(
-                            model=self.modelo_nombre, contents=prompt, config=config
-                        )
-                        return response.text
-                except Exception as e:
-                    if "429" in str(e) or "ResourceExhausted" in str(e):
-                        intento += 1
-                        tiempo_espera = 20 * intento
-                        print(
-                            f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s..."
-                        )
-                        time.sleep(tiempo_espera)
-                    else:
-                        raise
-            raise RuntimeError("Se agotaron los reintentos por Rate Limit con Gemini.")
+        try:
+            return self._llamar(operacion)
+        except LLMNoDisponible:
+            raise
         except Exception as e:
-            raise RuntimeError(f"Ocurrió un error al consultar la API de Google Gemini: {e}")
+            raise RuntimeError(f"Ocurrió un error al consultar la API de Google Gemini: {e}") from e
 
     def generar_texto_con_archivo(self, archivo_inline: dict, prompt: str) -> str:
-        try:
+        def operacion(modelo: str) -> str:
             client = self._configurar()
-            max_reintentos = 3
-            intento = 0
+            mime = archivo_inline.get("mime_type", "application/pdf")
+            ruta = archivo_inline.get("path")
+            file_bytes = archivo_inline.get("data")
+            if file_bytes is None and ruta:
+                with open(ruta, "rb") as f:
+                    file_bytes = f.read()
+            file_bytes = file_bytes or b""
 
-            while intento < max_reintentos:
-                try:
-                    mime = archivo_inline.get("mime_type", "application/pdf")
-                    ruta = archivo_inline.get("path")
-                    file_bytes = archivo_inline.get("data")
-                    if file_bytes is None and ruta:
-                        with open(ruta, "rb") as f:
-                            file_bytes = f.read()
-                    file_bytes = file_bytes or b""
+            if ruta and os.path.exists(ruta) and len(file_bytes) > 4_000_000:
+                contents = [client.files.upload(file=ruta), prompt]
+            else:
+                contents = [types.Part.from_bytes(data=file_bytes, mime_type=mime), prompt]
+            return client.models.generate_content(model=modelo, contents=contents).text
 
-                    if ruta and os.path.exists(ruta) and len(file_bytes) > 4_000_000:
-                        uploaded_file = client.files.upload(file=ruta)
-                        contents = [uploaded_file, prompt]
-                    else:
-                        parte_archivo = types.Part.from_bytes(data=file_bytes, mime_type=mime)
-                        contents = [parte_archivo, prompt]
-
-                    response = client.models.generate_content(
-                        model=self.modelo_nombre, contents=contents
-                    )
-                    return response.text
-                except Exception as e:
-                    if "429" in str(e) or "ResourceExhausted" in str(e):
-                        intento += 1
-                        tiempo_espera = 20 * intento
-                        print(
-                            f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s..."
-                        )
-                        time.sleep(tiempo_espera)
-                    else:
-                        raise
-            raise RuntimeError("Se agotaron los reintentos por Rate Limit con Gemini.")
+        try:
+            return self._llamar(operacion)
+        except LLMNoDisponible:
+            raise
         except Exception as e:
-            raise RuntimeError(f"Error al procesar archivo con Gemini: {e}")
+            raise RuntimeError(f"Error al procesar archivo con Gemini: {e}") from e
 
     def generar_json_estructurado(self, prompt: str) -> dict[str, Any]:
-        try:
+        config = types.GenerateContentConfig(response_mime_type="application/json")
+
+        def operacion(modelo: str) -> Any:
             client = self._configurar()
-            max_reintentos = 3
-            intento = 0
+            response = client.models.generate_content(model=modelo, contents=prompt, config=config)
+            return self._parsear_json(response.text)
 
-            config = types.GenerateContentConfig(response_mime_type="application/json")
-
-            while intento < max_reintentos:
-                try:
-                    response = client.models.generate_content(
-                        model=self.modelo_nombre, contents=prompt, config=config
-                    )
-                    return self._parsear_json(response.text)
-                except Exception as e:
-                    if "429" in str(e) or "ResourceExhausted" in str(e):
-                        intento += 1
-                        tiempo_espera = 20 * intento
-                        print(
-                            f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s..."
-                        )
-                        time.sleep(tiempo_espera)
-                    else:
-                        raise
-            raise RuntimeError("Se agotaron los reintentos por Rate Limit con Gemini.")
+        try:
+            return self._llamar(operacion)
+        except LLMNoDisponible:
+            raise
         except Exception as e:
-            raise RuntimeError(f"Error al obtener JSON estructurado de Gemini: {e}")
+            raise RuntimeError(f"Error al obtener JSON estructurado de Gemini: {e}") from e
 
     def generar_respuesta_stream(self, prompt: str, contexto_previo: list[dict] | None = None):
+        """
+        Texto en streaming. Si Gemini falla ANTES de emitir nada se reintenta con espera creciente
+        (y con el modelo de respaldo); si falla a mitad no se puede reintentar sin repetir texto,
+        así que se avisa con LLMNoDisponible para que la interfaz ofrezca reintentar el paso.
+        """
         try:
             client = self._configurar()
-            max_reintentos = 3
-            intento = 0
+        except Exception as e:
+            raise RuntimeError(f"Error en streaming con la API de Google Gemini: {e}") from e
 
-            while intento < max_reintentos:
+        ultimo: Exception | None = None
+        for modelo in self._modelos():
+            transitorios = limites = 0
+            while True:
+                emitido = False
                 try:
                     if contexto_previo:
                         historial = self._normalizar_historial(contexto_previo)
-                        chat = client.chats.create(model=self.modelo_nombre, history=historial)
-                        response = chat.send_message_stream(prompt)
+                        chat = client.chats.create(model=modelo, history=historial)
+                        respuesta = chat.send_message_stream(prompt)
                     else:
-                        response = client.models.generate_content_stream(
-                            model=self.modelo_nombre, contents=prompt
+                        respuesta = client.models.generate_content_stream(
+                            model=modelo, contents=prompt
                         )
-
-                    for chunk in response:
+                    for chunk in respuesta:
                         if chunk.text:
+                            emitido = True
                             yield chunk.text
                     return
                 except Exception as e:
-                    if "429" in str(e) or "ResourceExhausted" in str(e):
-                        intento += 1
-                        tiempo_espera = 20 * intento
-                        print(
-                            f"⚠️ Límite de tasa (Rate Limit 429) alcanzado. Esperando {tiempo_espera}s..."
-                        )
-                        time.sleep(tiempo_espera)
+                    recuperable = self._es_limite(e) or self._es_transitorio(e)
+                    if not recuperable:
+                        raise RuntimeError(
+                            f"Error en streaming con la API de Google Gemini: {e}"
+                        ) from e
+                    if emitido:
+                        raise LLMNoDisponible(
+                            "La explicación se interrumpió porque el servicio de IA falló. "
+                            "Pulsa «Reintentar» para generarla de nuevo."
+                        ) from e
+                    if self._es_limite(e) and limites < 3:
+                        limites += 1
+                        time.sleep(20 * limites)
+                    elif not self._es_limite(e) and transitorios < len(self._esperas):
+                        time.sleep(self._esperas[transitorios])
+                        transitorios += 1
                     else:
-                        raise
-            raise RuntimeError("Se agotaron los reintentos por Rate Limit con Gemini en streaming.")
-        except Exception as e:
-            raise RuntimeError(f"Error en streaming con la API de Google Gemini: {e}")
+                        ultimo = e
+                        break
+        raise LLMNoDisponible() from ultimo
 
 
 LLMGeminiAdapter = LLM_GeminiAdapter

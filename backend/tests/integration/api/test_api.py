@@ -608,3 +608,34 @@ def test_generar_cronograma_devuelve_un_borrador_sin_guardarlo(app, client):
         ).status_code
         == 422
     )
+
+
+def test_si_la_ia_esta_saturada_el_cliente_recibe_un_mensaje_claro(app, client):
+    from modular_learning.core.ports.llm import LLMNoDisponible
+
+    sesion = servicio_tutoria.SesionTutoria(
+        sesion_id="s9",
+        materia="Redes",
+        tema="ARP",
+        nivel_profundidad="INTERMEDIO",
+        pasos=[{"titulo": "Paso 1", "descripcion": "d"}],
+    )
+
+    class TutoriaSaturada:
+        def iniciar_sesion(self, **_):
+            raise LLMNoDisponible()
+
+        def explicar_paso_stream(self, s, i):
+            yield "Primera parte "
+            raise LLMNoDisponible("La explicación se interrumpió. Pulsa «Reintentar».")
+
+    app.dependency_overrides[get_tutoria_service] = TutoriaSaturada
+
+    r = client.post("/api/tutoria/iniciar", json={"materia": "Redes", "tema": "ARP"})
+    assert r.status_code == 503 and "saturado" in r.json()["detail"]  # antes: 500 genérico
+
+    app.state.session_store.guardar_sesion("s9", sesion)
+    with client.stream("GET", "/api/tutoria/s9/paso/0/stream") as s:
+        texto = "".join(s.iter_text())
+    assert 'data: {"chunk": "Primera parte "}' in texto
+    assert "event: error" in texto and "Pulsa «Reintentar»" in texto and "event: fin" not in texto

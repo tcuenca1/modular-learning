@@ -2,6 +2,22 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
+class LLMNoDisponible(RuntimeError):
+    """
+    El modelo no pudo responder por un problema pasajero (saturación, caída, límite de uso) aun
+    después de reintentar. El mensaje es apto para mostrarlo al estudiante.
+    """
+
+    def __init__(
+        self,
+        mensaje: str = (
+            "El servicio de IA está saturado en este momento. "
+            "Espera unos segundos e inténtalo de nuevo."
+        ),
+    ):
+        super().__init__(mensaje)
+
+
 class LLMAdapterBase(ABC):
     """
     Puerto base (Abstract Base Class) para la abstracción de Modelos de Lenguaje (LLM).
@@ -31,4 +47,4 @@ class LLMAdapterBase(ABC):
 
 LLMPort = LLMAdapterBase
 
-__all__ = ["LLMAdapterBase", "LLMPort"]
+__all__ = ["LLMAdapterBase", "LLMNoDisponible", "LLMPort"]

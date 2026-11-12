@@ -7,6 +7,8 @@ import re
 
 from fastapi import HTTPException
 
+from modular_learning.core.ports.llm import LLMNoDisponible
+
 logger = logging.getLogger("modular_learning.api")
 
 MENSAJE_ERROR_INTERNO = "Ocurrió un error interno. Revisa el registro del servidor."
@@ -27,13 +29,22 @@ def error_cliente(e: Exception, status: int = 400) -> HTTPException:
 
 
 def error_interno(e: Exception) -> HTTPException:
-    """Error 500 genérico; la excepción completa se registra en el log."""
+    """
+    Error 500 genérico; la excepción completa se registra en el log. Si la IA no está disponible
+    es un problema pasajero y se responde 503 con un mensaje que el estudiante puede entender.
+    """
+    if isinstance(e, LLMNoDisponible):
+        logger.warning("IA no disponible: %s", e)
+        return HTTPException(status_code=503, detail=str(e))
     logger.error("Error interno: %s", e, exc_info=e)
     return HTTPException(status_code=500, detail=MENSAJE_ERROR_INTERNO)
 
 
 def mensaje_evento_error(e: Exception) -> str:
     """Texto para un evento SSE de error: genérico, con el detalle en el log."""
+    if isinstance(e, LLMNoDisponible):
+        logger.warning("IA no disponible en un flujo de eventos: %s", e)
+        return str(e)
     logger.error("Error en un flujo de eventos: %s", e, exc_info=e)
     return MENSAJE_ERROR_INTERNO
 
