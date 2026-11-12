@@ -82,6 +82,8 @@ export function TutoriaView() {
   const [sesion, setSesion] = useState<SesionTutoriaResponse | null>(null)
   const [pasoActual, setPasoActual] = useState(0)
   const [explicaciones, setExplicaciones] = useState<Record<number, string>>({})
+  // Error por paso: mientras exista no se relanza el stream solo (evita bucles) y se ofrece «Reintentar»
+  const [erroresPaso, setErroresPaso] = useState<Record<number, string>>({})
   const [pasosCompletados, setPasosCompletados] = useState<Set<number>>(new Set())
 
   // Dudas inline por paso
@@ -148,16 +150,30 @@ export function TutoriaView() {
       setPasosCompletados((prev) => new Set(prev).add(pasoActual))
     },
     onError: (err) => {
-      toast.error('Se cortó la explicación', { description: err.message })
+      setErroresPaso((prev) => ({ ...prev, [pasoActual]: err.message }))
     },
   })
 
   // Lanzar stream cuando se avanza a un paso que aún no tiene explicación
   useEffect(() => {
-    if (sesion && !explicaciones[pasoActual] && !isStreaming) {
+    if (sesion && !explicaciones[pasoActual] && !isStreaming && !erroresPaso[pasoActual]) {
       startStream()
     }
-  }, [sesion, pasoActual, explicaciones, isStreaming, startStream])
+  }, [sesion, pasoActual, explicaciones, isStreaming, erroresPaso, startStream])
+
+  // «Reintentar»: descarta el texto a medias y vuelve a generar el paso completo
+  const reintentarPaso = () => {
+    setExplicaciones((prev) => {
+      const resto = { ...prev }
+      delete resto[pasoActual]
+      return resto
+    })
+    setErroresPaso((prev) => {
+      const resto = { ...prev }
+      delete resto[pasoActual]
+      return resto
+    })
+  }
 
   const handleIniciar = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -178,6 +194,7 @@ export function TutoriaView() {
       setSesion(res)
       setPasoActual(0)
       setExplicaciones({})
+      setErroresPaso({})
       setPasosCompletados(new Set())
       setDudasPorPaso({})
       setResumenFinal(null)
@@ -446,7 +463,7 @@ export function TutoriaView() {
                     Paso {pasoActual + 1} de {sesion.pasos.length}
                   </span>
                   {isStreaming && (
-                    <Badge variant="secondary" className="gap-1.5 text-indigo-600 animate-pulse">
+                    <Badge variant="secondary" className="gap-1.5 text-indigo-600 motion-safe:animate-pulse">
                       <RotateCw className="h-3 w-3 animate-spin" /> Escribiendo…
                     </Badge>
                   )}
@@ -464,13 +481,30 @@ export function TutoriaView() {
                 <div>
                   {explicacionTexto ? (
                     <Markdown>{explicacionTexto}</Markdown>
-                  ) : (
+                  ) : erroresPaso[pasoActual] ? null : (
                     <div className="flex h-36 items-center justify-center text-slate-400 gap-2">
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
                       <span>El tutor está preparando la explicación…</span>
                     </div>
                   )}
                 </div>
+
+                {erroresPaso[pasoActual] && (
+                  <div
+                    role="alert"
+                    className="mt-4 flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200"
+                  >
+                    <span>
+                      {explicacionTexto
+                        ? 'La explicación se cortó antes de terminar. '
+                        : 'No se pudo generar la explicación. '}
+                      {erroresPaso[pasoActual]}
+                    </span>
+                    <Button size="sm" onClick={reintentarPaso} className="toque gap-1.5 shrink-0">
+                      <RotateCw className="h-3.5 w-3.5" /> Reintentar
+                    </Button>
+                  </div>
+                )}
 
                 {/* Controles de avance */}
                 <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">

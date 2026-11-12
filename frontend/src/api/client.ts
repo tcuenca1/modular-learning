@@ -280,6 +280,20 @@ export const api = {
     return handleResponse<ExtraerSilaboResponse>(res)
   },
 
+  /** Borrador de cronograma de introducción a partir del nombre de la materia (no se guarda). */
+  async generarCronograma(
+    materia: string,
+    numClases = 10,
+    nivel: 'basico' | 'medio' | 'avanzado' = 'medio'
+  ): Promise<ExtraerSilaboResponse> {
+    const res = await fetch(`${BASE_URL}/api/silabo/generar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ materia, num_clases: numClases, nivel }),
+    })
+    return handleResponse<ExtraerSilaboResponse>(res)
+  },
+
   async guardarSilabo(
     materia: string,
     clases: ClaseCronograma[]

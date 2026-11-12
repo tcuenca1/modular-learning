@@ -169,7 +169,7 @@ export function CalendarioView() {
       </header>
 
       {!clases ? (
-        <div className="h-96 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="h-96 motion-safe:animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
       ) : clases.length === 0 ? (
         <p className="text-slate-600 dark:text-slate-400">
           Tus cronogramas no tienen fechas todavía.{' '}

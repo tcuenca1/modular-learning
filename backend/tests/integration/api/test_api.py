@@ -565,3 +565,77 @@ def test_eliminar_asignatura_dos_veces_no_da_500(client):
     assert client.post("/api/materias", json={"nombre": "Temporal"}).status_code == 201
     assert client.delete("/api/materias/temporal").status_code == 200
     assert client.delete("/api/materias/temporal").status_code == 404
+
+
+def test_generar_cronograma_devuelve_un_borrador_sin_guardarlo(app, client):
+    from modular_learning.apps.api.dependencies import get_silabo_service
+    from modular_learning.core.application.silabo import SilaboService
+    from tests.unit.application.fake_adapters import (
+        FakeLLM,
+        InMemoryCronogramaRepo,
+        InMemoryLectorDocumentosPort,
+        InMemoryMateriaRepo,
+    )
+
+    clases = [
+        {"tema": f"Tema {i}", "objetivo": "Comprender.", "contenido": "Subtemas."}
+        for i in range(10)
+    ]
+    servicio = SilaboService(
+        FakeLLM(json_default=clases),
+        InMemoryCronogramaRepo(),
+        InMemoryMateriaRepo(),
+        InMemoryLectorDocumentosPort(),
+    )
+    app.dependency_overrides[get_silabo_service] = lambda: servicio
+
+    r = client.post("/api/silabo/generar", json={"materia": "Redes de Datos"})
+    assert r.status_code == 200
+    cuerpo = r.json()
+    assert cuerpo["materia"] == "Redes de Datos" and len(cuerpo["datos"]["clases"]) == 10
+    assert client.get("/api/materias/redes-de-datos/cronograma").json() == {
+        "clases": []
+    }  # no se guardó
+
+    assert client.post("/api/silabo/generar", json={"materia": "a/b"}).status_code == 422
+    assert (
+        client.post("/api/silabo/generar", json={"materia": "Redes", "num_clases": 99}).status_code
+        == 422
+    )
+    assert (
+        client.post(
+            "/api/silabo/generar", json={"materia": "Redes", "nivel": "experto"}
+        ).status_code
+        == 422
+    )
+
+
+def test_si_la_ia_esta_saturada_el_cliente_recibe_un_mensaje_claro(app, client):
+    from modular_learning.core.ports.llm import LLMNoDisponible
+
+    sesion = servicio_tutoria.SesionTutoria(
+        sesion_id="s9",
+        materia="Redes",
+        tema="ARP",
+        nivel_profundidad="INTERMEDIO",
+        pasos=[{"titulo": "Paso 1", "descripcion": "d"}],
+    )
+
+    class TutoriaSaturada:
+        def iniciar_sesion(self, **_):
+            raise LLMNoDisponible()
+
+        def explicar_paso_stream(self, s, i):
+            yield "Primera parte "
+            raise LLMNoDisponible("La explicación se interrumpió. Pulsa «Reintentar».")
+
+    app.dependency_overrides[get_tutoria_service] = TutoriaSaturada
+
+    r = client.post("/api/tutoria/iniciar", json={"materia": "Redes", "tema": "ARP"})
+    assert r.status_code == 503 and "saturado" in r.json()["detail"]  # antes: 500 genérico
+
+    app.state.session_store.guardar_sesion("s9", sesion)
+    with client.stream("GET", "/api/tutoria/s9/paso/0/stream") as s:
+        texto = "".join(s.iter_text())
+    assert 'data: {"chunk": "Primera parte "}' in texto
+    assert "event: error" in texto and "Pulsa «Reintentar»" in texto and "event: fin" not in texto

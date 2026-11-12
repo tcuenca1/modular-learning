@@ -202,7 +202,7 @@ export function RevisionGuiaView() {
       </p>
     )
   }
-  if (!guia) return <div className="h-48 max-w-3xl animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
+  if (!guia) return <div className="h-48 max-w-3xl motion-safe:animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
   if (resultado) return <Resultado guia={guia} r={resultado} onDeshacer={handleDeshacer} deshaciendo={deshaciendo} />
 
   if (guia.revisada) {

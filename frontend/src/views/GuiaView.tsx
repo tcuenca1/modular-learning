@@ -414,7 +414,7 @@ export function GuiaView() {
           )}
         </div>
       ) : !materias ? (
-        <div className="h-48 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
+        <div className="h-48 motion-safe:animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800" />
       ) : materias.length === 0 ? (
         <p className="text-slate-600 dark:text-slate-400">
           Aún no hay cronogramas.{' '}

@@ -233,8 +233,8 @@ export function HoyView() {
 
         {!asignaturas ? (
           <div className="mt-4 space-y-3">
-            <div className="h-10 w-3/4 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-            <div className="h-4 w-1/3 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+            <div className="h-10 w-3/4 motion-safe:animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+            <div className="h-4 w-1/3 motion-safe:animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
           </div>
         ) : estado === 'pendiente' && foco ? (
           <>

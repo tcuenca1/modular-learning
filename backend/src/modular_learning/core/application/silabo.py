@@ -5,12 +5,23 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from modular_learning.core.domain.materias import resolver_materia
+from modular_learning.core.domain.json_llm import parsear_json_llm
+from modular_learning.core.domain.materias import resolver_materia, validar_nombre_materia
 from modular_learning.core.ports.documentos import LectorDocumentosPort
 from modular_learning.core.ports.llm import LLMPort
 from modular_learning.core.ports.repositorios import CronogramaRepo, MateriaRepo
 
 EXTENSIONES_SILABO = (".pdf", ".md", ".txt")
+
+# Generación de un cronograma de introducción a partir del nombre de la materia
+MINIMO_CLASES_GENERADAS = 6
+MAXIMO_CLASES_GENERADAS = 16
+MINIMO_CLASES_UTILES = 3  # menos que esto indica una respuesta rota de la IA
+NIVELES_GENERACION = {
+    "basico": "Básico: conceptos fundamentales, sin conocimientos previos.",
+    "medio": "Medio: conceptos y su aplicación con ejemplos, para quien conoce lo elemental.",
+    "avanzado": "Avanzado: profundidad técnica y casos límite, para quien ya domina la base.",
+}
 
 
 class SilaboService:
@@ -116,6 +127,64 @@ class SilaboService:
 
         datos = self.llm.generar_json_estructurado(prompt)
         return self.normalizar_cronograma(datos)
+
+    def generar_cronograma(
+        self, nombre_materia: str, num_clases: int = 10, nivel: str = "medio"
+    ) -> dict:
+        """
+        Propone un cronograma general de introducción a una materia a partir de su nombre, sin
+        sílabo. Es un borrador: no se guarda; el estudiante lo revisa y lo guarda con
+        `guardar_cronograma`. Las clases salen sin fecha y pendientes.
+        """
+        nombre = validar_nombre_materia(nombre_materia)  # también evita inyectar texto en el prompt
+        if not MINIMO_CLASES_GENERADAS <= num_clases <= MAXIMO_CLASES_GENERADAS:
+            raise ValueError(
+                f"El número de clases debe estar entre {MINIMO_CLASES_GENERADAS} y "
+                f"{MAXIMO_CLASES_GENERADAS}."
+            )
+        if nivel not in NIVELES_GENERACION:
+            raise ValueError("El nivel debe ser basico, medio o avanzado.")
+
+        valores = {"materia": nombre, "num_clases": num_clases, "nivel": NIVELES_GENERACION[nivel]}
+        try:
+            prompt = self.lector_docs.leer_prompt("08_generar_cronograma.md").format(**valores)
+        except Exception:
+            prompt = (
+                f"Diseña {num_clases} clases de introducción a la materia «{nombre}» "
+                f"({valores['nivel']}) como arreglo JSON con las claves fecha (vacía), tema, "
+                "objetivo, contenido y estado (pendiente)."
+            )
+
+        try:
+            datos = self.llm.generar_json_estructurado(prompt)
+        except Exception:
+            datos = parsear_json_llm(self.llm.generar_texto(prompt))
+        clases_crudas = self.normalizar_cronograma(datos)["clases"]
+
+        clases: list[dict[str, str | int]] = []
+        for crudo in clases_crudas:
+            tema = (
+                " ".join(str(crudo.get("tema", "")).split())[:120]
+                if isinstance(crudo, dict)
+                else ""
+            )
+            if not tema:
+                continue
+            clases.append(
+                {
+                    "clase": len(clases) + 1,
+                    "fecha": "",
+                    "tema": tema,
+                    "objetivo": " ".join(str(crudo.get("objetivo", "")).split())[:300],
+                    "contenido": " ".join(str(crudo.get("contenido", "")).split())[:800],
+                    "estado": "pendiente",
+                }
+            )
+            if len(clases) == num_clases:
+                break
+        if len(clases) < MINIMO_CLASES_UTILES:
+            raise ValueError("La IA no devolvió clases utilizables. Inténtalo de nuevo.")
+        return {"asignatura": nombre, "clases": clases, "borrador_ia": True}
 
     def guardar_cronograma(self, nombre_materia: str, datos: dict | list) -> str:
         """Guarda el cronograma en el repositorio y registra la materia."""
