@@ -18,7 +18,9 @@ import threading
 import time
 import uuid
 from abc import ABC, abstractmethod
-from contextlib import AbstractContextManager
+from collections.abc import Iterator
+from contextlib import AbstractContextManager, contextmanager
+from contextvars import ContextVar
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -114,17 +116,21 @@ class AlmacenArchivos(AlmacenDocumentos):
                 os.remove(temporal)
 
     def listar(self, prefijo: str = "") -> list[str]:
-        carpeta, _, inicio_nombre = prefijo.rpartition("/")
+        """Claves que empiezan por `prefijo`, también en subcarpetas (igual que en Postgres)."""
+        carpeta = prefijo.rpartition("/")[0]
         base = os.path.join(self.raiz, *carpeta.split("/")) if carpeta else str(self.raiz)
         if not os.path.isdir(base):
             return []
-        return sorted(
-            f"{carpeta}/{nombre}" if carpeta else nombre
-            for nombre in os.listdir(base)
-            if nombre.startswith(inicio_nombre)
-            and not nombre.endswith(".tmp")
-            and os.path.isfile(os.path.join(base, nombre))
-        )
+        claves = []
+        for raiz, _, nombres in os.walk(base):
+            for nombre in nombres:
+                if nombre.endswith(".tmp"):
+                    continue
+                relativa = os.path.relpath(os.path.join(raiz, nombre), self.raiz)
+                clave = relativa.replace(os.sep, "/")
+                if clave.startswith(prefijo):
+                    claves.append(clave)
+        return sorted(claves)
 
     def eliminar(self, clave: str) -> bool:
         ruta = self._ruta(clave)
@@ -222,9 +228,18 @@ class AlmacenPostgres(AlmacenDocumentos):
         self._instantanea = None
 
 
+_CANDADO_CONSTRUCCION = threading.Lock()
+
+
 @lru_cache(maxsize=4)
-def _almacen_postgres(url: str) -> AlmacenPostgres:
+def _construir_almacen_postgres(url: str) -> AlmacenPostgres:
     return AlmacenPostgres(url)
+
+
+def _almacen_postgres(url: str) -> AlmacenPostgres:
+    """Una sola instancia por URL aunque dos hilos la pidan a la vez (el arranque y el precalentado)."""
+    with _CANDADO_CONSTRUCCION:
+        return _construir_almacen_postgres(url)
 
 
 def almacen_global() -> AlmacenDocumentos:
@@ -233,9 +248,67 @@ def almacen_global() -> AlmacenDocumentos:
     return _almacen_postgres(url) if url else AlmacenArchivos()
 
 
+# ---------------------------------------------------------------------------- cuentas
+_cuenta_activa: ContextVar[str | None] = ContextVar("cuenta_activa", default=None)
+
+
+def cuentas_activas() -> bool:
+    """True en el despliegue con login (ML_REQUIERE_ACCESO): cada cuenta ve solo sus datos."""
+    return os.getenv("ML_REQUIERE_ACCESO", "").strip().lower() in ("1", "true", "si", "sí")
+
+
+def cuenta_actual() -> str | None:
+    """Id de la cuenta de la petición en curso (None fuera de una petición o sin login)."""
+    return _cuenta_activa.get()
+
+
+@contextmanager
+def en_cuenta(cuenta_id: str | None) -> Iterator[None]:
+    """Ejecuta el bloque con esa cuenta activa (la fija el middleware en cada petición)."""
+    token = _cuenta_activa.set(cuenta_id)
+    try:
+        yield
+    finally:
+        _cuenta_activa.reset(token)
+
+
+class AlmacenPorCuenta(AlmacenDocumentos):
+    """Vista de un almacén que antepone `cuentas/<id>/` a cada clave: datos aislados por cuenta."""
+
+    def __init__(self, base: AlmacenDocumentos, cuenta_id: str):
+        if not cuenta_id or not cuenta_id.isalnum():
+            raise ValueError("Identificador de cuenta no válido.")
+        self._base = base
+        self.prefijo = f"cuentas/{cuenta_id}/"
+
+    def leer(self, clave: str) -> str | None:
+        return self._base.leer(self.prefijo + clave)
+
+    def escribir(self, clave: str, contenido: str) -> None:
+        self._base.escribir(self.prefijo + clave, contenido)
+
+    def listar(self, prefijo: str = "") -> list[str]:
+        return [c[len(self.prefijo) :] for c in self._base.listar(self.prefijo + prefijo)]
+
+    def eliminar(self, clave: str) -> bool:
+        return self._base.eliminar(self.prefijo + clave)
+
+    def bloquear(self, clave: str) -> AbstractContextManager[Any]:
+        return self._base.bloquear(self.prefijo + clave)
+
+
 def almacen_por_defecto() -> AlmacenDocumentos:
-    """El almacén de los repositorios de datos (hoy el global; luego el de la cuenta activa)."""
-    return almacen_global()
+    """
+    El almacén de los repositorios de datos. Con login activo es el de la cuenta de la petición;
+    si no hay cuenta (código fuera de una petición) falla en lugar de mezclar datos de todos.
+    """
+    base = almacen_global()
+    if not cuentas_activas():
+        return base
+    cuenta = cuenta_actual()
+    if cuenta is None:
+        raise PermissionError("No hay una cuenta activa: inicia sesión para acceder a los datos.")
+    return AlmacenPorCuenta(base, cuenta)
 
 
 def almacen_en(ruta: str | None) -> tuple[AlmacenDocumentos, str] | None:
@@ -281,9 +354,13 @@ class DocumentoJson:
 __all__ = [
     "AlmacenArchivos",
     "AlmacenDocumentos",
+    "AlmacenPorCuenta",
     "AlmacenPostgres",
     "DocumentoJson",
     "almacen_en",
     "almacen_global",
     "almacen_por_defecto",
+    "cuenta_actual",
+    "cuentas_activas",
+    "en_cuenta",
 ]

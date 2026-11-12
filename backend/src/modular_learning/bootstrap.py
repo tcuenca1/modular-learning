@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import os
 from dataclasses import dataclass
 from typing import Any
 
 from modular_learning import settings as global_settings
+from modular_learning.core.application.autenticacion import AutenticacionService
 from modular_learning.core.application.configuracion import ConfiguracionService
 from modular_learning.core.application.evaluacion import EvaluacionService
 from modular_learning.core.application.guias import GuiaOfflineService
@@ -34,6 +38,7 @@ from modular_learning.infrastructure.documents.lector_documentos import LectorDo
 from modular_learning.infrastructure.llm.gemini_adapter import LLM_GeminiAdapter
 from modular_learning.infrastructure.obsidian.boveda_obsidian import BovedaObsidianAdapter
 from modular_learning.infrastructure.pdf.exportador_pdf import ExportadorPdfPyMuPDF
+from modular_learning.infrastructure.persistence.almacen import cuentas_activas
 from modular_learning.infrastructure.persistence.json_ajustes import JsonAjustesRepo
 from modular_learning.infrastructure.persistence.json_guias import JsonGuiasRepo
 from modular_learning.infrastructure.persistence.json_repaso import (
@@ -47,10 +52,12 @@ from modular_learning.infrastructure.persistence.json_repositorios import (
     JsonProyectosRepo,
     JsonRegistroMaterialesRepo,
 )
+from modular_learning.infrastructure.persistence.json_usuarios import JsonUsuariosRepo
 from modular_learning.infrastructure.plugins.cisco import CiscoPlugin
 from modular_learning.infrastructure.plugins.nodered import NodeRedPlugin
 from modular_learning.infrastructure.plugins.web import WebPlugin
 from modular_learning.infrastructure.proyectos.inspector_local import InspectorProyectosLocal
+from modular_learning.infrastructure.seguridad.hasheador_scrypt import HasheadorScrypt
 
 
 @dataclass
@@ -84,9 +91,35 @@ class Container:
     repaso_service: RepasoService
     guias_service: GuiaOfflineService
     proyectos_service: ProyectosService
+    # Solo existe con login activo (ML_REQUIERE_ACCESO) y contraseña de administrador configurada
+    autenticacion_service: AutenticacionService | None = None
 
 
 _global_container: Container | None = None
+
+
+def _secreto_de_sesion() -> str:
+    """
+    ML_SECRETO_SESION, o uno derivado de ML_CONTRASENA para que las sesiones sobrevivan a los
+    reinicios sin configurar nada más (Render duerme y reinicia el servicio a menudo).
+    """
+    explicito = os.getenv("ML_SECRETO_SESION", "").strip()
+    if explicito:
+        return explicito
+    contrasena = os.getenv("ML_CONTRASENA", "")
+    if not contrasena:
+        return ""
+    return hmac.new(b"modular-learning/sesion", contrasena.encode(), hashlib.sha256).hexdigest()
+
+
+def construir_autenticacion() -> AutenticacionService | None:
+    """Servicio de cuentas, o None si el login no está activo o falta ML_CONTRASENA."""
+    if not cuentas_activas():
+        return None
+    secreto = _secreto_de_sesion()
+    if not secreto:
+        return None
+    return AutenticacionService(JsonUsuariosRepo(), HasheadorScrypt(), secreto)
 
 
 def build_container(settings: Any | None = None) -> Container:
@@ -228,6 +261,7 @@ def build_container(settings: Any | None = None) -> Container:
         repaso_service=repaso_service,
         guias_service=guias_service,
         proyectos_service=proyectos_service,
+        autenticacion_service=construir_autenticacion(),
     )
 
     global _global_container

@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from modular_learning.apps.api.dependencies import get_configuracion_service
 from modular_learning.apps.api.errores import error_cliente, error_interno
@@ -33,6 +33,9 @@ def guardar_configuracion(
     body: GuardarConfig,
     servicio: Annotated[ConfiguracionService, Depends(get_configuracion_service)],
 ) -> dict[str, Any]:
+    if os.getenv("ML_EN_NUBE") == "1":
+        # En la nube las carpetas son del servidor y no se eligen desde el navegador
+        raise HTTPException(403, "En la nube las carpetas las gestiona el servidor.")
     try:
         return servicio.guardar_ajustes(body.carpeta_material, body.ruta_obsidian)
     except (FileNotFoundError, ValueError) as e:

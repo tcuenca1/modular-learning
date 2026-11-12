@@ -97,3 +97,23 @@ def test_almacen_por_defecto_usa_archivos_sin_database_url(tmp_path, monkeypatch
     assert isinstance(almacen, AlmacenArchivos)
     almacen.escribir("config/materias.txt", "A")
     assert (tmp_path / "config" / "materias.txt").read_text(encoding="utf-8") == "A"
+
+
+def test_listar_incluye_subcarpetas_igual_en_archivos_y_en_postgres(almacen):
+    almacen.escribir("cuentas/a1/config/materias.json", "[]")
+    almacen.escribir("cuentas/a1/schedules/X_cronograma.json", "{}")
+    almacen.escribir("cuentas/a2/config/materias.json", "[]")
+    almacen.escribir("auth/usuarios.json", "[]")
+
+    assert almacen.listar("cuentas/a1/") == [
+        "cuentas/a1/config/materias.json",
+        "cuentas/a1/schedules/X_cronograma.json",
+    ]
+    assert almacen.listar("cuentas/a1/sch") == ["cuentas/a1/schedules/X_cronograma.json"]
+    assert almacen.listar("cuentas/") == [
+        "cuentas/a1/config/materias.json",
+        "cuentas/a1/schedules/X_cronograma.json",
+        "cuentas/a2/config/materias.json",
+    ]
+    assert len(almacen.listar("")) == 4
+    assert almacen.listar("cuentas/a3/") == []

@@ -22,6 +22,7 @@ from modular_learning.infrastructure.persistence.almacen import (
     AlmacenDocumentos,
     DocumentoJson,
     almacen_por_defecto,
+    cuentas_activas,
 )
 
 SUFIJO_CRONOGRAMA = "_cronograma.json"
@@ -56,6 +57,8 @@ class JsonMateriaRepo(MateriaRepo):
             if texto_legado:
                 lineas = [l.strip() for l in texto_legado.splitlines() if l.strip()]
                 materias = [Materia.desde_nombre(n) for n in lineas if n]
+            elif cuentas_activas():
+                materias = []  # una cuenta nueva empieza sin asignaturas
             else:
                 materias = [Materia.desde_nombre(n) for n in self.MATERIAS_INICIALES]
             self._escribir(materias)
